@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Globe, Loader2, ExternalLink, Phone, Mail, UserPlus } from "lucide-react";
+import { Search, Globe, Loader2, ExternalLink, Phone, Mail, UserPlus, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { firecrawlApi } from "@/lib/api/firecrawl";
 import { supabase } from "@/integrations/supabase/client";
 import { PROVINCES_ANGOLA } from "@/lib/constants";
@@ -17,6 +17,12 @@ type SearchResult = {
   title: string;
   description: string;
   markdown?: string;
+};
+
+type AnalyzedResult = SearchResult & {
+  hasWebsite: boolean;
+  businessName: string;
+  contacts: { emails: string[]; phones: string[] };
 };
 
 type ScrapeResult = {
@@ -29,32 +35,64 @@ type ScrapeResult = {
   };
 };
 
+const DIRECTORY_DOMAINS = [
+  "facebook.com", "instagram.com", "tiktok.com", "linkedin.com",
+  "yellow.co.ao", "yelp.com", "google.com/maps", "guiato.com",
+  "tripadvisor.com", "paginas-amarelas", "directorio", "listagem",
+];
+
+const isDirectoryOrSocial = (url: string): boolean => {
+  return DIRECTORY_DOMAINS.some((d) => url.toLowerCase().includes(d));
+};
+
 const Prospection = () => {
-  // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [searchProvince, setSearchProvince] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [analyzedResults, setAnalyzedResults] = useState<AnalyzedResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Scrape state
   const [scrapeUrl, setScrapeUrl] = useState("");
   const [scrapeResult, setScrapeResult] = useState<ScrapeResult | null>(null);
   const [isScraping, setIsScraping] = useState(false);
 
-  // Save to leads
   const [savingUrl, setSavingUrl] = useState<string | null>(null);
+
+  const extractContactInfo = (markdown: string | undefined) => {
+    if (!markdown) return { emails: [], phones: [] };
+    const emails = markdown.match(/[\w.-]+@[\w.-]+\.\w+/g) || [];
+    const phones = markdown.match(/\+?244[\s.-]?\d{3}[\s.-]?\d{3}[\s.-]?\d{3}/g) || [];
+    return {
+      emails: [...new Set(emails)],
+      phones: [...new Set(phones)],
+    };
+  };
+
+  const analyzeResults = (results: SearchResult[]): AnalyzedResult[] => {
+    return results.map((r) => {
+      const noWebsite = isDirectoryOrSocial(r.url);
+      const businessName = r.title?.replace(/\s*[-|–].*$/, "").trim() || "Sem nome";
+      const contacts = extractContactInfo(r.markdown);
+      return { ...r, hasWebsite: !noWebsite, businessName, contacts };
+    }).sort((a, b) => {
+      // Prioritize businesses WITHOUT websites
+      if (!a.hasWebsite && b.hasWebsite) return -1;
+      if (a.hasWebsite && !b.hasWebsite) return 1;
+      return 0;
+    });
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setIsSearching(true);
-    setSearchResults([]);
+    setAnalyzedResults([]);
 
     try {
-      const query = searchProvince
-        ? `${searchQuery} ${searchProvince} Angola`
-        : `${searchQuery} Angola`;
+      const province = searchProvince && searchProvince !== "all" ? searchProvince : "";
+      const locationPart = province ? `${province} Angola` : "Angola";
+      // Search for businesses in directories/social media (likely without own website)
+      const query = `${searchQuery} ${locationPart} contacto telefone`;
 
       const response = await firecrawlApi.search(query, {
         limit: 10,
@@ -63,12 +101,16 @@ const Prospection = () => {
       });
 
       if (response.success && response.data) {
-        setSearchResults(response.data);
-        toast.success(`${response.data.length} resultados encontrados`);
+        const analyzed = analyzeResults(response.data);
+        setAnalyzedResults(analyzed);
 
-        // Log the search
+        const withoutSite = analyzed.filter((r) => !r.hasWebsite).length;
+        toast.success(
+          `${response.data.length} resultados — ${withoutSite} sem website próprio`
+        );
+
         await supabase.from("prospection_logs").insert({
-          query: query,
+          query,
           results_count: response.data.length,
           status: "completed",
         });
@@ -115,21 +157,27 @@ const Prospection = () => {
     }
   };
 
-  const saveAsLead = async (result: SearchResult) => {
+  const saveAsLead = async (result: AnalyzedResult) => {
     setSavingUrl(result.url);
     try {
-      const { error } = await supabase.from("leads").insert({
-        name: result.title || "Sem nome",
-        company: result.title || null,
-        website: result.url || null,
-        notes: result.description || null,
-        source: "firecrawl_search",
-      });
+      const insertData: any = {
+        name: result.businessName,
+        company: result.businessName,
+        website: result.hasWebsite ? result.url : null,
+        notes: result.hasWebsite
+          ? result.description
+          : `Sem website próprio. Encontrado via: ${result.url}\n\n${result.description || ""}`,
+        source: "firecrawl_prospection",
+        service_type: "website",
+        email: result.contacts.emails[0] || null,
+        phone: result.contacts.phones[0] || null,
+      };
 
+      const { error } = await supabase.from("leads").insert(insertData);
       if (error) {
         toast.error("Erro ao guardar lead");
       } else {
-        toast.success("Lead guardado com sucesso!");
+        toast.success("Lead guardado como potencial cliente de website!");
       }
     } catch {
       toast.error("Erro ao guardar lead");
@@ -138,32 +186,26 @@ const Prospection = () => {
     }
   };
 
-  const extractContactInfo = (markdown: string | undefined) => {
-    if (!markdown) return { emails: [], phones: [] };
-    const emails = markdown.match(/[\w.-]+@[\w.-]+\.\w+/g) || [];
-    const phones = markdown.match(/\+?244[\s.-]?\d{3}[\s.-]?\d{3}[\s.-]?\d{3}/g) || [];
-    return {
-      emails: [...new Set(emails)],
-      phones: [...new Set(phones)],
-    };
-  };
+  const noWebsiteCount = analyzedResults.filter((r) => !r.hasWebsite).length;
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Prospecção</h1>
-        <p className="text-muted-foreground">Pesquisa e extracção de leads de empresas angolanas</p>
+        <h1 className="text-2xl font-bold tracking-tight">Prospecção de Websites</h1>
+        <p className="text-muted-foreground">
+          Encontre empresas angolanas sem website — potenciais clientes para o serviço de criação de sites
+        </p>
       </div>
 
       <Tabs defaultValue="search" className="space-y-4">
         <TabsList>
           <TabsTrigger value="search">
             <Search className="mr-2 h-4 w-4" />
-            Pesquisa Web
+            Encontrar Empresas
           </TabsTrigger>
           <TabsTrigger value="scrape">
             <Globe className="mr-2 h-4 w-4" />
-            Scraping de Website
+            Analisar Website
           </TabsTrigger>
         </TabsList>
 
@@ -171,20 +213,20 @@ const Prospection = () => {
         <TabsContent value="search" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Pesquisar Empresas</CardTitle>
+              <CardTitle className="text-base">Pesquisar Empresas Sem Website</CardTitle>
               <CardDescription>
-                Pesquise empresas angolanas por palavra-chave e localização
+                Pesquise por tipo de negócio e localização. Resultados em directórios e redes sociais indicam empresas sem site próprio.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSearch} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="sm:col-span-2 space-y-2">
-                    <Label>Palavra-chave</Label>
+                    <Label>Tipo de Negócio</Label>
                     <Input
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Ex: restaurante, loja de roupa, construtora..."
+                      placeholder="Ex: restaurante, clínica, salão de beleza, oficina..."
                       required
                     />
                   </div>
@@ -214,65 +256,92 @@ const Prospection = () => {
             </CardContent>
           </Card>
 
+          {/* Results Summary */}
+          {analyzedResults.length > 0 && (
+            <div className="flex items-center gap-4 text-sm">
+              <span className="text-muted-foreground">
+                {analyzedResults.length} resultados
+              </span>
+              {noWebsiteCount > 0 && (
+                <Badge variant="destructive" className="gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  {noWebsiteCount} sem website
+                </Badge>
+              )}
+              <Badge variant="secondary" className="gap-1">
+                <CheckCircle2 className="h-3 w-3" />
+                {analyzedResults.length - noWebsiteCount} com website
+              </Badge>
+            </div>
+          )}
+
           {/* Search Results */}
-          {searchResults.length > 0 && (
+          {analyzedResults.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                {searchResults.length} resultados encontrados
-              </h3>
-              {searchResults.map((result, i) => {
-                const contacts = extractContactInfo(result.markdown);
-                return (
-                  <Card key={i}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-medium truncate">{result.title || "Sem título"}</h4>
-                            <a
-                              href={result.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-muted-foreground hover:text-foreground shrink-0"
-                            >
-                              <ExternalLink className="h-3.5 w-3.5" />
-                            </a>
-                          </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {result.description}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">{result.url}</p>
-                          <div className="flex flex-wrap gap-2 pt-1">
-                            {contacts.emails.slice(0, 2).map((email) => (
-                              <Badge key={email} variant="outline" className="text-xs">
-                                <Mail className="mr-1 h-3 w-3" />{email}
-                              </Badge>
-                            ))}
-                            {contacts.phones.slice(0, 2).map((phone) => (
-                              <Badge key={phone} variant="outline" className="text-xs">
-                                <Phone className="mr-1 h-3 w-3" />{phone}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => saveAsLead(result)}
-                          disabled={savingUrl === result.url}
-                          className="shrink-0"
-                        >
-                          {savingUrl === result.url ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+              {analyzedResults.map((result, i) => (
+                <Card
+                  key={i}
+                  className={!result.hasWebsite ? "border-destructive/50 bg-destructive/5" : ""}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-medium truncate">{result.businessName}</h4>
+                          {!result.hasWebsite ? (
+                            <Badge variant="destructive" className="text-xs gap-1 shrink-0">
+                              <AlertTriangle className="h-3 w-3" />
+                              Sem Website
+                            </Badge>
                           ) : (
-                            <><UserPlus className="mr-1 h-4 w-4" />Guardar</>
+                            <Badge variant="secondary" className="text-xs gap-1 shrink-0">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Tem Website
+                            </Badge>
                           )}
-                        </Button>
+                          <a
+                            href={result.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-foreground shrink-0"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {result.description}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{result.url}</p>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {result.contacts.emails.slice(0, 2).map((email) => (
+                            <Badge key={email} variant="outline" className="text-xs">
+                              <Mail className="mr-1 h-3 w-3" />{email}
+                            </Badge>
+                          ))}
+                          {result.contacts.phones.slice(0, 2).map((phone) => (
+                            <Badge key={phone} variant="outline" className="text-xs">
+                              <Phone className="mr-1 h-3 w-3" />{phone}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      <Button
+                        variant={!result.hasWebsite ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => saveAsLead(result)}
+                        disabled={savingUrl === result.url}
+                        className="shrink-0"
+                      >
+                        {savingUrl === result.url ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <><UserPlus className="mr-1 h-4 w-4" />Guardar</>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
         </TabsContent>
@@ -281,9 +350,9 @@ const Prospection = () => {
         <TabsContent value="scrape" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Extrair Contactos de Website</CardTitle>
+              <CardTitle className="text-base">Analisar Website Existente</CardTitle>
               <CardDescription>
-                Insira um URL para extrair emails, telefones e redes sociais automaticamente
+                Verifique a qualidade de um website existente e extraia contactos para oferecer melhorias
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -299,21 +368,20 @@ const Prospection = () => {
                 </div>
                 <Button type="submit" disabled={isScraping}>
                   {isScraping ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />A extrair...</>
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />A analisar...</>
                   ) : (
-                    <><Globe className="mr-2 h-4 w-4" />Extrair Dados</>
+                    <><Globe className="mr-2 h-4 w-4" />Analisar</>
                   )}
                 </Button>
               </form>
             </CardContent>
           </Card>
 
-          {/* Scrape Results */}
           {scrapeResult && (
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">
-                  {scrapeResult.metadata?.title || "Resultado da Extracção"}
+                  {scrapeResult.metadata?.title || "Resultado da Análise"}
                 </CardTitle>
                 {scrapeResult.metadata?.sourceURL && (
                   <CardDescription>{scrapeResult.metadata.sourceURL}</CardDescription>
@@ -357,7 +425,7 @@ const Prospection = () => {
                       {scrapeResult.links && scrapeResult.links.length > 0 && (
                         <div className="space-y-2">
                           <h4 className="text-sm font-medium">
-                            Links Encontrados ({scrapeResult.links.length})
+                            Links ({scrapeResult.links.length})
                           </h4>
                           <div className="max-h-40 overflow-y-auto rounded-md border bg-muted/50 p-3 space-y-1">
                             {scrapeResult.links.slice(0, 20).map((link, i) => (
