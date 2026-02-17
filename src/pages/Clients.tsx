@@ -11,8 +11,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Plus, Search, Phone, Mail, Globe, Building2, MapPin, FileText, Calendar } from "lucide-react";
-import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, SERVICE_TYPE_LABELS, PROVINCES_ANGOLA } from "@/lib/constants";
+import { Plus, Search, Phone, Mail, Globe, Building2, MapPin, FileText, Calendar, MessageCircle, Copy } from "lucide-react";
+import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, SERVICE_TYPE_LABELS, PROVINCES_ANGOLA, MESSAGE_CATEGORIES } from "@/lib/constants";
+
+type Template = {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+};
+
+const DEFAULT_TEMPLATES: Omit<Template, "id">[] = [
+  {
+    title: "Mensagem Inicial",
+    category: "inicial",
+    content: `Olá {{NomeCliente}},\n\nO meu nome é [Seu Nome] e faço parte da equipa da [Agência]. Reparámos que a {{Empresa}} tem um excelente potencial para crescer nas redes sociais.\n\nGostaria de agendar uma breve conversa para apresentar as nossas soluções de {{ServiçoInteressado}}.\n\nCumprimentos!`,
+  },
+  {
+    title: "Follow-up 1",
+    category: "follow_up_1",
+    content: `Olá {{NomeCliente}},\n\nEstou a escrever para dar seguimento à nossa última conversa sobre {{ServiçoInteressado}} para a {{Empresa}}.\n\nTem disponibilidade esta semana para conversarmos?\n\nCumprimentos!`,
+  },
+  {
+    title: "Proposta de Reunião",
+    category: "reuniao",
+    content: `Olá {{NomeCliente}},\n\nGostaria de propor uma reunião para apresentar uma proposta personalizada de {{ServiçoInteressado}} para a {{Empresa}}.\n\nConfirma a sua disponibilidade?\n\nCumprimentos!`,
+  },
+];
 
 type Lead = {
   id: string;
@@ -41,10 +66,16 @@ const Clients = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [form, setForm] = useState({
     name: "", company: "", email: "", phone: "+244 ", province: "", city: "",
     website: "", service_type: "", notes: "",
   });
+
+  const fetchTemplates = async () => {
+    const { data } = await supabase.from("message_templates").select("*").order("created_at");
+    setTemplates((data as Template[]) || []);
+  };
 
   const fetchLeads = async () => {
     let query = supabase.from("leads").select("*").order("created_at", { ascending: false });
@@ -56,6 +87,29 @@ const Clients = () => {
   };
 
   useEffect(() => { fetchLeads(); }, [search, statusFilter]);
+  useEffect(() => { fetchTemplates(); }, []);
+
+  const fillTemplate = (content: string, lead: Lead) => {
+    return content
+      .replace(/\{\{NomeCliente\}\}/g, lead.name || "")
+      .replace(/\{\{Empresa\}\}/g, lead.company || "")
+      .replace(/\{\{ServiçoInteressado\}\}/g, SERVICE_TYPE_LABELS[lead.service_type || ""] || "Website")
+      .replace(/\{\{DataContato\}\}/g, new Date().toLocaleDateString("pt-AO"));
+  };
+
+  const copyForWhatsApp = (content: string, lead: Lead) => {
+    const filled = fillTemplate(content, lead);
+    navigator.clipboard.writeText(filled);
+    toast.success("Mensagem copiada! Cole no WhatsApp.");
+  };
+
+  const openWhatsApp = (content: string, lead: Lead) => {
+    const filled = fillTemplate(content, lead);
+    const phone = (lead.phone || "").replace(/\s+/g, "").replace(/^\+/, "");
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(filled)}`;
+    window.open(url, "_blank");
+  };
+
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,6 +292,38 @@ const Clients = () => {
                     Origem: {selectedLead.source}
                   </div>
                 )}
+
+                {/* WhatsApp Templates */}
+                <Separator />
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium flex items-center gap-2">
+                    <MessageCircle className="h-4 w-4" />
+                    Enviar Mensagem via WhatsApp
+                  </h4>
+                  {(templates.length > 0 ? templates : DEFAULT_TEMPLATES.map((t, i) => ({ ...t, id: `default-${i}` }))).map(t => (
+                    <div key={t.id} className="rounded-md border p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{t.title}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {MESSAGE_CATEGORIES.find(c => c.value === t.category)?.label || t.category}
+                        </Badge>
+                      </div>
+                      <pre className="whitespace-pre-wrap text-xs text-muted-foreground font-sans leading-relaxed max-h-24 overflow-y-auto">
+                        {fillTemplate(t.content, selectedLead)}
+                      </pre>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" className="flex-1" onClick={() => copyForWhatsApp(t.content, selectedLead)}>
+                          <Copy className="mr-1.5 h-3 w-3" />Copiar
+                        </Button>
+                        {selectedLead.phone && (
+                          <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => openWhatsApp(t.content, selectedLead)}>
+                            <MessageCircle className="mr-1.5 h-3 w-3" />WhatsApp
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </>
           )}
