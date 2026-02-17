@@ -2,15 +2,16 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Plus, Search, Phone, Mail, Globe } from "lucide-react";
+import { Plus, Search, Phone, Mail, Globe, Building2, MapPin, FileText, Calendar } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, SERVICE_TYPE_LABELS, PROVINCES_ANGOLA } from "@/lib/constants";
 
 type Lead = {
@@ -25,6 +26,11 @@ type Lead = {
   status: string;
   service_type: string | null;
   notes: string | null;
+  source: string | null;
+  social_facebook: string | null;
+  social_instagram: string | null;
+  social_linkedin: string | null;
+  social_tiktok: string | null;
   created_at: string;
 };
 
@@ -34,6 +40,7 @@ const Clients = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [form, setForm] = useState({
     name: "", company: "", email: "", phone: "+244 ", province: "", city: "",
     website: "", service_type: "", notes: "",
@@ -69,6 +76,12 @@ const Clients = () => {
     setDialogOpen(false);
     setForm({ name: "", company: "", email: "", phone: "+244 ", province: "", city: "", website: "", service_type: "", notes: "" });
     fetchLeads();
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("pt-AO", {
+      day: "2-digit", month: "short", year: "numeric",
+    });
   };
 
   return (
@@ -139,6 +152,98 @@ const Clients = () => {
         </Dialog>
       </div>
 
+      {/* Lead Detail Dialog */}
+      <Dialog open={!!selectedLead} onOpenChange={(open) => !open && setSelectedLead(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          {selectedLead && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {selectedLead.name}
+                  <Badge variant="secondary" className={LEAD_STATUS_COLORS[selectedLead.status] || ""}>
+                    {LEAD_STATUS_LABELS[selectedLead.status] || selectedLead.status}
+                  </Badge>
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                {selectedLead.company && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedLead.company}</span>
+                  </div>
+                )}
+                {selectedLead.phone && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4 text-muted-foreground" />
+                    <a href={`tel:${selectedLead.phone}`} className="text-primary hover:underline">{selectedLead.phone}</a>
+                  </div>
+                )}
+                {selectedLead.email && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="h-4 w-4 text-muted-foreground" />
+                    <a href={`mailto:${selectedLead.email}`} className="text-primary hover:underline">{selectedLead.email}</a>
+                  </div>
+                )}
+                {selectedLead.website && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <a href={selectedLead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">{selectedLead.website}</a>
+                  </div>
+                )}
+                {(selectedLead.province || selectedLead.city) && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span>{[selectedLead.city, selectedLead.province].filter(Boolean).join(", ")}</span>
+                  </div>
+                )}
+                {selectedLead.service_type && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span>Serviço: {SERVICE_TYPE_LABELS[selectedLead.service_type] || selectedLead.service_type}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <span>Criado em {formatDate(selectedLead.created_at)}</span>
+                </div>
+
+                {/* Social links */}
+                {(selectedLead.social_facebook || selectedLead.social_instagram || selectedLead.social_linkedin || selectedLead.social_tiktok) && (
+                  <>
+                    <Separator />
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Redes Sociais</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedLead.social_facebook && <Badge variant="outline"><a href={selectedLead.social_facebook} target="_blank" rel="noopener noreferrer">Facebook</a></Badge>}
+                        {selectedLead.social_instagram && <Badge variant="outline"><a href={selectedLead.social_instagram} target="_blank" rel="noopener noreferrer">Instagram</a></Badge>}
+                        {selectedLead.social_linkedin && <Badge variant="outline"><a href={selectedLead.social_linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></Badge>}
+                        {selectedLead.social_tiktok && <Badge variant="outline"><a href={selectedLead.social_tiktok} target="_blank" rel="noopener noreferrer">TikTok</a></Badge>}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {selectedLead.notes && (
+                  <>
+                    <Separator />
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Notas</h4>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedLead.notes}</p>
+                    </div>
+                  </>
+                )}
+
+                {selectedLead.source && (
+                  <div className="text-xs text-muted-foreground">
+                    Origem: {selectedLead.source}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-wrap gap-3">
@@ -172,7 +277,11 @@ const Clients = () => {
                   {loading ? "A carregar..." : "Sem leads encontrados"}
                 </TableCell></TableRow>
               ) : leads.map(lead => (
-                <TableRow key={lead.id}>
+                <TableRow
+                  key={lead.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setSelectedLead(lead)}
+                >
                   <TableCell className="font-medium">{lead.name}</TableCell>
                   <TableCell className="hidden md:table-cell text-muted-foreground">{lead.company || "—"}</TableCell>
                   <TableCell className="hidden lg:table-cell">

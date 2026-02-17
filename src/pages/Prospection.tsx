@@ -91,31 +91,50 @@ const Prospection = () => {
     try {
       const province = searchProvince && searchProvince !== "all" ? searchProvince : "";
       const locationPart = province ? `${province} Angola` : "Angola";
-      // Search for businesses in directories/social media (likely without own website)
-      const query = `${searchQuery} ${locationPart} contacto telefone`;
 
-      const response = await firecrawlApi.search(query, {
-        limit: 10,
-        lang: "pt",
-        country: "ao",
-      });
+      // Run multiple searches in parallel for more results
+      const queries = [
+        `${searchQuery} ${locationPart} contacto telefone`,
+        `${searchQuery} ${locationPart} site:facebook.com OR site:instagram.com`,
+        `${searchQuery} ${locationPart} google maps endereço`,
+      ];
 
-      if (response.success && response.data) {
-        const analyzed = analyzeResults(response.data);
+      const searchPromises = queries.map((q) =>
+        firecrawlApi.search(q, { limit: 15, lang: "pt", country: "ao" })
+      );
+
+      const responses = await Promise.allSettled(searchPromises);
+
+      const allResults: SearchResult[] = [];
+      const seenUrls = new Set<string>();
+
+      for (const res of responses) {
+        if (res.status === "fulfilled" && res.value.success && res.value.data) {
+          for (const item of res.value.data) {
+            if (!seenUrls.has(item.url)) {
+              seenUrls.add(item.url);
+              allResults.push(item);
+            }
+          }
+        }
+      }
+
+      if (allResults.length > 0) {
+        const analyzed = analyzeResults(allResults);
         setAnalyzedResults(analyzed);
 
         const withoutSite = analyzed.filter((r) => !r.hasWebsite).length;
         toast.success(
-          `${response.data.length} resultados — ${withoutSite} sem website próprio`
+          `${allResults.length} resultados — ${withoutSite} sem website próprio`
         );
 
         await supabase.from("prospection_logs").insert({
-          query,
-          results_count: response.data.length,
+          query: queries[0],
+          results_count: allResults.length,
           status: "completed",
         });
       } else {
-        toast.error(response.error || "Erro na pesquisa");
+        toast.error("Nenhum resultado encontrado. Tente outros termos.");
       }
     } catch (error) {
       console.error("Search error:", error);
