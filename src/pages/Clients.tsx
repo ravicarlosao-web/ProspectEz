@@ -67,10 +67,19 @@ const Clients = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [sellerName, setSellerName] = useState("");
   const [form, setForm] = useState({
     name: "", company: "", email: "", phone: "+244 ", province: "", city: "",
     website: "", service_type: "", notes: "",
   });
+
+  const fetchProfile = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase.from("profiles").select("full_name").eq("user_id", user.id).single();
+      if (data?.full_name) setSellerName(data.full_name);
+    }
+  };
 
   const fetchTemplates = async () => {
     const { data } = await supabase.from("message_templates").select("*").order("created_at");
@@ -87,14 +96,15 @@ const Clients = () => {
   };
 
   useEffect(() => { fetchLeads(); }, [search, statusFilter]);
-  useEffect(() => { fetchTemplates(); }, []);
+  useEffect(() => { fetchTemplates(); fetchProfile(); }, []);
 
   const fillTemplate = (content: string, lead: Lead) => {
     return content
       .replace(/\{\{NomeCliente\}\}/g, lead.name || "")
       .replace(/\{\{Empresa\}\}/g, lead.company || "")
       .replace(/\{\{ServiçoInteressado\}\}/g, SERVICE_TYPE_LABELS[lead.service_type || ""] || "Website")
-      .replace(/\{\{DataContato\}\}/g, new Date().toLocaleDateString("pt-AO"));
+      .replace(/\{\{DataContato\}\}/g, new Date().toLocaleDateString("pt-AO"))
+      .replace(/\[Seu Nome\]/g, sellerName || "[Seu Nome]");
   };
 
   const copyForWhatsApp = (content: string, lead: Lead) => {
@@ -103,11 +113,23 @@ const Clients = () => {
     toast.success("Mensagem copiada! Cole no WhatsApp.");
   };
 
-  const openWhatsApp = (content: string, lead: Lead) => {
+  const updateLeadStatus = async (lead: Lead, newStatus: string) => {
+    const { error } = await supabase.from("leads").update({ status: newStatus as any }).eq("id", lead.id);
+    if (error) { console.error("Erro ao atualizar status:", error); return; }
+    setSelectedLead({ ...lead, status: newStatus });
+    fetchLeads();
+  };
+
+  const openWhatsApp = async (content: string, lead: Lead) => {
     const filled = fillTemplate(content, lead);
     const phone = (lead.phone || "").replace(/\s+/g, "").replace(/^\+/, "");
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(filled)}`;
     window.open(url, "_blank");
+    // Auto-update status to "contactado" if currently "novo"
+    if (lead.status === "novo") {
+      await updateLeadStatus(lead, "contactado");
+      toast.success("Status atualizado para Contactado!");
+    }
   };
 
 
