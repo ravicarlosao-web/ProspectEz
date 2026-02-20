@@ -34,4 +34,9 @@ export const MESSAGE_CATEGORIES = [
   { value: "reuniao", label: "Proposta de Reunião" },
   { value: "agradecimento", label: "Agradecimento" },
   { value: "abandono", label: "Abandono de Lead" },
+  { value: "social_analise", label: "Análise Social Media" },
+  { value: "social_crescimento", label: "Crescimento Social" },
+  { value: "social_conteudo", label: "Conteúdo Profissional" },
+  { value: "social_roi", label: "ROI Social Media" },
+  { value: "social_sem_presenca", label: "Sem Presença Digital" },
 ] as const;
