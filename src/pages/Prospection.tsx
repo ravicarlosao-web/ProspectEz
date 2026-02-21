@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Globe, Loader2, ExternalLink, Phone, Mail, UserPlus, AlertTriangle, CheckCircle2, Instagram, TrendingUp, BarChart3, Users } from "lucide-react";
+import { Search, Globe, Loader2, ExternalLink, Phone, Mail, UserPlus, AlertTriangle, CheckCircle2, Instagram, TrendingUp, BarChart3, Users, Filter, MapPin } from "lucide-react";
 import { firecrawlApi } from "@/lib/api/firecrawl";
 import { supabase } from "@/integrations/supabase/client";
 import { PROVINCES_ANGOLA } from "@/lib/constants";
@@ -23,6 +23,8 @@ type AnalyzedResult = SearchResult & {
   hasWebsite: boolean;
   businessName: string;
   contacts: { emails: string[]; phones: string[] };
+  sources: string[];
+  alreadySaved: boolean;
 };
 
 type SocialAnalyzedResult = SearchResult & {
@@ -40,6 +42,8 @@ type SocialAnalyzedResult = SearchResult & {
     noWebsiteLink: boolean;
   };
   socialProfiles: { platform: string; url: string }[];
+  sources: string[];
+  alreadySaved: boolean;
 };
 
 type ScrapeResult = {
@@ -56,6 +60,7 @@ const DIRECTORY_DOMAINS = [
   "facebook.com", "instagram.com", "tiktok.com", "linkedin.com",
   "yellow.co.ao", "yelp.com", "google.com/maps", "guiato.com",
   "tripadvisor.com", "paginas-amarelas", "directorio", "listagem",
+  "verangola.net", "angolist.com",
 ];
 
 const isDirectoryOrSocial = (url: string): boolean => {
@@ -69,34 +74,102 @@ const SOCIAL_PLATFORMS = [
   { domain: "linkedin.com", name: "LinkedIn", key: "hasLinkedin" as const },
 ];
 
-const analyzeSocialPresence = (results: SearchResult[]): SocialAnalyzedResult[] => {
-  const businessMap = new Map<string, { results: SearchResult[]; profiles: { platform: string; url: string }[] }>();
+const SOURCE_LABELS: Record<string, string> = {
+  linkedin: "LinkedIn",
+  google_maps: "Google Maps",
+  facebook: "Facebook",
+  instagram: "Instagram",
+  verangola: "VerAngola",
+  geral: "Google",
+  directorio: "Directório",
+};
 
-  // Group results by business
+// Normalize business name for dedup
+const normalizeName = (name: string): string => {
+  return name
+    .toLowerCase()
+    .replace(/\s*[-|–@].*$/, "")
+    .replace(/\(.*?\)/g, "")
+    .replace(/[^a-záàâãéèêíïóôõúç\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+// Extract source from URL
+const detectSource = (url: string): string => {
+  const u = url.toLowerCase();
+  if (u.includes("linkedin.com")) return "linkedin";
+  if (u.includes("google.com/maps") || u.includes("goo.gl/maps") || u.includes("maps.google")) return "google_maps";
+  if (u.includes("facebook.com")) return "facebook";
+  if (u.includes("instagram.com")) return "instagram";
+  if (u.includes("verangola.net")) return "verangola";
+  if (isDirectoryOrSocial(u)) return "directorio";
+  return "geral";
+};
+
+// Enhanced contact extraction with broader patterns
+const extractContactInfoStatic = (text: string | undefined) => {
+  if (!text) return { emails: [], phones: [] };
+  
+  const emails = text.match(/[\w.-]+@[\w.-]+\.\w{2,}/g) || [];
+  
+  // Multiple phone patterns for Angola
+  const phonePatterns = [
+    /\+?244[\s.-]?\d{3}[\s.-]?\d{3}[\s.-]?\d{3}/g,
+    /\b9[1-9]\d[\s.-]?\d{3}[\s.-]?\d{3}\b/g, // 9XX XXX XXX without country code
+    /\b2[2-9]\d[\s.-]?\d{3}[\s.-]?\d{3}\b/g,  // landline 2XX XXX XXX
+  ];
+  
+  const phones: string[] = [];
+  for (const pattern of phonePatterns) {
+    const matches = text.match(pattern) || [];
+    phones.push(...matches);
+  }
+  
+  return {
+    emails: [...new Set(emails.filter(e => !e.includes("@example") && !e.includes("@sentry")))],
+    phones: [...new Set(phones)],
+  };
+};
+
+const analyzeSocialPresence = (
+  results: SearchResult[],
+  existingNames: Set<string>
+): SocialAnalyzedResult[] => {
+  const businessMap = new Map<string, {
+    results: SearchResult[];
+    profiles: { platform: string; url: string }[];
+    sources: Set<string>;
+  }>();
+
   for (const r of results) {
-    const businessName = r.title?.replace(/\s*[-|–@].*$/, "").replace(/\(.*?\)/g, "").trim() || "Sem nome";
-    const normalizedName = businessName.toLowerCase().replace(/[^a-záàâãéèêíïóôõúç\s]/g, "").trim();
+    const rawName = r.title?.replace(/\s*[-|–@].*$/, "").replace(/\(.*?\)/g, "").trim() || "Sem nome";
+    const normalizedName = normalizeName(rawName);
+
+    if (!normalizedName || normalizedName.length < 2) continue;
 
     if (!businessMap.has(normalizedName)) {
-      businessMap.set(normalizedName, { results: [], profiles: [] });
+      businessMap.set(normalizedName, { results: [], profiles: [], sources: new Set() });
     }
     const entry = businessMap.get(normalizedName)!;
     entry.results.push(r);
+    entry.sources.add(detectSource(r.url));
 
     for (const platform of SOCIAL_PLATFORMS) {
       if (r.url.toLowerCase().includes(platform.domain)) {
-        entry.profiles.push({ platform: platform.name, url: r.url });
+        if (!entry.profiles.some(p => p.platform === platform.name)) {
+          entry.profiles.push({ platform: platform.name, url: r.url });
+        }
       }
     }
   }
 
   const analyzed: SocialAnalyzedResult[] = [];
 
-  for (const [, entry] of businessMap) {
+  for (const [normalizedName, entry] of businessMap) {
     const mainResult = entry.results[0];
-    const allMarkdown = entry.results.map(r => r.markdown || "").join(" ");
-    const allDescription = entry.results.map(r => r.description || "").join(" ");
-    const combinedText = (allMarkdown + " " + allDescription).toLowerCase();
+    const allText = entry.results.map(r => `${r.markdown || ""} ${r.description || ""}`).join(" ");
+    const combinedText = allText.toLowerCase();
 
     const indicators = {
       hasInstagram: entry.profiles.some(p => p.platform === "Instagram"),
@@ -112,20 +185,17 @@ const analyzeSocialPresence = (results: SearchResult[]): SocialAnalyzedResult[] 
                      entry.results.every(r => isDirectoryOrSocial(r.url)),
     };
 
-    // Calculate social opportunity score (higher = better potential client)
     let score = 0;
     const platformCount = [indicators.hasInstagram, indicators.hasFacebook, indicators.hasTiktok, indicators.hasLinkedin].filter(Boolean).length;
-    
-    // Less platforms = more opportunity
     if (platformCount <= 1) score += 30;
     else if (platformCount === 2) score += 15;
-
     if (indicators.lowFollowers) score += 25;
     if (indicators.irregularPosts) score += 20;
     if (indicators.noProfessionalBio) score += 15;
     if (indicators.noWebsiteLink) score += 10;
 
-    const contacts = extractContactInfoStatic(allMarkdown);
+    const contacts = extractContactInfoStatic(allText);
+    const alreadySaved = existingNames.has(normalizedName);
 
     analyzed.push({
       ...mainResult,
@@ -134,20 +204,16 @@ const analyzeSocialPresence = (results: SearchResult[]): SocialAnalyzedResult[] 
       socialScore: Math.min(score, 100),
       socialIndicators: indicators,
       socialProfiles: entry.profiles,
+      sources: [...entry.sources],
+      alreadySaved,
     });
   }
 
-  return analyzed.sort((a, b) => b.socialScore - a.socialScore);
-};
-
-const extractContactInfoStatic = (markdown: string | undefined) => {
-  if (!markdown) return { emails: [], phones: [] };
-  const emails = markdown.match(/[\w.-]+@[\w.-]+\.\w+/g) || [];
-  const phones = markdown.match(/\+?244[\s.-]?\d{3}[\s.-]?\d{3}[\s.-]?\d{3}/g) || [];
-  return {
-    emails: [...new Set(emails)],
-    phones: [...new Set(phones)],
-  };
+  return analyzed.sort((a, b) => {
+    // Already saved go last
+    if (a.alreadySaved !== b.alreadySaved) return a.alreadySaved ? 1 : -1;
+    return b.socialScore - a.socialScore;
+  });
 };
 
 const getScoreColor = (score: number) => {
@@ -168,7 +234,6 @@ const Prospection = () => {
   const [analyzedResults, setAnalyzedResults] = useState<AnalyzedResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  // Social Media states
   const [socialQuery, setSocialQuery] = useState("");
   const [socialProvince, setSocialProvince] = useState("");
   const [socialResults, setSocialResults] = useState<SocialAnalyzedResult[]>([]);
@@ -179,24 +244,72 @@ const Prospection = () => {
   const [isScraping, setIsScraping] = useState(false);
 
   const [savingUrl, setSavingUrl] = useState<string | null>(null);
+  const [existingLeadNames, setExistingLeadNames] = useState<Set<string>>(new Set());
+  const [searchProgress, setSearchProgress] = useState("");
 
-  const extractContactInfo = (markdown: string | undefined) => {
-    return extractContactInfoStatic(markdown);
-  };
+  // Load existing leads for dedup
+  const loadExistingLeads = useCallback(async () => {
+    const { data } = await supabase.from("leads").select("name, company");
+    if (data) {
+      const names = new Set<string>();
+      for (const lead of data) {
+        if (lead.name) names.add(normalizeName(lead.name));
+        if (lead.company) names.add(normalizeName(lead.company));
+      }
+      setExistingLeadNames(names);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadExistingLeads();
+  }, [loadExistingLeads]);
 
   const analyzeResults = (results: SearchResult[]): AnalyzedResult[] => {
-    return results.map((r) => {
-      const noWebsite = isDirectoryOrSocial(r.url);
-      const businessName = r.title?.replace(/\s*[-|–].*$/, "").trim() || "Sem nome";
-      const contacts = extractContactInfo(r.markdown);
-      return { ...r, hasWebsite: !noWebsite, businessName, contacts };
-    }).sort((a, b) => {
+    const businessMap = new Map<string, {
+      results: SearchResult[];
+      sources: Set<string>;
+    }>();
+
+    for (const r of results) {
+      const rawName = r.title?.replace(/\s*[-|–].*$/, "").replace(/\(.*?\)/g, "").trim() || "Sem nome";
+      const normalized = normalizeName(rawName);
+      if (!normalized || normalized.length < 2) continue;
+
+      if (!businessMap.has(normalized)) {
+        businessMap.set(normalized, { results: [], sources: new Set() });
+      }
+      const entry = businessMap.get(normalized)!;
+      entry.results.push(r);
+      entry.sources.add(detectSource(r.url));
+    }
+
+    const analyzed: AnalyzedResult[] = [];
+    for (const [normalized, entry] of businessMap) {
+      const mainResult = entry.results[0];
+      const allMarkdown = entry.results.map(r => r.markdown || "").join(" ");
+      const noWebsite = entry.results.every(r => isDirectoryOrSocial(r.url));
+      const contacts = extractContactInfoStatic(allMarkdown + " " + entry.results.map(r => r.description || "").join(" "));
+      const alreadySaved = existingLeadNames.has(normalized);
+
+      analyzed.push({
+        ...mainResult,
+        hasWebsite: !noWebsite,
+        businessName: mainResult.title?.replace(/\s*[-|–].*$/, "").trim() || "Sem nome",
+        contacts,
+        sources: [...entry.sources],
+        alreadySaved,
+      });
+    }
+
+    return analyzed.sort((a, b) => {
+      if (a.alreadySaved !== b.alreadySaved) return a.alreadySaved ? 1 : -1;
       if (!a.hasWebsite && b.hasWebsite) return -1;
       if (a.hasWebsite && !b.hasWebsite) return 1;
-      return 0;
+      return b.sources.length - a.sources.length;
     });
   };
 
+  // ==================== WEBSITE SEARCH (multi-source) ====================
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
@@ -207,45 +320,69 @@ const Prospection = () => {
     try {
       const province = searchProvince && searchProvince !== "all" ? searchProvince : "";
       const locationPart = province ? `${province} Angola` : "Angola";
+      const q = searchQuery.trim();
 
+      setSearchProgress("A pesquisar em LinkedIn...");
+      // Multi-source queries - malha fina
       const queries = [
-        `${searchQuery} ${locationPart} contacto telefone`,
-        `${searchQuery} ${locationPart} site:facebook.com OR site:instagram.com`,
-        `${searchQuery} ${locationPart} google maps endereço`,
+        // LinkedIn
+        { q: `${q} ${locationPart} site:linkedin.com/company`, source: "linkedin" },
+        // Google Maps
+        { q: `${q} ${locationPart} google maps contacto endereço telefone`, source: "google_maps" },
+        // Facebook
+        { q: `${q} ${locationPart} site:facebook.com`, source: "facebook" },
+        // Instagram
+        { q: `${q} ${locationPart} site:instagram.com`, source: "instagram" },
+        // VerAngola
+        { q: `${q} ${locationPart} site:verangola.net`, source: "verangola" },
+        // Geral - empresas sem site
+        { q: `${q} ${locationPart} contacto telefone email empresa`, source: "geral" },
+        // Directórios angolanos
+        { q: `${q} Angola directório empresas lista negócio`, source: "directorio" },
       ];
-
-      const searchPromises = queries.map((q) =>
-        firecrawlApi.search(q, { limit: 15, lang: "pt", country: "ao" })
-      );
-
-      const responses = await Promise.allSettled(searchPromises);
 
       const allResults: SearchResult[] = [];
       const seenUrls = new Set<string>();
 
-      for (const res of responses) {
-        if (res.status === "fulfilled" && res.value.success && res.value.data) {
-          for (const item of res.value.data) {
-            if (!seenUrls.has(item.url)) {
-              seenUrls.add(item.url);
-              allResults.push(item);
+      // Execute in batches of 3 to avoid rate limits
+      for (let i = 0; i < queries.length; i += 3) {
+        const batch = queries.slice(i, i + 3);
+        setSearchProgress(`A pesquisar em ${batch.map(b => SOURCE_LABELS[b.source]).join(", ")}...`);
+
+        const batchPromises = batch.map(({ q }) =>
+          firecrawlApi.search(q, { limit: 15, lang: "pt", country: "ao" })
+        );
+
+        const responses = await Promise.allSettled(batchPromises);
+
+        for (const res of responses) {
+          if (res.status === "fulfilled" && res.value.success && res.value.data) {
+            for (const item of res.value.data) {
+              const normalizedUrl = item.url?.toLowerCase().replace(/\/$/, "");
+              if (normalizedUrl && !seenUrls.has(normalizedUrl)) {
+                seenUrls.add(normalizedUrl);
+                allResults.push(item);
+              }
             }
           }
         }
       }
 
+      setSearchProgress("");
+
       if (allResults.length > 0) {
         const analyzed = analyzeResults(allResults);
         setAnalyzedResults(analyzed);
 
-        const withoutSite = analyzed.filter((r) => !r.hasWebsite).length;
+        const withoutSite = analyzed.filter(r => !r.hasWebsite && !r.alreadySaved).length;
+        const alreadySaved = analyzed.filter(r => r.alreadySaved).length;
         toast.success(
-          `${allResults.length} resultados — ${withoutSite} sem website próprio`
+          `${analyzed.length} empresas encontradas — ${withoutSite} sem website${alreadySaved > 0 ? ` (${alreadySaved} já guardadas)` : ""}`
         );
 
         await supabase.from("prospection_logs").insert({
-          query: queries[0],
-          results_count: allResults.length,
+          query: `[MULTI] ${q} ${locationPart}`,
+          results_count: analyzed.length,
           status: "completed",
         });
       } else {
@@ -256,9 +393,11 @@ const Prospection = () => {
       toast.error("Erro ao pesquisar. Verifique a ligação.");
     } finally {
       setIsSearching(false);
+      setSearchProgress("");
     }
   };
 
+  // ==================== SOCIAL MEDIA SEARCH (multi-source) ====================
   const handleSocialSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!socialQuery.trim()) return;
@@ -269,44 +408,72 @@ const Prospection = () => {
     try {
       const province = socialProvince && socialProvince !== "all" ? socialProvince : "";
       const locationPart = province ? `${province} Angola` : "Angola";
+      const q = socialQuery.trim();
 
-      // Search specifically for social media presence
+      setSearchProgress("A analisar redes sociais...");
+
       const queries = [
-        `${socialQuery} ${locationPart} instagram facebook`,
-        `${socialQuery} ${locationPart} site:instagram.com`,
-        `${socialQuery} ${locationPart} site:facebook.com`,
-        `${socialQuery} ${locationPart} redes sociais contacto`,
+        // Instagram profiles
+        { q: `${q} ${locationPart} site:instagram.com`, source: "instagram" },
+        // Facebook pages
+        { q: `${q} ${locationPart} site:facebook.com`, source: "facebook" },
+        // LinkedIn companies
+        { q: `${q} ${locationPart} site:linkedin.com/company`, source: "linkedin" },
+        // TikTok
+        { q: `${q} ${locationPart} site:tiktok.com`, source: "tiktok" },
+        // VerAngola business listings
+        { q: `${q} ${locationPart} site:verangola.net`, source: "verangola" },
+        // Google Maps / business
+        { q: `${q} ${locationPart} redes sociais empresa contacto`, source: "geral" },
+        // Combined social search
+        { q: `${q} ${locationPart} instagram facebook seguidores página`, source: "geral" },
       ];
-
-      const searchPromises = queries.map((q) =>
-        firecrawlApi.search(q, { limit: 10, lang: "pt", country: "ao", scrapeOptions: { formats: ["markdown"] } })
-      );
-
-      const responses = await Promise.allSettled(searchPromises);
 
       const allResults: SearchResult[] = [];
       const seenUrls = new Set<string>();
 
-      for (const res of responses) {
-        if (res.status === "fulfilled" && res.value.success && res.value.data) {
-          for (const item of res.value.data) {
-            if (!seenUrls.has(item.url)) {
-              seenUrls.add(item.url);
-              allResults.push(item);
+      for (let i = 0; i < queries.length; i += 3) {
+        const batch = queries.slice(i, i + 3);
+        setSearchProgress(`A pesquisar em ${batch.map(b => SOURCE_LABELS[b.source] || b.source).join(", ")}...`);
+
+        const batchPromises = batch.map(({ q }) =>
+          firecrawlApi.search(q, {
+            limit: 15,
+            lang: "pt",
+            country: "ao",
+            scrapeOptions: { formats: ["markdown"] },
+          })
+        );
+
+        const responses = await Promise.allSettled(batchPromises);
+
+        for (const res of responses) {
+          if (res.status === "fulfilled" && res.value.success && res.value.data) {
+            for (const item of res.value.data) {
+              const normalizedUrl = item.url?.toLowerCase().replace(/\/$/, "");
+              if (normalizedUrl && !seenUrls.has(normalizedUrl)) {
+                seenUrls.add(normalizedUrl);
+                allResults.push(item);
+              }
             }
           }
         }
       }
 
+      setSearchProgress("");
+
       if (allResults.length > 0) {
-        const analyzed = analyzeSocialPresence(allResults);
+        const analyzed = analyzeSocialPresence(allResults, existingLeadNames);
         setSocialResults(analyzed);
 
-        const highOpp = analyzed.filter(r => r.socialScore >= 70).length;
-        toast.success(`${analyzed.length} empresas analisadas — ${highOpp} com alta oportunidade de Social Media`);
+        const highOpp = analyzed.filter(r => r.socialScore >= 70 && !r.alreadySaved).length;
+        const alreadySaved = analyzed.filter(r => r.alreadySaved).length;
+        toast.success(
+          `${analyzed.length} empresas analisadas — ${highOpp} com alta oportunidade${alreadySaved > 0 ? ` (${alreadySaved} já guardadas)` : ""}`
+        );
 
         await supabase.from("prospection_logs").insert({
-          query: `[SOCIAL] ${queries[0]}`,
+          query: `[SOCIAL-MULTI] ${q} ${locationPart}`,
           results_count: analyzed.length,
           status: "completed",
         });
@@ -318,6 +485,7 @@ const Prospection = () => {
       toast.error("Erro ao pesquisar. Verifique a ligação.");
     } finally {
       setIsSearchingSocial(false);
+      setSearchProgress("");
     }
   };
 
@@ -362,9 +530,9 @@ const Prospection = () => {
         website: result.hasWebsite ? result.url : null,
         notes: result.hasWebsite
           ? result.description
-          : `Sem website próprio. Encontrado via: ${result.url}\n\n${result.description || ""}`,
+          : `Sem website próprio. Encontrado via: ${result.sources.map(s => SOURCE_LABELS[s] || s).join(", ")}\n\n${result.description || ""}`,
         source: "firecrawl_prospection",
-        service_type: "website",
+        service_type: "website" as const,
         email: result.contacts.emails[0] || null,
         phone: result.contacts.phones[0] || null,
       };
@@ -373,7 +541,16 @@ const Prospection = () => {
       if (error) {
         toast.error("Erro ao guardar lead");
       } else {
-        toast.success("Lead guardado como potencial cliente de website!");
+        toast.success("Lead guardado!");
+        // Update existing leads set and mark as saved
+        setExistingLeadNames(prev => {
+          const next = new Set(prev);
+          next.add(normalizeName(result.businessName));
+          return next;
+        });
+        setAnalyzedResults(prev =>
+          prev.map(r => r.url === result.url ? { ...r, alreadySaved: true } : r)
+        );
       }
     } catch {
       toast.error("Erro ao guardar lead");
@@ -395,14 +572,15 @@ const Prospection = () => {
       const insertData: any = {
         name: result.businessName,
         company: result.businessName,
-        website: result.socialProfiles.find(p => p.platform !== "Instagram" && p.platform !== "Facebook")?.url || null,
+        website: null,
         notes: `🎯 Oportunidade Social Media (Score: ${result.socialScore}/100)\n\n` +
                `📊 Indicadores: ${indicators.join(", ") || "N/A"}\n` +
                `📱 Plataformas: ${platforms || "Nenhuma encontrada"}\n` +
+               `🔍 Fontes: ${result.sources.map(s => SOURCE_LABELS[s] || s).join(", ")}\n` +
                `${result.socialProfiles.map(p => `${p.platform}: ${p.url}`).join("\n")}\n\n` +
                `${result.description || ""}`,
         source: "firecrawl_social_prospection",
-        service_type: "social_media",
+        service_type: "social_media" as const,
         email: result.contacts.emails[0] || null,
         phone: result.contacts.phones[0] || null,
         social_instagram: result.socialProfiles.find(p => p.platform === "Instagram")?.url || null,
@@ -416,6 +594,14 @@ const Prospection = () => {
         toast.error("Erro ao guardar lead");
       } else {
         toast.success("Lead guardado como potencial cliente de Social Media!");
+        setExistingLeadNames(prev => {
+          const next = new Set(prev);
+          next.add(normalizeName(result.businessName));
+          return next;
+        });
+        setSocialResults(prev =>
+          prev.map(r => r.url === result.url ? { ...r, alreadySaved: true } : r)
+        );
       }
     } catch {
       toast.error("Erro ao guardar lead");
@@ -424,14 +610,15 @@ const Prospection = () => {
     }
   };
 
-  const noWebsiteCount = analyzedResults.filter((r) => !r.hasWebsite).length;
+  const noWebsiteCount = analyzedResults.filter(r => !r.hasWebsite && !r.alreadySaved).length;
+  const savedCount = analyzedResults.filter(r => r.alreadySaved).length;
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Prospecção</h1>
         <p className="text-muted-foreground">
-          Encontre empresas angolanas — potenciais clientes para Website e Social Media
+          Pesquisa multi-fonte: LinkedIn, Google Maps, Facebook, Instagram, VerAngola
         </p>
       </div>
 
@@ -451,13 +638,16 @@ const Prospection = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Website Search Tab */}
+        {/* ==================== WEBSITE TAB ==================== */}
         <TabsContent value="search" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Pesquisar Empresas Sem Website</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Filter className="h-4 w-4" />
+                Pesquisa Multi-Fonte — Malha Fina
+              </CardTitle>
               <CardDescription>
-                Pesquise por tipo de negócio e localização. Resultados em directórios e redes sociais indicam empresas sem site próprio.
+                Pesquisa em 7 fontes simultâneas: LinkedIn, Google Maps, Facebook, Instagram, VerAngola, Google e directórios angolanos. Empresas já guardadas são filtradas automaticamente.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -468,7 +658,7 @@ const Prospection = () => {
                     <Input
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Ex: restaurante, clínica, salão de beleza..."
+                      placeholder="Ex: restaurante, clínica, salão de beleza, hotel..."
                       required
                     />
                   </div>
@@ -489,39 +679,58 @@ const Prospection = () => {
                 </div>
                 <Button type="submit" disabled={isSearching}>
                   {isSearching ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />A pesquisar...</>
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{searchProgress || "A pesquisar..."}</>
                   ) : (
-                    <><Search className="mr-2 h-4 w-4" />Pesquisar</>
+                    <><Search className="mr-2 h-4 w-4" />Pesquisar em Todas as Fontes</>
                   )}
                 </Button>
               </form>
             </CardContent>
           </Card>
 
+          {/* Source badges */}
           {analyzedResults.length > 0 && (
-            <div className="flex items-center gap-4 text-sm">
-              <span className="text-muted-foreground">{analyzedResults.length} resultados</span>
+            <div className="flex items-center gap-2 flex-wrap text-sm">
+              <span className="text-muted-foreground font-medium">{analyzedResults.length} empresas</span>
               {noWebsiteCount > 0 && (
                 <Badge variant="destructive" className="gap-1">
                   <AlertTriangle className="h-3 w-3" />{noWebsiteCount} sem website
                 </Badge>
               )}
               <Badge variant="secondary" className="gap-1">
-                <CheckCircle2 className="h-3 w-3" />{analyzedResults.length - noWebsiteCount} com website
+                <CheckCircle2 className="h-3 w-3" />{analyzedResults.length - noWebsiteCount - savedCount} com website
               </Badge>
+              {savedCount > 0 && (
+                <Badge variant="outline" className="gap-1 text-muted-foreground">
+                  ✅ {savedCount} já guardadas
+                </Badge>
+              )}
             </div>
           )}
 
           {analyzedResults.length > 0 && (
             <div className="space-y-3">
               {analyzedResults.map((result, i) => (
-                <Card key={i} className={!result.hasWebsite ? "border-destructive/50 bg-destructive/5" : ""}>
+                <Card
+                  key={i}
+                  className={
+                    result.alreadySaved
+                      ? "opacity-50 border-muted"
+                      : !result.hasWebsite
+                      ? "border-destructive/50 bg-destructive/5"
+                      : ""
+                  }
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="font-medium truncate">{result.businessName}</h4>
-                          {!result.hasWebsite ? (
+                          {result.alreadySaved ? (
+                            <Badge variant="outline" className="text-xs gap-1 shrink-0 text-muted-foreground">
+                              ✅ Já guardado
+                            </Badge>
+                          ) : !result.hasWebsite ? (
                             <Badge variant="destructive" className="text-xs gap-1 shrink-0">
                               <AlertTriangle className="h-3 w-3" />Sem Website
                             </Badge>
@@ -534,8 +743,16 @@ const Prospection = () => {
                             <ExternalLink className="h-3.5 w-3.5" />
                           </a>
                         </div>
+                        {/* Sources */}
+                        <div className="flex flex-wrap gap-1">
+                          {result.sources.map(s => (
+                            <Badge key={s} variant="outline" className="text-[10px] px-1.5 py-0">
+                              <MapPin className="mr-0.5 h-2.5 w-2.5" />
+                              {SOURCE_LABELS[s] || s}
+                            </Badge>
+                          ))}
+                        </div>
                         <p className="text-sm text-muted-foreground line-clamp-2">{result.description}</p>
-                        <p className="text-xs text-muted-foreground truncate">{result.url}</p>
                         <div className="flex flex-wrap gap-2 pt-1">
                           {result.contacts.emails.slice(0, 2).map((email) => (
                             <Badge key={email} variant="outline" className="text-xs">
@@ -549,9 +766,11 @@ const Prospection = () => {
                           ))}
                         </div>
                       </div>
-                      <Button variant={!result.hasWebsite ? "default" : "outline"} size="sm" onClick={() => saveAsLead(result)} disabled={savingUrl === result.url} className="shrink-0">
-                        {savingUrl === result.url ? <Loader2 className="h-4 w-4 animate-spin" /> : <><UserPlus className="mr-1 h-4 w-4" />Guardar</>}
-                      </Button>
+                      {!result.alreadySaved && (
+                        <Button variant={!result.hasWebsite ? "default" : "outline"} size="sm" onClick={() => saveAsLead(result)} disabled={savingUrl === result.url} className="shrink-0">
+                          {savingUrl === result.url ? <Loader2 className="h-4 w-4 animate-spin" /> : <><UserPlus className="mr-1 h-4 w-4" />Guardar</>}
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -560,16 +779,16 @@ const Prospection = () => {
           )}
         </TabsContent>
 
-        {/* Social Media Tab */}
+        {/* ==================== SOCIAL MEDIA TAB ==================== */}
         <TabsContent value="social" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Instagram className="h-5 w-5" />
-                Prospecção de Social Media
+                Prospecção Social Media — Multi-Fonte
               </CardTitle>
               <CardDescription>
-                Encontre empresas com presença fraca nas redes sociais. O sistema analisa métricas como número de plataformas, actividade e profissionalismo do perfil para identificar oportunidades.
+                Pesquisa em Instagram, Facebook, LinkedIn, TikTok, VerAngola e Google Maps. Analisa métricas de presença digital para identificar as melhores oportunidades de Social Media. Leads já guardados são excluídos.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -601,9 +820,9 @@ const Prospection = () => {
                 </div>
                 <Button type="submit" disabled={isSearchingSocial}>
                   {isSearchingSocial ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />A analisar redes sociais...</>
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{searchProgress || "A analisar..."}</>
                   ) : (
-                    <><TrendingUp className="mr-2 h-4 w-4" />Analisar Presença Social</>
+                    <><TrendingUp className="mr-2 h-4 w-4" />Analisar em Todas as Fontes</>
                   )}
                 </Button>
               </form>
@@ -612,25 +831,33 @@ const Prospection = () => {
 
           {/* Social Results Summary */}
           {socialResults.length > 0 && (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <Card className="border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-green-600">{socialResults.filter(r => r.socialScore >= 70).length}</div>
+                  <div className="text-2xl font-bold text-green-600">{socialResults.filter(r => r.socialScore >= 70 && !r.alreadySaved).length}</div>
                   <p className="text-xs text-green-700 dark:text-green-400">Alta Oportunidade</p>
                 </CardContent>
               </Card>
               <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800">
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-amber-600">{socialResults.filter(r => r.socialScore >= 40 && r.socialScore < 70).length}</div>
+                  <div className="text-2xl font-bold text-amber-600">{socialResults.filter(r => r.socialScore >= 40 && r.socialScore < 70 && !r.alreadySaved).length}</div>
                   <p className="text-xs text-amber-700 dark:text-amber-400">Média Oportunidade</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-muted-foreground">{socialResults.filter(r => r.socialScore < 40).length}</div>
+                  <div className="text-2xl font-bold text-muted-foreground">{socialResults.filter(r => r.socialScore < 40 && !r.alreadySaved).length}</div>
                   <p className="text-xs text-muted-foreground">Baixa Oportunidade</p>
                 </CardContent>
               </Card>
+              {socialResults.some(r => r.alreadySaved) && (
+                <Card className="border-muted">
+                  <CardContent className="p-4 text-center">
+                    <div className="text-2xl font-bold text-muted-foreground">{socialResults.filter(r => r.alreadySaved).length}</div>
+                    <p className="text-xs text-muted-foreground">Já Guardados</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
 
@@ -638,16 +865,41 @@ const Prospection = () => {
           {socialResults.length > 0 && (
             <div className="space-y-3">
               {socialResults.map((result, i) => (
-                <Card key={i} className={result.socialScore >= 70 ? "border-green-300 dark:border-green-700" : ""}>
+                <Card
+                  key={i}
+                  className={
+                    result.alreadySaved
+                      ? "opacity-50 border-muted"
+                      : result.socialScore >= 70
+                      ? "border-green-300 dark:border-green-700"
+                      : ""
+                  }
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0 space-y-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="font-medium">{result.businessName}</h4>
-                          <Badge className={`text-xs gap-1 ${getScoreColor(result.socialScore)}`}>
-                            <BarChart3 className="h-3 w-3" />
-                            {result.socialScore}/100 — {getScoreLabel(result.socialScore)}
-                          </Badge>
+                          {result.alreadySaved ? (
+                            <Badge variant="outline" className="text-xs gap-1 text-muted-foreground">
+                              ✅ Já guardado
+                            </Badge>
+                          ) : (
+                            <Badge className={`text-xs gap-1 ${getScoreColor(result.socialScore)}`}>
+                              <BarChart3 className="h-3 w-3" />
+                              {result.socialScore}/100 — {getScoreLabel(result.socialScore)}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Sources */}
+                        <div className="flex flex-wrap gap-1">
+                          {result.sources.map(s => (
+                            <Badge key={s} variant="outline" className="text-[10px] px-1.5 py-0">
+                              <MapPin className="mr-0.5 h-2.5 w-2.5" />
+                              {SOURCE_LABELS[s] || s}
+                            </Badge>
+                          ))}
                         </div>
 
                         {/* Social Metrics */}
@@ -667,28 +919,30 @@ const Prospection = () => {
                         </div>
 
                         {/* Indicators */}
-                        <div className="flex flex-wrap gap-1.5">
-                          {result.socialIndicators.lowFollowers && (
-                            <Badge variant="secondary" className="text-xs gap-1">
-                              <Users className="h-3 w-3" />Poucos seguidores
-                            </Badge>
-                          )}
-                          {result.socialIndicators.irregularPosts && (
-                            <Badge variant="secondary" className="text-xs gap-1">
-                              📅 Posts irregulares
-                            </Badge>
-                          )}
-                          {result.socialIndicators.noProfessionalBio && (
-                            <Badge variant="secondary" className="text-xs gap-1">
-                              ❌ Sem bio profissional
-                            </Badge>
-                          )}
-                          {result.socialIndicators.noWebsiteLink && (
-                            <Badge variant="secondary" className="text-xs gap-1">
-                              🔗 Sem website
-                            </Badge>
-                          )}
-                        </div>
+                        {!result.alreadySaved && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {result.socialIndicators.lowFollowers && (
+                              <Badge variant="secondary" className="text-xs gap-1">
+                                <Users className="h-3 w-3" />Poucos seguidores
+                              </Badge>
+                            )}
+                            {result.socialIndicators.irregularPosts && (
+                              <Badge variant="secondary" className="text-xs gap-1">
+                                📅 Posts irregulares
+                              </Badge>
+                            )}
+                            {result.socialIndicators.noProfessionalBio && (
+                              <Badge variant="secondary" className="text-xs gap-1">
+                                ❌ Sem bio profissional
+                              </Badge>
+                            )}
+                            {result.socialIndicators.noWebsiteLink && (
+                              <Badge variant="secondary" className="text-xs gap-1">
+                                🔗 Sem website
+                              </Badge>
+                            )}
+                          </div>
+                        )}
 
                         <p className="text-sm text-muted-foreground line-clamp-2">{result.description}</p>
 
@@ -705,19 +959,21 @@ const Prospection = () => {
                           ))}
                         </div>
                       </div>
-                      <Button
-                        variant={result.socialScore >= 70 ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => saveAsSocialLead(result)}
-                        disabled={savingUrl === result.url}
-                        className="shrink-0"
-                      >
-                        {savingUrl === result.url ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <><UserPlus className="mr-1 h-4 w-4" />Guardar</>
-                        )}
-                      </Button>
+                      {!result.alreadySaved && (
+                        <Button
+                          variant={result.socialScore >= 70 ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => saveAsSocialLead(result)}
+                          disabled={savingUrl === result.url}
+                          className="shrink-0"
+                        >
+                          {savingUrl === result.url ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <><UserPlus className="mr-1 h-4 w-4" />Guardar</>
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -726,7 +982,7 @@ const Prospection = () => {
           )}
         </TabsContent>
 
-        {/* Scrape Tab */}
+        {/* ==================== SCRAPE TAB ==================== */}
         <TabsContent value="scrape" className="space-y-4">
           <Card>
             <CardHeader>
@@ -769,7 +1025,7 @@ const Prospection = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 {(() => {
-                  const contacts = extractContactInfo(scrapeResult.markdown);
+                  const contacts = extractContactInfoStatic(scrapeResult.markdown);
                   return (
                     <>
                       {(contacts.emails.length > 0 || contacts.phones.length > 0) && (
