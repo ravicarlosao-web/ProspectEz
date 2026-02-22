@@ -1,10 +1,43 @@
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { User, Shield } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { User, Shield, Building } from "lucide-react";
 
 const SettingsPage = () => {
   const { user } = useAuth();
+  const [agencyName, setAgencyName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const fetch = async () => {
+      const { data } = await supabase
+        .from("app_settings" as any)
+        .select("value")
+        .eq("key", "agency_name")
+        .single();
+      if (data) setAgencyName((data as any).value || "");
+    };
+    fetch();
+  }, []);
+
+  const saveAgencyName = async () => {
+    setSaving(true);
+    const { error } = await supabase
+      .from("app_settings" as any)
+      .update({ value: agencyName, updated_at: new Date().toISOString(), updated_by: user?.id } as any)
+      .eq("key", "agency_name");
+    setSaving(false);
+    if (error) {
+      toast.error("Erro ao guardar");
+      return;
+    }
+    toast.success("Nome da agência actualizado!");
+  };
 
   return (
     <div className="space-y-6">
@@ -14,6 +47,32 @@ const SettingsPage = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
+        {/* Agency config */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Building className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-base">Agência</CardTitle>
+                <CardDescription>Nome usado nos templates de mensagens</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <Label>Nome da Agência</Label>
+              <Input
+                value={agencyName}
+                onChange={(e) => setAgencyName(e.target.value)}
+                placeholder="Ex: KYS Digital"
+              />
+            </div>
+            <Button onClick={saveAgencyName} disabled={saving} size="sm">
+              {saving ? "A guardar..." : "Guardar"}
+            </Button>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">

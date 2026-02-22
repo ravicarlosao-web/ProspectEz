@@ -68,6 +68,7 @@ const Clients = () => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [sellerName, setSellerName] = useState("");
+  const [agencyName, setAgencyName] = useState("KYS Digital");
   const [form, setForm] = useState({
     name: "", company: "", email: "", phone: "+244 ", province: "", city: "",
     website: "", service_type: "", notes: "",
@@ -96,7 +97,15 @@ const Clients = () => {
   };
 
   useEffect(() => { fetchLeads(); }, [search, statusFilter]);
-  useEffect(() => { fetchTemplates(); fetchProfile(); }, []);
+  useEffect(() => {
+    fetchTemplates();
+    fetchProfile();
+    const fetchAgency = async () => {
+      const { data } = await supabase.from("app_settings" as any).select("value").eq("key", "agency_name").single();
+      if (data) setAgencyName((data as any).value || "KYS Digital");
+    };
+    fetchAgency();
+  }, []);
 
   const fillTemplate = (content: string, lead: Lead) => {
     return content
@@ -104,7 +113,8 @@ const Clients = () => {
       .replace(/\{\{Empresa\}\}/g, lead.company || "")
       .replace(/\{\{ServiçoInteressado\}\}/g, SERVICE_TYPE_LABELS[lead.service_type || ""] || "Website")
       .replace(/\{\{DataContato\}\}/g, new Date().toLocaleDateString("pt-AO"))
-      .replace(/\[Seu Nome\]/g, sellerName || "[Seu Nome]");
+      .replace(/\[Seu Nome\]/g, sellerName || "[Seu Nome]")
+      .replace(/\[Agência\]/g, agencyName);
   };
 
   const copyForWhatsApp = (content: string, lead: Lead) => {
