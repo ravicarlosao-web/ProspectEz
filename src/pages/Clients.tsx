@@ -234,13 +234,29 @@ const Clients = () => {
           {selectedLead && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  {selectedLead.name}
-                  <Badge variant="secondary" className={LEAD_STATUS_COLORS[selectedLead.status] || ""}>
-                    {LEAD_STATUS_LABELS[selectedLead.status] || selectedLead.status}
-                  </Badge>
-                </DialogTitle>
+                <DialogTitle>{selectedLead.name}</DialogTitle>
               </DialogHeader>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Estado do Funil</Label>
+                <Select value={selectedLead.status} onValueChange={(v) => { updateLeadStatus(selectedLead, v); toast.success(`Status alterado para ${LEAD_STATUS_LABELS[v]}`); }}>
+                  <SelectTrigger className="w-full">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block h-2.5 w-2.5 rounded-full ${LEAD_STATUS_COLORS[selectedLead.status]?.split(" ")[0] || "bg-gray-200"}`} />
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(LEAD_STATUS_LABELS).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>
+                        <span className="flex items-center gap-2">
+                          <span className={`inline-block h-2 w-2 rounded-full ${LEAD_STATUS_COLORS[k]?.split(" ")[0] || ""}`} />
+                          {v}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-4">
                 {selectedLead.company && (
                   <div className="flex items-center gap-2 text-sm">
