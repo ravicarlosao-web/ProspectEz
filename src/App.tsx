@@ -13,6 +13,7 @@ import Clients from "./pages/Clients";
 import Messages from "./pages/Messages";
 import Prospection from "./pages/Prospection";
 import SettingsPage from "./pages/SettingsPage";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
               <Route path="/mensagens" element={<Messages />} />
               <Route path="/prospeccao" element={<Prospection />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
+              <Route path="/admin" element={<Admin />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
