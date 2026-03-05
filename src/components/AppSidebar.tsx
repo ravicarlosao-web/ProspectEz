@@ -1,8 +1,9 @@
 import {
-  LayoutDashboard, Users, Search, MessageSquare, Settings, LogOut, Zap
+  LayoutDashboard, Users, Search, MessageSquare, Settings, LogOut, Zap, Shield
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdmin } from "@/hooks/useAdmin";
 import {
   Sidebar,
   SidebarContent,
@@ -26,6 +27,12 @@ const menuItems = [
 
 export function AppSidebar() {
   const { signOut, user } = useAuth();
+  const { isAdmin } = useAdmin();
+
+  const allMenuItems = [
+    ...menuItems,
+    ...(isAdmin ? [{ title: "Administração", url: "/admin", icon: Shield }] : []),
+  ];
 
   return (
     <Sidebar className="border-r-0">
@@ -46,7 +53,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {allMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
