@@ -236,6 +236,36 @@ export type Database = {
         }
         Relationships: []
       }
+      search_quotas: {
+        Row: {
+          created_at: string
+          daily_limit: number
+          id: string
+          last_reset_date: string
+          updated_at: string
+          used_today: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          daily_limit?: number
+          id?: string
+          last_reset_date?: string
+          updated_at?: string
+          used_today?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          daily_limit?: number
+          id?: string
+          last_reset_date?: string
+          updated_at?: string
+          used_today?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -259,6 +289,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      consume_search_token: { Args: { p_user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

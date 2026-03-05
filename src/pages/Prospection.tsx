@@ -314,6 +314,16 @@ const Prospection = () => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
+    // Check quota
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: allowed } = await supabase.rpc("consume_search_token", { p_user_id: user.id });
+      if (!allowed) {
+        toast.error("Limite diário de pesquisas atingido. Contacte o administrador.");
+        return;
+      }
+    }
+
     setIsSearching(true);
     setAnalyzedResults([]);
 
@@ -401,6 +411,16 @@ const Prospection = () => {
   const handleSocialSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!socialQuery.trim()) return;
+
+    // Check quota
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: allowed } = await supabase.rpc("consume_search_token", { p_user_id: user.id });
+      if (!allowed) {
+        toast.error("Limite diário de pesquisas atingido. Contacte o administrador.");
+        return;
+      }
+    }
 
     setIsSearchingSocial(true);
     setSocialResults([]);
