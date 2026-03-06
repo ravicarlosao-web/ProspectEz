@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          target_user_id: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_user_id: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_user_id?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           id: string
@@ -183,27 +210,42 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          email: string | null
           full_name: string
           id: string
+          is_suspended: boolean
+          last_login_at: string | null
           phone: string | null
+          registered_at: string | null
+          suspension_reason: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string
           id?: string
+          is_suspended?: boolean
+          last_login_at?: string | null
           phone?: string | null
+          registered_at?: string | null
+          suspension_reason?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string
           id?: string
+          is_suspended?: boolean
+          last_login_at?: string | null
           phone?: string | null
+          registered_at?: string | null
+          suspension_reason?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -241,28 +283,58 @@ export type Database = {
           created_at: string
           daily_limit: number
           id: string
+          is_active: boolean
+          last_monthly_reset: string
           last_reset_date: string
+          last_weekly_reset: string
+          monthly_limit: number
+          plan_reset_type: string
+          plan_type: string
+          tokens_added_manually: number
           updated_at: string
+          used_this_month: number
+          used_this_week: number
           used_today: number
           user_id: string
+          weekly_limit: number
         }
         Insert: {
           created_at?: string
           daily_limit?: number
           id?: string
+          is_active?: boolean
+          last_monthly_reset?: string
           last_reset_date?: string
+          last_weekly_reset?: string
+          monthly_limit?: number
+          plan_reset_type?: string
+          plan_type?: string
+          tokens_added_manually?: number
           updated_at?: string
+          used_this_month?: number
+          used_this_week?: number
           used_today?: number
           user_id: string
+          weekly_limit?: number
         }
         Update: {
           created_at?: string
           daily_limit?: number
           id?: string
+          is_active?: boolean
+          last_monthly_reset?: string
           last_reset_date?: string
+          last_weekly_reset?: string
+          monthly_limit?: number
+          plan_reset_type?: string
+          plan_type?: string
+          tokens_added_manually?: number
           updated_at?: string
+          used_this_month?: number
+          used_this_week?: number
           used_today?: number
           user_id?: string
+          weekly_limit?: number
         }
         Relationships: []
       }
@@ -289,6 +361,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_reset_monthly_tokens: { Args: never; Returns: undefined }
       consume_search_token: { Args: { p_user_id: string }; Returns: boolean }
       has_role: {
         Args: {
