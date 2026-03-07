@@ -394,6 +394,7 @@ const Prospection = () => {
           query: `[MULTI] ${q} ${locationPart}`,
           results_count: analyzed.length,
           status: "completed",
+          user_id: user?.id,
         });
       } else {
         toast.error("Nenhum resultado encontrado. Tente outros termos.");
@@ -496,6 +497,7 @@ const Prospection = () => {
           query: `[SOCIAL-MULTI] ${q} ${locationPart}`,
           results_count: analyzed.length,
           status: "completed",
+          user_id: user?.id,
         });
       } else {
         toast.error("Nenhum resultado encontrado. Tente outros termos.");
@@ -544,6 +546,7 @@ const Prospection = () => {
   const saveAsLead = async (result: AnalyzedResult) => {
     setSavingUrl(result.url);
     try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
       const insertData: any = {
         name: result.businessName,
         company: result.businessName,
@@ -555,6 +558,7 @@ const Prospection = () => {
         service_type: "website" as const,
         email: result.contacts.emails[0] || null,
         phone: result.contacts.phones[0] || null,
+        user_id: currentUser?.id,
       };
 
       const { error } = await supabase.from("leads").insert(insertData);
@@ -589,6 +593,7 @@ const Prospection = () => {
       if (result.socialIndicators.noProfessionalBio) indicators.push("Sem bio profissional");
       if (result.socialIndicators.noWebsiteLink) indicators.push("Sem link de website");
 
+      const { data: { user: currentUser2 } } = await supabase.auth.getUser();
       const insertData: any = {
         name: result.businessName,
         company: result.businessName,
@@ -607,6 +612,7 @@ const Prospection = () => {
         social_facebook: result.socialProfiles.find(p => p.platform === "Facebook")?.url || null,
         social_tiktok: result.socialProfiles.find(p => p.platform === "TikTok")?.url || null,
         social_linkedin: result.socialProfiles.find(p => p.platform === "LinkedIn")?.url || null,
+        user_id: currentUser2?.id,
       };
 
       const { error } = await supabase.from("leads").insert(insertData);
