@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, RefreshCw, Edit, UserX, UserCheck, Plus } from "lucide-react";
+import { Search, RefreshCw, Edit, UserX, UserCheck, Plus, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const PLAN_LIMITS: Record<string, { daily: number; monthly: number }> = {
@@ -70,6 +70,7 @@ export const AdminUsers = () => {
   });
   const [saving, setSaving] = useState(false);
   const [resetAllOpen, setResetAllOpen] = useState(false);
+  const [deleteUser, setDeleteUser] = useState<UserRow | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -358,9 +359,14 @@ export const AdminUsers = () => {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button size="sm" variant="outline" onClick={() => openEdit(u)}>
-                            <Edit className="h-3 w-3 mr-1" /> Editar
-                          </Button>
+                          <div className="flex gap-1 justify-end">
+                            <Button size="sm" variant="outline" onClick={() => openEdit(u)}>
+                              <Edit className="h-3 w-3 mr-1" /> Editar
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => setDeleteUser(u)} disabled={u.user_id === currentUser?.id}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -474,6 +480,38 @@ export const AdminUsers = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setResetAllOpen(false)}>Cancelar</Button>
             <Button variant="destructive" onClick={resetAllMonthly}>Confirmar Reset</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Dialog */}
+      <Dialog open={!!deleteUser} onOpenChange={open => !open && setDeleteUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remover Utilizador</DialogTitle>
+            <DialogDescription>
+              Tem a certeza que deseja remover <strong>{deleteUser?.full_name}</strong> ({deleteUser?.email})? 
+              Isto irá eliminar o perfil, papel e quota do utilizador. Esta acção é irreversível.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteUser(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={async () => {
+              if (!deleteUser) return;
+              try {
+                await Promise.all([
+                  supabase.from("search_quotas").delete().eq("user_id", deleteUser.user_id),
+                  supabase.from("user_roles").delete().eq("user_id", deleteUser.user_id),
+                ]);
+                await supabase.from("profiles").delete().eq("user_id", deleteUser.user_id);
+                await logAudit("delete_user", deleteUser.user_id, { email: deleteUser.email, name: deleteUser.full_name });
+                toast.success(`Utilizador ${deleteUser.full_name} removido!`);
+                setDeleteUser(null);
+                fetchUsers();
+              } catch {
+                toast.error("Erro ao remover utilizador");
+              }
+            }}>Confirmar Remoção</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
