@@ -2,13 +2,7 @@ import { useEffect } from "react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Shield } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AdminOverview } from "@/components/admin/AdminOverview";
-import { AdminUsers } from "@/components/admin/AdminUsers";
-import { AdminPlans } from "@/components/admin/AdminPlans";
-import { AdminLogs } from "@/components/admin/AdminLogs";
-import { AdminAudit } from "@/components/admin/AdminAudit";
+import { Outlet } from "react-router-dom";
 
 const Admin = () => {
   const { isAdmin, loading: adminLoading } = useAdmin();
@@ -31,43 +25,7 @@ const Admin = () => {
 
   if (!isAdmin) return null;
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Shield className="h-7 w-7 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Administração</h1>
-          <p className="text-muted-foreground">Painel completo de gestão do sistema</p>
-        </div>
-      </div>
-
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="users">Utilizadores</TabsTrigger>
-          <TabsTrigger value="plans">Planos</TabsTrigger>
-          <TabsTrigger value="logs">Logs</TabsTrigger>
-          <TabsTrigger value="audit">Auditoria</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview">
-          <AdminOverview />
-        </TabsContent>
-        <TabsContent value="users">
-          <AdminUsers />
-        </TabsContent>
-        <TabsContent value="plans">
-          <AdminPlans />
-        </TabsContent>
-        <TabsContent value="logs">
-          <AdminLogs />
-        </TabsContent>
-        <TabsContent value="audit">
-          <AdminAudit />
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
+  return <Outlet />;
 };
 
 export default Admin;
