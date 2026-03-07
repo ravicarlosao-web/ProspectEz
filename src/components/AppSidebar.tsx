@@ -1,5 +1,6 @@
 import {
-  LayoutDashboard, Users, Search, MessageSquare, Settings, LogOut, Zap, Shield
+  LayoutDashboard, Users, Search, MessageSquare, Settings, LogOut, Zap, Shield,
+  BarChart3, UserCog, CreditCard, FileText, ClipboardCheck
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,14 +26,17 @@ const menuItems = [
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
+const adminItems = [
+  { title: "Visão Geral", url: "/admin", icon: BarChart3 },
+  { title: "Utilizadores", url: "/admin/utilizadores", icon: UserCog },
+  { title: "Planos", url: "/admin/planos", icon: CreditCard },
+  { title: "Logs", url: "/admin/logs", icon: FileText },
+  { title: "Auditoria", url: "/admin/auditoria", icon: ClipboardCheck },
+];
+
 export function AppSidebar() {
   const { signOut, user } = useAuth();
   const { isAdmin } = useAdmin();
-
-  const allMenuItems = [
-    ...menuItems,
-    ...(isAdmin ? [{ title: "Administração", url: "/admin", icon: Shield }] : []),
-  ];
 
   return (
     <Sidebar className="border-r-0">
@@ -53,7 +57,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {allMenuItems.map((item) => (
+              {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -70,6 +74,36 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs uppercase tracking-wider">
+              <div className="flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5" />
+                Administração
+              </div>
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {adminItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-4">

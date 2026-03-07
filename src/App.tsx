@@ -14,6 +14,11 @@ import Messages from "./pages/Messages";
 import Prospection from "./pages/Prospection";
 import SettingsPage from "./pages/SettingsPage";
 import Admin from "./pages/Admin";
+import { AdminOverview } from "./components/admin/AdminOverview";
+import { AdminUsers } from "./components/admin/AdminUsers";
+import { AdminPlans } from "./components/admin/AdminPlans";
+import { AdminLogs } from "./components/admin/AdminLogs";
+import { AdminAudit } from "./components/admin/AdminAudit";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,7 +41,13 @@ const App = () => (
               <Route path="/mensagens" element={<Messages />} />
               <Route path="/prospeccao" element={<Prospection />} />
               <Route path="/configuracoes" element={<SettingsPage />} />
-              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin" element={<Admin />}>
+                <Route index element={<AdminOverview />} />
+                <Route path="utilizadores" element={<AdminUsers />} />
+                <Route path="planos" element={<AdminPlans />} />
+                <Route path="logs" element={<AdminLogs />} />
+                <Route path="auditoria" element={<AdminAudit />} />
+              </Route>
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
