@@ -145,6 +145,7 @@ const Clients = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
     const insertData: any = {
       name: form.name,
       company: form.company || null,
@@ -155,6 +156,7 @@ const Clients = () => {
       website: form.website || null,
       service_type: form.service_type || null,
       notes: form.notes || null,
+      user_id: currentUser?.id,
     };
     const { error } = await supabase.from("leads").insert(insertData);
     if (error) { toast.error("Erro ao criar lead"); return; }
