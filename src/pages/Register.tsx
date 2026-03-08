@@ -16,13 +16,38 @@ const Register = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Input validation
+    const trimmedName = fullName.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (trimmedName.length < 2 || trimmedName.length > 100) {
+      toast.error("O nome deve ter entre 2 e 100 caracteres");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      toast.error("Email inválido");
+      return;
+    }
+
+    if (password.length < 8) {
+      toast.error("A senha deve ter pelo menos 8 caracteres");
+      return;
+    }
+
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
+      toast.error("A senha deve conter maiúsculas, minúsculas e números");
+      return;
+    }
+
     setLoading(true);
 
     const { error } = await supabase.auth.signUp({
-      email,
+      email: trimmedEmail,
       password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: trimmedName },
         emailRedirectTo: window.location.origin,
       },
     });
@@ -64,7 +89,7 @@ const Register = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="text-xs text-muted-foreground uppercase tracking-wider">Senha</Label>
-              <Input id="password" type="password" placeholder="Mínimo 6 caracteres" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="h-11 bg-muted/50 border-border/50 focus:border-primary" />
+              <Input id="password" type="password" placeholder="Mín. 8 caracteres com maiúsculas e números" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} maxLength={128} className="h-11 bg-muted/50 border-border/50 focus:border-primary" />
             </div>
             <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium" disabled={loading}>
               <UserPlus className="mr-2 h-4 w-4" />
