@@ -287,7 +287,7 @@ const Clients = () => {
     if (error) { toast.error("Erro ao criar lead"); return; }
     toast.success("Lead criado com sucesso!");
     setDialogOpen(false);
-    setForm({ name: "", company: "", email: "", phone: "+244 ", province: "", city: "", website: "", service_type: "", notes: "" });
+    setForm({ name: "", company: "", email: "", phone: "+244 ", province: "", city: "", website: "", service_type: "", notes: "", social_facebook: "", social_instagram: "", social_linkedin: "", social_tiktok: "" });
     fetchLeads();
     fetchStatusCounts();
   };
