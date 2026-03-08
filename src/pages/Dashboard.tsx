@@ -365,7 +365,70 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Recent activity */}
+      {/* Monthly Evolution + Province charts */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <motion.div custom={0} initial="hidden" animate="visible" variants={scaleIn}>
+          <Card className="border-border/50 bg-card/80">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                Evolução Mensal
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {total === 0 && !loading ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <AlertTriangle className="mb-2 h-8 w-8" />
+                  <p className="text-sm">Sem dados para mostrar.</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 18%, 18%)" />
+                    <XAxis dataKey="month" stroke="hsl(215, 15%, 45%)" fontSize={11} />
+                    <YAxis allowDecimals={false} stroke="hsl(215, 15%, 35%)" fontSize={11} />
+                    <Tooltip contentStyle={{ backgroundColor: "hsl(220, 22%, 10%)", border: "1px solid hsl(220, 18%, 18%)", borderRadius: "8px", color: "#fff" }} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Line type="monotone" dataKey="novos" name="Novos" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="fechados" name="Fechados" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="perdidos" name="Perdidos" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div custom={1} initial="hidden" animate="visible" variants={scaleIn}>
+          <Card className="border-border/50 bg-card/80">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                Leads por Província
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {provinceData.length === 0 && !loading ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <AlertTriangle className="mb-2 h-8 w-8" />
+                  <p className="text-sm">Sem dados de província.</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={provinceData} layout="vertical">
+                    <XAxis type="number" allowDecimals={false} stroke="hsl(215, 15%, 35%)" fontSize={11} />
+                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11, fill: "hsl(215, 15%, 55%)" }} />
+                    <Tooltip contentStyle={{ backgroundColor: "hsl(220, 22%, 10%)", border: "1px solid hsl(220, 18%, 18%)", borderRadius: "8px", color: "#fff" }} />
+                    <Bar dataKey="value" name="Leads" radius={[0, 6, 6, 0]} barSize={20} fill="#8b5cf6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.5 }}>
         <Card className="border-border/50 bg-card/80">
           <CardHeader className="pb-3">
