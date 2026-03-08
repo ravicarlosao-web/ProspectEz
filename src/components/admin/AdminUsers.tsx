@@ -238,7 +238,7 @@ export const AdminUsers = () => {
   const roleBadge = (role: string) => {
     if (role === "admin") return <Badge variant="destructive">Admin</Badge>;
     if (role === "gestor") return <Badge variant="default">Gestor</Badge>;
-    return <Badge variant="secondary">Vendedor</Badge>;
+    return <Badge variant="secondary">Utilizador</Badge>;
   };
 
   const planBadge = (plan: string) => {
@@ -267,7 +267,7 @@ export const AdminUsers = () => {
                 <SelectItem value="all">Todos papéis</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="gestor">Gestor</SelectItem>
-                <SelectItem value="vendedor">Vendedor</SelectItem>
+                <SelectItem value="vendedor">Utilizador</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterPlan} onValueChange={setFilterPlan}>
@@ -396,7 +396,7 @@ export const AdminUsers = () => {
                     <SelectContent>
                       <SelectItem value="admin">Administrador</SelectItem>
                       <SelectItem value="gestor">Gestor</SelectItem>
-                      <SelectItem value="vendedor">Vendedor</SelectItem>
+                      <SelectItem value="vendedor">Utilizador</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
