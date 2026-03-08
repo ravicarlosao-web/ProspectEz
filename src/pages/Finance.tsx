@@ -384,7 +384,7 @@ const Finance = () => {
             <div className="space-y-2">
               <Label>Comprovativo de Pagamento (PDF, max 1MB)</Label>
               <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
-                <Input
+                <input
                   type="file"
                   accept=".pdf"
                   onChange={handleFileChange}
