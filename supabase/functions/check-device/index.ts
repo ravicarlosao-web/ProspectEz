@@ -66,10 +66,27 @@ const DISPOSABLE_DOMAINS = new Set([
   "emailna.co","email-fake.com","cmail.net","cmail.org",
 ]);
 
-function isDisposableEmail(email: string): boolean {
+async function isDisposableEmail(email: string): Promise<boolean> {
   const domain = email.split("@")[1]?.toLowerCase();
   if (!domain) return false;
-  return DISPOSABLE_DOMAINS.has(domain);
+  
+  // 1. Check static list first (instant)
+  if (DISPOSABLE_DOMAINS.has(domain)) return true;
+  
+  // 2. Fallback: check via free disposable email API
+  try {
+    const res = await fetch(`https://disposable.debounce.io/?email=${encodeURIComponent(email)}`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.disposable === "true" || data.disposable === true;
+    }
+  } catch {
+    // API timeout/error — rely on static list only
+  }
+  
+  return false;
 }
 
 Deno.serve(async (req) => {
