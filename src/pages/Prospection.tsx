@@ -11,6 +11,7 @@ import { Search, Globe, Loader2, ExternalLink, Phone, Mail, UserPlus, AlertTrian
 import { firecrawlApi } from "@/lib/api/firecrawl";
 import { supabase } from "@/integrations/supabase/client";
 import { PROVINCES_ANGOLA } from "@/lib/constants";
+import { TokenExhaustedDialog } from "@/components/TokenExhaustedDialog";
 
 type SearchResult = {
   url: string;
