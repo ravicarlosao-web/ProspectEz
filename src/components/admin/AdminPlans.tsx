@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Save, Zap } from "lucide-react";
+import { Save, Zap, Plus, Trash2, CreditCard } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 type PlanConfig = {
@@ -25,6 +25,12 @@ type TokenPackage = {
   priceUsd: number;
 };
 
+type PaymentMethodConfig = {
+  value: string;
+  label: string;
+  details: string;
+};
+
 const DEFAULT_PLANS: PlanConfig[] = [
   { name: "Free", key: "free", daily: 3, weekly: 0, monthly: 3, priceKz: 0, priceUsd: 0 },
   { name: "Starter", key: "starter", daily: 5, weekly: 0, monthly: 30, priceKz: 5000, priceUsd: 5 },
@@ -38,9 +44,15 @@ const DEFAULT_PACKAGES: TokenPackage[] = [
   { name: "Grande", quantity: 200, priceKz: 25000, priceUsd: 25 },
 ];
 
+const DEFAULT_PAYMENT_METHODS: PaymentMethodConfig[] = [
+  { value: "transferencia", label: "Transferência Bancária", details: "IBAN: AO06 0040 0000 1234 5678 9012 3" },
+  { value: "multicaixa", label: "Multicaixa Express", details: "Referência: 12345 | Entidade: 12345" },
+];
+
 export const AdminPlans = () => {
   const [plans, setPlans] = useState<PlanConfig[]>(DEFAULT_PLANS);
   const [packages, setPackages] = useState<TokenPackage[]>(DEFAULT_PACKAGES);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodConfig[]>(DEFAULT_PAYMENT_METHODS);
   const [saving, setSaving] = useState(false);
   const [applyFreeOpen, setApplyFreeOpen] = useState(false);
 
@@ -49,12 +61,14 @@ export const AdminPlans = () => {
   }, []);
 
   const loadSettings = async () => {
-    const { data } = await supabase.from("app_settings").select("key, value").in("key", ["plan_configs", "token_packages"]);
+    const { data } = await supabase.from("app_settings").select("key, value").in("key", ["plan_configs", "token_packages", "payment_methods"]);
     if (data) {
       const planRow = data.find((r: any) => r.key === "plan_configs");
       const pkgRow = data.find((r: any) => r.key === "token_packages");
+      const pmRow = data.find((r: any) => r.key === "payment_methods");
       if (planRow) try { setPlans(JSON.parse(planRow.value)); } catch {}
       if (pkgRow) try { setPackages(JSON.parse(pkgRow.value)); } catch {}
+      if (pmRow) try { setPaymentMethods(JSON.parse(pmRow.value)); } catch {}
     }
   };
 
@@ -69,7 +83,11 @@ export const AdminPlans = () => {
         { key: "token_packages", value: JSON.stringify(packages) },
         { onConflict: "key" }
       );
-      toast.success("Configurações de planos guardadas!");
+      await supabase.from("app_settings").upsert(
+        { key: "payment_methods", value: JSON.stringify(paymentMethods) },
+        { onConflict: "key" }
+      );
+      toast.success("Configurações guardadas!");
     } catch {
       toast.error("Erro ao guardar");
     } finally {
@@ -83,6 +101,18 @@ export const AdminPlans = () => {
 
   const updatePackage = (idx: number, field: keyof TokenPackage, value: any) => {
     setPackages(prev => prev.map((p, i) => i === idx ? { ...p, [field]: typeof p[field] === "number" ? (parseInt(value) || 0) : value } : p));
+  };
+
+  const updatePaymentMethod = (idx: number, field: keyof PaymentMethodConfig, value: string) => {
+    setPaymentMethods(prev => prev.map((p, i) => i === idx ? { ...p, [field]: value } : p));
+  };
+
+  const addPaymentMethod = () => {
+    setPaymentMethods(prev => [...prev, { value: `metodo_${prev.length + 1}`, label: "", details: "" }]);
+  };
+
+  const removePaymentMethod = (idx: number) => {
+    setPaymentMethods(prev => prev.filter((_, i) => i !== idx));
   };
 
   const applyFreeToAll = async () => {
@@ -117,7 +147,7 @@ export const AdminPlans = () => {
               <Zap className="mr-1 h-4 w-4" /> Aplicar Free a Todos
             </Button>
             <Button onClick={savePlans} disabled={saving}>
-              <Save className="mr-1 h-4 w-4" /> {saving ? "..." : "Guardar"}
+              <Save className="mr-1 h-4 w-4" /> {saving ? "..." : "Guardar Tudo"}
             </Button>
           </div>
         </CardHeader>
@@ -178,6 +208,60 @@ export const AdminPlans = () => {
               ))}
             </TableBody>
           </Table>
+        </CardContent>
+      </Card>
+
+      {/* Payment Methods */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <CreditCard className="h-5 w-5" />
+              Métodos de Pagamento
+            </CardTitle>
+            <CardDescription>Configure os dados bancários e referências que os clientes verão ao pagar</CardDescription>
+          </div>
+          <Button variant="outline" size="sm" onClick={addPaymentMethod}>
+            <Plus className="mr-1 h-4 w-4" /> Adicionar
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {paymentMethods.map((method, i) => (
+            <div key={i} className="flex items-start gap-3 p-4 rounded-lg border bg-muted/30">
+              <div className="flex-1 grid gap-3 sm:grid-cols-3">
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium">Identificador</label>
+                  <Input
+                    value={method.value}
+                    onChange={e => updatePaymentMethod(i, "value", e.target.value)}
+                    placeholder="ex: transferencia"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium">Nome visível</label>
+                  <Input
+                    value={method.label}
+                    onChange={e => updatePaymentMethod(i, "label", e.target.value)}
+                    placeholder="ex: Transferência Bancária"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground font-medium">Dados / Referência</label>
+                  <Input
+                    value={method.details}
+                    onChange={e => updatePaymentMethod(i, "details", e.target.value)}
+                    placeholder="ex: IBAN: AO06..."
+                  />
+                </div>
+              </div>
+              <Button variant="ghost" size="icon" className="mt-5 text-muted-foreground hover:text-destructive" onClick={() => removePaymentMethod(i)}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          {paymentMethods.length === 0 && (
+            <p className="text-center text-muted-foreground py-4">Nenhum método configurado. Adicione pelo menos um.</p>
+          )}
         </CardContent>
       </Card>
 
