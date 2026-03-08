@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Search, Phone, Mail, Globe, Building2, MapPin, FileText, Calendar, MessageCircle, Copy, Trash2 } from "lucide-react";
+import { Plus, Search, Phone, Mail, Globe, Building2, MapPin, FileText, Calendar, MessageCircle, Copy, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, SERVICE_TYPE_LABELS, PROVINCES_ANGOLA, MESSAGE_CATEGORIES } from "@/lib/constants";
 
 type Template = {
@@ -45,6 +45,8 @@ type Lead = {
   created_at: string;
 };
 
+const PAGE_SIZE = 20;
+
 const Clients = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [search, setSearch] = useState("");
@@ -57,6 +59,9 @@ const Clients = () => {
   const [agencyName, setAgencyName] = useState("KYS Digital");
   const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [form, setForm] = useState({
     name: "", company: "", email: "", phone: "+244 ", province: "", city: "",
     website: "", service_type: "", notes: "",
@@ -75,20 +80,39 @@ const Clients = () => {
     setTemplates((data as Template[]) || []);
   };
 
-  const fetchLeads = async () => {
-    let query = supabase.from("leads").select("*").order("created_at", { ascending: false });
+  const fetchStatusCounts = useCallback(async () => {
+    const statuses = ["novo", "contactado", "em_negociacao", "fechado_ganho", "perdido"];
+    const promises = statuses.map(s =>
+      supabase.from("leads").select("id", { count: "exact", head: true }).eq("status", s as any)
+    );
+    const results = await Promise.all(promises);
+    const counts: Record<string, number> = {};
+    statuses.forEach((s, i) => {
+      counts[s] = results[i].count ?? 0;
+    });
+    setStatusCounts(counts);
+  }, []);
+
+  const fetchLeads = useCallback(async () => {
+    setLoading(true);
+    const from = page * PAGE_SIZE;
+    const to = from + PAGE_SIZE - 1;
+
+    let query = supabase.from("leads").select("*", { count: "exact" }).order("created_at", { ascending: false }).range(from, to);
     if (statusFilter !== "all") query = query.eq("status", statusFilter as any);
     if (search) {
-      // Sanitize search input - escape special Postgres pattern chars
       const sanitized = search.replace(/[%_\\]/g, '\\$&');
       query = query.or(`name.ilike.%${sanitized}%,company.ilike.%${sanitized}%,email.ilike.%${sanitized}%`);
     }
-    const { data } = await query;
+    const { data, count } = await query;
     setLeads((data as Lead[]) || []);
+    setTotalCount(count ?? 0);
     setLoading(false);
-  };
+  }, [page, search, statusFilter]);
 
-  useEffect(() => { fetchLeads(); }, [search, statusFilter]);
+  useEffect(() => { setPage(0); }, [search, statusFilter]);
+  useEffect(() => { fetchLeads(); }, [fetchLeads]);
+  useEffect(() => { fetchStatusCounts(); }, [fetchStatusCounts]);
   useEffect(() => {
     fetchTemplates();
     fetchProfile();
@@ -120,6 +144,7 @@ const Clients = () => {
     if (error) { console.error("Erro ao atualizar status:", error); return; }
     setSelectedLead({ ...lead, status: newStatus });
     fetchLeads();
+    fetchStatusCounts();
   };
 
   const openWhatsApp = async (content: string, lead: Lead) => {
@@ -127,7 +152,6 @@ const Clients = () => {
     const phone = (lead.phone || "").replace(/\s+/g, "").replace(/^\+/, "");
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(filled)}`;
     window.open(url, "_blank");
-    // Auto-update status to "contactado" if currently "novo"
     if (lead.status === "novo") {
       await updateLeadStatus(lead, "contactado");
       toast.success("Status atualizado para Contactado!");
@@ -142,6 +166,7 @@ const Clients = () => {
     setDeleteLeadId(null);
     setSelectedLead(null);
     fetchLeads();
+    fetchStatusCounts();
   };
 
   const handleDeleteAll = async () => {
@@ -151,7 +176,9 @@ const Clients = () => {
     if (error) { toast.error("Erro ao eliminar leads"); return; }
     toast.success("Todos os leads foram eliminados!");
     setDeleteAllOpen(false);
+    setPage(0);
     fetchLeads();
+    fetchStatusCounts();
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -175,6 +202,7 @@ const Clients = () => {
     setDialogOpen(false);
     setForm({ name: "", company: "", email: "", phone: "+244 ", province: "", city: "", website: "", service_type: "", notes: "" });
     fetchLeads();
+    fetchStatusCounts();
   };
 
   const formatDate = (dateStr: string) => {
@@ -183,11 +211,13 @@ const Clients = () => {
     });
   };
 
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
   const statusCards = [
-    { label: "Novos", count: leads.filter(l => l.status === "novo").length, color: "text-blue-400", bg: "bg-blue-500/10" },
-    { label: "Contactados", count: leads.filter(l => l.status === "contactado").length, color: "text-amber-400", bg: "bg-amber-500/10" },
-    { label: "Em Negociação", count: leads.filter(l => l.status === "em_negociacao").length, color: "text-purple-400", bg: "bg-purple-500/10" },
-    { label: "Fechados", count: leads.filter(l => l.status === "fechado_ganho").length, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+    { label: "Novos", count: statusCounts.novo ?? 0, color: "text-blue-400", bg: "bg-blue-500/10" },
+    { label: "Contactados", count: statusCounts.contactado ?? 0, color: "text-amber-400", bg: "bg-amber-500/10" },
+    { label: "Em Negociação", count: statusCounts.em_negociacao ?? 0, color: "text-purple-400", bg: "bg-purple-500/10" },
+    { label: "Fechados", count: statusCounts.fechado_ganho ?? 0, color: "text-emerald-400", bg: "bg-emerald-500/10" },
   ];
 
   return (
@@ -257,7 +287,7 @@ const Clients = () => {
             </form>
           </DialogContent>
           </Dialog>
-          {leads.length > 0 && (
+          {totalCount > 0 && (
             <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10 sm:size-default" onClick={() => setDeleteAllOpen(true)}>
               <Trash2 className="mr-2 h-4 w-4" /><span className="hidden sm:inline">Limpar Todos</span><span className="sm:hidden">Limpar</span>
             </Button>
@@ -485,6 +515,36 @@ const Clients = () => {
               ))}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border/30">
+              <p className="text-xs text-muted-foreground">
+                {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalCount)} de {totalCount}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page === 0}
+                  onClick={() => setPage(p => p - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />Anterior
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  {page + 1} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages - 1}
+                  onClick={() => setPage(p => p + 1)}
+                >
+                  Próximo<ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -507,7 +567,7 @@ const Clients = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Limpar Todos os Leads</AlertDialogTitle>
-            <AlertDialogDescription>Tem a certeza que deseja eliminar TODOS os seus leads ({leads.length})? Esta acção não pode ser revertida.</AlertDialogDescription>
+            <AlertDialogDescription>Tem a certeza que deseja eliminar TODOS os seus leads ({totalCount})? Esta acção não pode ser revertida.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
