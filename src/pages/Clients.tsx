@@ -259,6 +259,7 @@ const Clients = () => {
             </Button>
           )}
         </div>
+      </div>
 
       {/* Status count cards */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
