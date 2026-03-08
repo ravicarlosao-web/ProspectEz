@@ -2,11 +2,14 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { SuspendedScreen } from "@/components/SuspendedScreen";
 
 type AuthContextType = {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  isSuspended: boolean;
+  suspensionReason: string | null;
   signOut: () => Promise<void>;
 };
 
@@ -14,23 +17,48 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
   loading: true,
+  isSuspended: false,
+  suspensionReason: null,
   signOut: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isSuspended, setIsSuspended] = useState(false);
+  const [suspensionReason, setSuspensionReason] = useState<string | null>(null);
+
+  const checkSuspension = async (userId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("is_suspended, suspension_reason")
+      .eq("user_id", userId)
+      .single();
+    if (data) {
+      setIsSuspended(data.is_suspended ?? false);
+      setSuspensionReason(data.suspension_reason ?? null);
+    }
+  };
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session);
+        if (session?.user) {
+          setTimeout(() => checkSuspension(session.user.id), 0);
+        } else {
+          setIsSuspended(false);
+          setSuspensionReason(null);
+        }
         setLoading(false);
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session?.user) {
+        checkSuspension(session.user.id);
+      }
       setLoading(false);
     });
 
@@ -42,7 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, isSuspended, suspensionReason, signOut }}>
       {children}
     </AuthContext.Provider>
   );
@@ -51,7 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => useContext(AuthContext);
 
 export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
-  const { session, loading } = useAuth();
+  const { session, loading, isSuspended } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -70,5 +98,10 @@ export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
 
   if (!session) return null;
 
+  if (isSuspended) {
+    return <SuspendedScreen />;
+  }
+
   return <>{children}</>;
 };
+
