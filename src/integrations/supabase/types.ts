@@ -72,6 +72,7 @@ export type Database = {
           fingerprint: string
           id: string
           ip_address: string | null
+          persistent_token: string | null
           user_id: string | null
         }
         Insert: {
@@ -80,6 +81,7 @@ export type Database = {
           fingerprint: string
           id?: string
           ip_address?: string | null
+          persistent_token?: string | null
           user_id?: string | null
         }
         Update: {
@@ -88,6 +90,7 @@ export type Database = {
           fingerprint?: string
           id?: string
           ip_address?: string | null
+          persistent_token?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -353,6 +356,30 @@ export type Database = {
           results_count?: number | null
           status?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      registration_attempts: {
+        Row: {
+          created_at: string
+          email: string | null
+          fingerprint: string | null
+          id: string
+          ip_address: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          fingerprint?: string | null
+          id?: string
+          ip_address?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          fingerprint?: string | null
+          id?: string
+          ip_address?: string | null
         }
         Relationships: []
       }
