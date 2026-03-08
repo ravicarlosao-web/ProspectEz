@@ -756,9 +756,9 @@ const Clients = () => {
 
           {/* Advanced filters */}
           {showAdvancedFilters && (
-            <div className="flex flex-wrap gap-3 pt-3 border-t border-border/30 mt-3">
+            <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-border/30 mt-3">
               <Select value={serviceFilter} onValueChange={setServiceFilter}>
-                <SelectTrigger className="w-[180px] bg-muted/50 border-border/50">
+                <SelectTrigger className="w-full sm:w-[160px] bg-muted/50 border-border/50">
                   <SelectValue placeholder="Tipo de serviço" />
                 </SelectTrigger>
                 <SelectContent>
@@ -767,7 +767,7 @@ const Clients = () => {
                 </SelectContent>
               </Select>
               <Select value={websiteFilter} onValueChange={setWebsiteFilter}>
-                <SelectTrigger className="w-[180px] bg-muted/50 border-border/50">
+                <SelectTrigger className="w-full sm:w-[160px] bg-muted/50 border-border/50">
                   <SelectValue placeholder="Website" />
                 </SelectTrigger>
                 <SelectContent>
