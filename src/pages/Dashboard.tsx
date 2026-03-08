@@ -245,22 +245,8 @@ const Dashboard = () => {
       </div>
 
       {/* Weekly goal + Conversion */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         {[
-          {
-            icon: <Target className="h-4 w-4 text-primary" />,
-            title: "Meta Semanal",
-            content: (
-              <>
-                <div className="flex items-baseline gap-2 mb-3">
-                  <span className="text-2xl font-bold">{thisWeekLeads}</span>
-                  <span className="text-sm text-muted-foreground">/ {weeklyGoal} leads</span>
-                </div>
-                <Progress value={weeklyProgress} className="h-2" />
-                <p className="text-xs text-muted-foreground mt-2">{weeklyProgress.toFixed(0)}% concluído</p>
-              </>
-            ),
-          },
           {
             icon: <TrendingUp className="h-4 w-4 text-emerald-400" />,
             title: "Taxa de Conversão",
