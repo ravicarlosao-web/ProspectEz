@@ -173,6 +173,8 @@ const Dashboard = () => {
 
   const hasFollowUpAlerts = overdueLeads.length > 0 || todayLeads.length > 0 || upcomingLeads.length > 0;
 
+  if (loading) return <DashboardSkeleton />;
+
   return (
     <div className="space-y-6">
       {/* Greeting */}
