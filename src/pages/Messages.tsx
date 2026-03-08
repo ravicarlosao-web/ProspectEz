@@ -2,15 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Copy, MessageSquare, Globe, Instagram, TrendingUp } from "lucide-react";
+import { Copy, MessageSquare, Globe, Instagram, TrendingUp, Inbox } from "lucide-react";
 import { MESSAGE_CATEGORIES } from "@/lib/constants";
 
 type Template = {
@@ -20,123 +15,82 @@ type Template = {
   category: string;
 };
 
-const DEFAULT_TEMPLATES: Omit<Template, "id">[] = [
-  {
-    title: "Mensagem Inicial",
-    category: "inicial",
-    content: `Olá {{NomeCliente}},\n\nO meu nome é [Seu Nome] e faço parte da equipa da [Agência]. Reparámos que a {{Empresa}} tem um excelente potencial para crescer nas redes sociais.\n\nGostaria de agendar uma breve conversa para apresentar as nossas soluções de {{ServiçoInteressado}}.\n\nCumprimentos!`,
-  },
-  {
-    title: "Follow-up 1",
-    category: "follow_up_1",
-    content: `Olá {{NomeCliente}},\n\nEstou a escrever para dar seguimento à nossa última conversa sobre {{ServiçoInteressado}} para a {{Empresa}}.\n\nTem disponibilidade esta semana para conversarmos?\n\nCumprimentos!`,
-  },
-  {
-    title: "Proposta de Reunião",
-    category: "reuniao",
-    content: `Olá {{NomeCliente}},\n\nGostaria de propor uma reunião para apresentar uma proposta personalizada de {{ServiçoInteressado}} para a {{Empresa}}.\n\nSugestão: {{DataContato}} às 10h.\n\nConfirma a sua disponibilidade?\n\nCumprimentos!`,
-  },
-];
-
-const SOCIAL_MEDIA_TEMPLATES: Omit<Template, "id">[] = [
-  {
-    title: "📊 Análise de Redes Sociais",
-    category: "social_analise",
-    content: `Olá {{NomeCliente}},\n\nO meu nome é [Seu Nome] da [Agência]. Fizemos uma análise rápida da presença digital da {{Empresa}} e identificámos oportunidades importantes:\n\n📉 A vossa página tem potencial para alcançar muito mais pessoas\n📱 Com uma estratégia consistente, negócios semelhantes em Angola aumentaram o engajamento em até 300%\n🎯 O vosso público-alvo está activo nas redes sociais\n\nGostaria de partilhar um relatório gratuito com recomendações personalizadas?\n\nCumprimentos!`,
-  },
-  {
-    title: "🚀 Crescimento nas Redes",
-    category: "social_crescimento",
-    content: `Olá {{NomeCliente}},\n\nReparei que a {{Empresa}} tem presença nas redes sociais mas ainda pode crescer muito mais!\n\n📊 Métricas que podemos melhorar:\n• Frequência de publicações (ideal: 3-5 por semana)\n• Qualidade visual do conteúdo\n• Interacção com o público\n• Estratégia de hashtags angolanas\n\n💡 Empresas que investem em gestão profissional de redes sociais em Angola têm visto um aumento médio de 150% no alcance.\n\nPodemos agendar uma conversa de 15 minutos?\n\nCumprimentos!`,
-  },
-  {
-    title: "📸 Conteúdo Profissional",
-    category: "social_conteudo",
-    content: `Olá {{NomeCliente}},\n\nA {{Empresa}} tem muito para mostrar ao mundo! 🌍\n\nNotámos que o vosso conteúdo nas redes sociais pode beneficiar de:\n\n✅ Design profissional e consistente\n✅ Calendário editorial organizado\n✅ Vídeos curtos (Reels/TikTok) — formato com mais alcance em Angola\n✅ Stories diários para manter o público envolvido\n\n📈 Resultado esperado: Mais visibilidade, mais clientes, mais vendas.\n\nQuer saber como podemos transformar as redes sociais da {{Empresa}}?\n\nCumprimentos!`,
-  },
-  {
-    title: "💰 ROI de Social Media",
-    category: "social_roi",
-    content: `Olá {{NomeCliente}},\n\nSabia que investir em Social Media é uma das formas mais rentáveis de marketing para empresas em Angola?\n\n📊 Alguns números:\n• 70% dos angolanos activos online usam Instagram e Facebook\n• Negócios com gestão profissional de redes sociais geram 2-3x mais leads\n• O custo por lead em Social Media é até 60% menor que publicidade tradicional\n\nPara a {{Empresa}}, estimamos que uma estratégia bem executada poderia:\n🎯 Aumentar o alcance em 200%+\n🎯 Gerar 50+ contactos novos por mês\n🎯 Fortalecer a marca no mercado angolano\n\nPosso apresentar uma proposta sem compromisso?\n\nCumprimentos!`,
-  },
-  {
-    title: "⚡ Sem Presença Digital",
-    category: "social_sem_presenca",
-    content: `Olá {{NomeCliente}},\n\nO meu nome é [Seu Nome] da [Agência]. Reparámos que a {{Empresa}} ainda não tem uma presença forte nas redes sociais.\n\n🔍 Num mundo cada vez mais digital, os vossos potenciais clientes estão a procurar serviços como os vossos no Instagram e Facebook todos os dias.\n\n❌ Sem presença: Esses clientes vão para a concorrência\n✅ Com presença: A {{Empresa}} aparece primeiro\n\nOferecemos um pacote especial para empresas que estão a começar:\n📱 Criação de perfis profissionais\n📸 Conteúdo visual de qualidade\n📅 Gestão mensal completa\n\nVamos conversar sobre isto?\n\nCumprimentos!`,
-  },
-];
-
 const Messages = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", content: "", category: "inicial" });
+  const [loading, setLoading] = useState(true);
 
   const fetchTemplates = async () => {
+    setLoading(true);
     const { data } = await supabase.from("message_templates").select("*").order("created_at");
     setTemplates((data as Template[]) || []);
+    setLoading(false);
   };
 
   useEffect(() => { fetchTemplates(); }, []);
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const { error } = await supabase.from("message_templates").insert(form);
-    if (error) { toast.error("Erro ao criar template"); return; }
-    toast.success("Template criado!");
-    setDialogOpen(false);
-    setForm({ title: "", content: "", category: "inicial" });
-    fetchTemplates();
-  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Mensagem copiada!");
   };
 
-  const allTemplates = templates.length > 0 ? templates : DEFAULT_TEMPLATES.map((t, i) => ({ ...t, id: `default-${i}` }));
-  const socialTemplates = SOCIAL_MEDIA_TEMPLATES.map((t, i) => ({ ...t, id: `social-${i}` }));
+  const generalTemplates = templates.filter(t => !t.category.startsWith("social_"));
+  const socialTemplates = templates.filter(t => t.category.startsWith("social_"));
+
+  const getCategoryLabel = (cat: string) =>
+    MESSAGE_CATEGORIES.find(c => c.value === cat)?.label || cat;
 
   const getTemplateIcon = (category: string) => {
     if (category.startsWith("social_")) return <Instagram className="h-4 w-4 text-pink-400" />;
     return <MessageSquare className="h-4 w-4 text-muted-foreground" />;
   };
 
+  const EmptyState = ({ message }: { message: string }) => (
+    <Card className="border-border/50 bg-card/80">
+      <CardContent className="py-16 text-center">
+        <Inbox className="mx-auto h-10 w-10 text-muted-foreground/30 mb-3" />
+        <p className="text-muted-foreground text-sm">{message}</p>
+        <p className="text-muted-foreground/50 text-xs mt-1">Os templates são geridos pelo administrador</p>
+      </CardContent>
+    </Card>
+  );
+
+  const TemplateCard = ({ t }: { t: Template }) => (
+    <Card className={`flex flex-col bg-card/80 stat-card ${t.category.startsWith("social_") ? "border-pink-500/15" : "border-border/50"}`}>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-sm">{t.title}</CardTitle>
+            <CardDescription className="mt-1 text-xs">{getCategoryLabel(t.category)}</CardDescription>
+          </div>
+          {getTemplateIcon(t.category)}
+        </div>
+      </CardHeader>
+      <CardContent className="flex-1">
+        <pre className="whitespace-pre-wrap text-xs text-muted-foreground font-sans leading-relaxed">
+          {t.content}
+        </pre>
+      </CardContent>
+      <div className="border-t border-border/30 p-4">
+        <Button variant="outline" size="sm" className="w-full border-border/50" onClick={() => copyToClipboard(t.content)}>
+          <Copy className="mr-2 h-3.5 w-3.5" />Copiar Mensagem
+        </Button>
+      </div>
+    </Card>
+  );
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Mensagens & Templates</h1>
-          <p className="text-sm text-muted-foreground">Biblioteca de mensagens para prospecção</p>
-        </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />Novo Template</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader><DialogTitle>Criar Template</DialogTitle></DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Título</Label>
-                <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} required className="bg-muted/50 border-border/50" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Categoria</Label>
-                <Select value={form.category} onValueChange={v => setForm({...form, category: v})}>
-                  <SelectTrigger className="bg-muted/50 border-border/50"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {MESSAGE_CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Conteúdo</Label>
-                <Textarea value={form.content} onChange={e => setForm({...form, content: e.target.value})} rows={8} required
-                  placeholder="Use {{NomeCliente}}, {{Empresa}}, {{ServiçoInteressado}}, {{DataContato}}" className="bg-muted/50 border-border/50" />
-              </div>
-              <Button type="submit" className="w-full">Criar Template</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Mensagens & Templates</h1>
+        <p className="text-sm text-muted-foreground">Biblioteca de mensagens para prospecção</p>
       </div>
 
       <Tabs defaultValue="geral" className="space-y-4">
@@ -144,84 +98,53 @@ const Messages = () => {
           <TabsTrigger value="geral">
             <Globe className="mr-2 h-4 w-4" />
             Geral & Website
+            {generalTemplates.length > 0 && (
+              <Badge variant="secondary" className="ml-2 text-xs">{generalTemplates.length}</Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="social">
             <Instagram className="mr-2 h-4 w-4" />
             Social Media
-            <Badge variant="secondary" className="ml-2 text-xs">{socialTemplates.length}</Badge>
+            {socialTemplates.length > 0 && (
+              <Badge variant="secondary" className="ml-2 text-xs">{socialTemplates.length}</Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="geral">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {allTemplates.map(t => (
-              <Card key={t.id} className="flex flex-col border-border/50 bg-card/80 stat-card">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-sm">{t.title}</CardTitle>
-                      <CardDescription className="mt-1 text-xs">
-                        {MESSAGE_CATEGORIES.find(c => c.value === t.category)?.label || t.category}
-                      </CardDescription>
-                    </div>
-                    {getTemplateIcon(t.category)}
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-1">
-                  <pre className="whitespace-pre-wrap text-xs text-muted-foreground font-sans leading-relaxed">
-                    {t.content}
-                  </pre>
-                </CardContent>
-                <div className="border-t border-border/30 p-4">
-                  <Button variant="outline" size="sm" className="w-full border-border/50" onClick={() => copyToClipboard(t.content)}>
-                    <Copy className="mr-2 h-3.5 w-3.5" />Copiar Mensagem
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
+          {generalTemplates.length === 0 ? (
+            <EmptyState message="Nenhum template geral disponível" />
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {generalTemplates.map(t => <TemplateCard key={t.id} t={t} />)}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="social">
-          <Card className="mb-4 border-pink-500/20 bg-pink-500/5">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <TrendingUp className="h-5 w-5 text-pink-400 mt-0.5 shrink-0" />
-                <div>
-                  <h4 className="font-medium text-sm">Templates com Métricas de Social Media</h4>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Estas mensagens usam dados e métricas do mercado angolano para convencer potenciais clientes.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {socialTemplates.map(t => (
-              <Card key={t.id} className="flex flex-col border-pink-500/15 bg-card/80 stat-card">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-sm">{t.title}</CardTitle>
-                      <CardDescription className="mt-1 text-xs">Social Media</CardDescription>
-                    </div>
-                    <Instagram className="h-4 w-4 text-pink-400" />
+          {socialTemplates.length > 0 && (
+            <Card className="mb-4 border-pink-500/20 bg-pink-500/5">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <TrendingUp className="h-5 w-5 text-pink-400 mt-0.5 shrink-0" />
+                  <div>
+                    <h4 className="font-medium text-sm">Templates com Métricas de Social Media</h4>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Estas mensagens usam dados e métricas do mercado angolano para convencer potenciais clientes.
+                    </p>
                   </div>
-                </CardHeader>
-                <CardContent className="flex-1">
-                  <pre className="whitespace-pre-wrap text-xs text-muted-foreground font-sans leading-relaxed">
-                    {t.content}
-                  </pre>
-                </CardContent>
-                <div className="border-t border-border/30 p-4">
-                  <Button variant="outline" size="sm" className="w-full border-border/50" onClick={() => copyToClipboard(t.content)}>
-                    <Copy className="mr-2 h-3.5 w-3.5" />Copiar Mensagem
-                  </Button>
                 </div>
-              </Card>
-            ))}
-          </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {socialTemplates.length === 0 ? (
+            <EmptyState message="Nenhum template de social media disponível" />
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {socialTemplates.map(t => <TemplateCard key={t.id} t={t} />)}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
