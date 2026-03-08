@@ -690,6 +690,7 @@ const Clients = () => {
                   <Trash2 className="mr-2 h-3.5 w-3.5" />Eliminar Lead
                 </Button>
               </div>
+              )}
             </>
           )}
         </DialogContent>
