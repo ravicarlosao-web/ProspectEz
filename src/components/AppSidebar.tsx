@@ -6,6 +6,7 @@ import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
+import { usePendingPayments } from "@/hooks/usePendingPayments";
 import { motion } from "framer-motion";
 import {
   Sidebar,
