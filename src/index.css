@@ -6,91 +6,53 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 220 25% 10%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 220 25% 10%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 25% 10%;
-
-    --primary: 15 85% 50%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 145 60% 36%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 210 15% 93%;
-    --muted-foreground: 220 10% 46%;
-
-    --accent: 42 90% 55%;
-    --accent-foreground: 220 25% 10%;
-
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 214 20% 88%;
-    --input: 214 20% 88%;
-    --ring: 15 85% 50%;
-
-    --radius: 0.625rem;
-
-    --sidebar-background: 220 25% 10%;
-    --sidebar-foreground: 210 15% 85%;
-    --sidebar-primary: 15 85% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 20% 16%;
-    --sidebar-accent-foreground: 210 15% 90%;
-    --sidebar-border: 220 20% 18%;
-    --sidebar-ring: 15 85% 50%;
-
-    --success: 145 60% 36%;
-    --warning: 42 90% 55%;
-    --info: 205 80% 50%;
-  }
-
-  .dark {
-    --background: 220 25% 7%;
+    --background: 220 25% 5%;
     --foreground: 210 15% 93%;
 
-    --card: 220 22% 11%;
+    --card: 220 22% 8%;
     --card-foreground: 210 15% 93%;
 
-    --popover: 220 22% 11%;
+    --popover: 220 22% 10%;
     --popover-foreground: 210 15% 93%;
 
-    --primary: 15 85% 55%;
+    --primary: 142 70% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 145 50% 40%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 220 18% 16%;
+    --secondary-foreground: 210 15% 85%;
 
-    --muted: 220 18% 16%;
+    --muted: 220 18% 13%;
     --muted-foreground: 215 15% 55%;
 
-    --accent: 42 85% 50%;
-    --accent-foreground: 220 25% 10%;
+    --accent: 142 60% 40%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 18% 18%;
-    --input: 220 18% 18%;
-    --ring: 15 85% 55%;
+    --border: 220 18% 14%;
+    --input: 220 18% 14%;
+    --ring: 142 70% 45%;
 
-    --sidebar-background: 220 28% 6%;
-    --sidebar-foreground: 210 15% 85%;
-    --sidebar-primary: 15 85% 55%;
+    --radius: 0.75rem;
+
+    --sidebar-background: 220 28% 4%;
+    --sidebar-foreground: 210 15% 75%;
+    --sidebar-primary: 142 70% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 22% 12%;
+    --sidebar-accent: 220 22% 10%;
     --sidebar-accent-foreground: 210 15% 90%;
-    --sidebar-border: 220 22% 12%;
-    --sidebar-ring: 15 85% 55%;
+    --sidebar-border: 220 22% 10%;
+    --sidebar-ring: 142 70% 45%;
 
-    --success: 145 50% 40%;
-    --warning: 42 85% 50%;
-    --info: 205 70% 55%;
+    --success: 142 70% 45%;
+    --warning: 42 90% 55%;
+    --info: 205 80% 55%;
+    --chart-1: 142 70% 45%;
+    --chart-2: 205 80% 55%;
+    --chart-3: 280 65% 55%;
+    --chart-4: 42 90% 55%;
+    --chart-5: 0 62% 50%;
   }
 }
 
@@ -107,4 +69,58 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Space Grotesk', sans-serif;
   }
+}
+
+/* Starfield animation */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes float-particle {
+  0% { transform: translateY(0px) translateX(0px); }
+  33% { transform: translateY(-8px) translateX(4px); }
+  66% { transform: translateY(4px) translateX(-4px); }
+  100% { transform: translateY(0px) translateX(0px); }
+}
+
+.starfield-dot {
+  animation: twinkle var(--twinkle-duration, 3s) ease-in-out infinite;
+  animation-delay: var(--twinkle-delay, 0s);
+}
+
+.float-particle {
+  animation: float-particle var(--float-duration, 6s) ease-in-out infinite;
+  animation-delay: var(--float-delay, 0s);
+}
+
+/* Glass morphism for auth cards */
+.glass-card {
+  background: hsl(220 22% 8% / 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid hsl(220 18% 18% / 0.5);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(142 70% 45%), hsl(142 70% 65%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Subtle glow */
+.glow-primary {
+  box-shadow: 0 0 20px hsl(142 70% 45% / 0.15), 0 0 60px hsl(142 70% 45% / 0.05);
+}
+
+/* Stat card hover */
+.stat-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px hsl(220 25% 0% / 0.4);
+  border-color: hsl(220 18% 20%);
 }
