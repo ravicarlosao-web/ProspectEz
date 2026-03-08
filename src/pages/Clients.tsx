@@ -139,7 +139,7 @@ const Clients = () => {
     fetchProfile();
     const fetchAgency = async () => {
       const { data } = await supabase.from("app_settings" as any).select("value").eq("key", "agency_name").single();
-      if (data) setAgencyName((data as any).value || "KYS Digital");
+      if (data) setAgencyName((data as any).value || "");
     };
     fetchAgency();
   }, []);
