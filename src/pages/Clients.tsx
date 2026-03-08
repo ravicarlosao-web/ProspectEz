@@ -25,24 +25,6 @@ type Template = {
   category: string;
 };
 
-const DEFAULT_TEMPLATES: Omit<Template, "id">[] = [
-  {
-    title: "Mensagem Inicial",
-    category: "inicial",
-    content: `Olá {{NomeCliente}},\n\nO meu nome é [Seu Nome] e faço parte da equipa da [Agência]. Reparámos que a {{Empresa}} tem um excelente potencial para crescer nas redes sociais.\n\nGostaria de agendar uma breve conversa para apresentar as nossas soluções de {{ServiçoInteressado}}.\n\nCumprimentos!`,
-  },
-  {
-    title: "Follow-up 1",
-    category: "follow_up_1",
-    content: `Olá {{NomeCliente}},\n\nEstou a escrever para dar seguimento à nossa última conversa sobre {{ServiçoInteressado}} para a {{Empresa}}.\n\nTem disponibilidade esta semana para conversarmos?\n\nCumprimentos!`,
-  },
-  {
-    title: "Proposta de Reunião",
-    category: "reuniao",
-    content: `Olá {{NomeCliente}},\n\nGostaria de propor uma reunião para apresentar uma proposta personalizada de {{ServiçoInteressado}} para a {{Empresa}}.\n\nConfirma a sua disponibilidade?\n\nCumprimentos!`,
-  },
-];
-
 type Lead = {
   id: string;
   name: string;
