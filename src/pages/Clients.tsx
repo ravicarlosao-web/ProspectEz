@@ -10,8 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Search, Phone, Mail, Globe, Building2, MapPin, FileText, Calendar, MessageCircle, Copy } from "lucide-react";
+import { Plus, Search, Phone, Mail, Globe, Building2, MapPin, FileText, Calendar, MessageCircle, Copy, Trash2 } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, SERVICE_TYPE_LABELS, PROVINCES_ANGOLA, MESSAGE_CATEGORIES } from "@/lib/constants";
 
 type Template = {
