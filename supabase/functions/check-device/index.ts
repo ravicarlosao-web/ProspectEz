@@ -12,7 +12,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { fingerprint, action } = await req.json();
+    const body = await req.json();
+    const { fingerprint, action, email, user_id } = body;
 
     if (!fingerprint || typeof fingerprint !== "string" || fingerprint.length < 10) {
       return new Response(
@@ -21,7 +22,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get IP from request headers
     const ip =
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       req.headers.get("cf-connecting-ip") ||
@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     if (action === "check") {
-      // Check if fingerprint OR IP already registered a free account
+      // Check fingerprint
       const { data: byFingerprint } = await supabase
         .from("device_registrations")
         .select("id, email, created_at")
@@ -41,19 +41,16 @@ Deno.serve(async (req) => {
         .limit(1);
 
       if (byFingerprint && byFingerprint.length > 0) {
+        const masked = byFingerprint[0].email
+          ? byFingerprint[0].email.replace(/(.{2})(.*)(@.*)/, "$1***$3")
+          : null;
         return new Response(
-          JSON.stringify({
-            blocked: true,
-            reason: "fingerprint",
-            registered_email: byFingerprint[0].email
-              ? byFingerprint[0].email.replace(/(.{2})(.*)(@.*)/, "$1***$3")
-              : null,
-          }),
+          JSON.stringify({ blocked: true, reason: "fingerprint", registered_email: masked }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // Also check IP (secondary check)
+      // Check IP
       if (ip !== "unknown") {
         const { data: byIp } = await supabase
           .from("device_registrations")
@@ -62,14 +59,11 @@ Deno.serve(async (req) => {
           .limit(1);
 
         if (byIp && byIp.length > 0) {
+          const masked = byIp[0].email
+            ? byIp[0].email.replace(/(.{2})(.*)(@.*)/, "$1***$3")
+            : null;
           return new Response(
-            JSON.stringify({
-              blocked: true,
-              reason: "ip",
-              registered_email: byIp[0].email
-                ? byIp[0].email.replace(/(.{2})(.*)(@.*)/, "$1***$3")
-                : null,
-            }),
+            JSON.stringify({ blocked: true, reason: "ip", registered_email: masked }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
@@ -82,17 +76,11 @@ Deno.serve(async (req) => {
     }
 
     if (action === "register") {
-      const { email, user_id } = await req.json().catch(() => ({}));
-
-      // We already have the data from the initial parse, re-read from body isn't possible
-      // So we accept email and user_id from the original body
-      const bodyData = JSON.parse(await new Response(req.body).text().catch(() => "{}"));
-
       await supabase.from("device_registrations").insert({
         fingerprint,
         ip_address: ip,
-        email: bodyData?.email || email || null,
-        user_id: bodyData?.user_id || user_id || null,
+        email: email || null,
+        user_id: user_id || null,
       });
 
       return new Response(
@@ -106,6 +94,7 @@ Deno.serve(async (req) => {
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
+    console.error("check-device error:", err);
     return new Response(
       JSON.stringify({ error: "Internal error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
