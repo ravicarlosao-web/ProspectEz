@@ -1118,6 +1118,7 @@ const Prospection = () => {
           )}
         </TabsContent>
       </Tabs>
+      <TokenExhaustedDialog open={showTokenExhausted} onOpenChange={setShowTokenExhausted} />
     </div>
   );
 };
