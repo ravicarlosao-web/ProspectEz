@@ -213,7 +213,7 @@ export const AdminPlans = () => {
 
       {/* Payment Methods */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
@@ -221,7 +221,7 @@ export const AdminPlans = () => {
             </CardTitle>
             <CardDescription>Configure os dados bancários e referências que os clientes verão ao pagar</CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={addPaymentMethod}>
+          <Button variant="outline" size="sm" className="shrink-0 self-start" onClick={addPaymentMethod}>
             <Plus className="mr-1 h-4 w-4" /> Adicionar
           </Button>
         </CardHeader>
