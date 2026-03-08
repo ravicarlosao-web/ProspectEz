@@ -89,7 +89,7 @@ const Register = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="text-xs text-muted-foreground uppercase tracking-wider">Senha</Label>
-              <Input id="password" type="password" placeholder="Mínimo 6 caracteres" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="h-11 bg-muted/50 border-border/50 focus:border-primary" />
+              <Input id="password" type="password" placeholder="Mín. 8 caracteres com maiúsculas e números" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} maxLength={128} className="h-11 bg-muted/50 border-border/50 focus:border-primary" />
             </div>
             <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium" disabled={loading}>
               <UserPlus className="mr-2 h-4 w-4" />
