@@ -21,6 +21,7 @@ import { AdminUsers } from "./components/admin/AdminUsers";
 import { AdminPlans } from "./components/admin/AdminPlans";
 import { AdminLogs } from "./components/admin/AdminLogs";
 import { AdminAudit } from "./components/admin/AdminAudit";
+import { AdminTemplates } from "./components/admin/AdminTemplates";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ function AnimatedRoutes() {
             <Route path="planos" element={<AdminPlans />} />
             <Route path="logs" element={<AdminLogs />} />
             <Route path="auditoria" element={<AdminAudit />} />
+            <Route path="templates" element={<AdminTemplates />} />
           </Route>
         </Route>
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
