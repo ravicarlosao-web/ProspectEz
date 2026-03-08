@@ -45,7 +45,7 @@ export function AppSidebar() {
           <Zap className="h-5 w-5 text-sidebar-primary-foreground" />
         </div>
         <div className="flex flex-col">
-          <span className="text-sm font-bold text-sidebar-foreground">AngolaProsp</span>
+          <span className="text-sm font-bold text-sidebar-foreground">ProspectEz</span>
           <span className="text-xs text-sidebar-foreground/60">Prospecção</span>
         </div>
       </div>
