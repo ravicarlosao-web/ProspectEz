@@ -1,3 +1,4 @@
+// Anti-abuse device check v2 - with disposable email, rate limiting, persistent tokens
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
