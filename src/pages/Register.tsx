@@ -30,7 +30,8 @@ const Register = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Conta criada! Verifique o seu email para confirmar o registo.");
+      toast.success("Conta criada com sucesso! A redirecionar...");
+      setTimeout(() => window.location.href = "/dashboard", 1500);
     }
     setLoading(false);
   };
