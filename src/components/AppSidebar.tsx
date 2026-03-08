@@ -3,6 +3,7 @@ import {
   BarChart3, UserCog, CreditCard, FileText, ClipboardCheck, Wallet
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
 import { motion } from "framer-motion";
