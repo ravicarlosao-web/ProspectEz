@@ -130,8 +130,27 @@ const Clients = () => {
     }
   };
 
+  const handleDeleteLead = async () => {
+    if (!deleteLeadId) return;
+    const { error } = await supabase.from("leads").delete().eq("id", deleteLeadId);
+    if (error) { toast.error("Erro ao eliminar lead"); return; }
+    toast.success("Lead eliminado!");
+    setDeleteLeadId(null);
+    setSelectedLead(null);
+    fetchLeads();
+  };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleDeleteAll = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from("leads").delete().eq("user_id", user.id);
+    if (error) { toast.error("Erro ao eliminar leads"); return; }
+    toast.success("Todos os leads foram eliminados!");
+    setDeleteAllOpen(false);
+    fetchLeads();
+  };
+
+
     e.preventDefault();
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     const insertData: any = {
