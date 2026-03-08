@@ -277,7 +277,8 @@ const Clients = () => {
           <h1 className="text-2xl font-bold tracking-tight">Clientes & Leads</h1>
           <p className="text-sm text-muted-foreground">Gestão de potenciais clientes</p>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <LeadImportExport onImportComplete={() => { fetchLeads(); fetchStatusCounts(); }} />
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="sm:size-default"><Plus className="mr-2 h-4 w-4" />Novo Lead</Button>
