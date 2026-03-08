@@ -24,6 +24,9 @@ const RecoverPassword = () => {
       toast.error(error.message);
     } else {
       toast.success("Email de recuperação enviado! Verifique a sua caixa de entrada.");
+      supabase.functions.invoke("log-security-event", {
+        body: { event_type: "password_reset_request", email },
+      }).catch(() => {});
     }
     setLoading(false);
   };
