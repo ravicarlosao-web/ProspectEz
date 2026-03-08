@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, SERVICE_TYPE_LABELS, PROVINCES_ANGOLA, MESSAGE_CATEGORIES } from "@/lib/constants";
 import { LeadImportExport } from "@/components/LeadImportExport";
+import { ClientsSkeleton } from "@/components/PageSkeleton";
 
 type Template = {
   id: string;
@@ -69,7 +70,7 @@ const Clients = () => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [sellerName, setSellerName] = useState("");
-  const [agencyName, setAgencyName] = useState("KYS Digital");
+  const [agencyName, setAgencyName] = useState("");
   const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [page, setPage] = useState(0);
@@ -139,7 +140,7 @@ const Clients = () => {
     fetchProfile();
     const fetchAgency = async () => {
       const { data } = await supabase.from("app_settings" as any).select("value").eq("key", "agency_name").single();
-      if (data) setAgencyName((data as any).value || "KYS Digital");
+      if (data) setAgencyName((data as any).value || "");
     };
     fetchAgency();
   }, []);
@@ -317,6 +318,8 @@ const Clients = () => {
     setSearch("");
     setStatusFilter("all");
   };
+
+  if (loading && leads.length === 0) return <ClientsSkeleton />;
 
   return (
     <div className="space-y-6">
