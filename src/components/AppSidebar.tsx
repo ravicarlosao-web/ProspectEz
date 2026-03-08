@@ -40,19 +40,19 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r-0">
-      <div className="flex items-center gap-2 px-4 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
-          <Zap className="h-5 w-5 text-sidebar-primary-foreground" />
+      <div className="flex items-center gap-3 px-5 py-6">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary glow-primary">
+          <Zap className="h-5 w-5 text-primary-foreground" />
         </div>
         <div className="flex flex-col">
           <span className="text-sm font-bold text-sidebar-foreground">ProspectEz</span>
-          <span className="text-xs text-sidebar-foreground/60">Prospecção</span>
+          <span className="text-[11px] text-sidebar-foreground/40">Prospecção</span>
         </div>
       </div>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs uppercase tracking-wider">
+          <SidebarGroupLabel className="text-sidebar-foreground/30 text-[10px] uppercase tracking-[0.15em] font-semibold mb-1">
             Menu
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -62,11 +62,11 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      className="relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sidebar-foreground/60 transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      activeClassName="bg-sidebar-accent text-primary font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-5 before:w-[3px] before:rounded-r-full before:bg-primary"
                     >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <item.icon className="h-[18px] w-[18px]" />
+                      <span className="text-[13px]">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -77,9 +77,9 @@ export function AppSidebar() {
 
         {isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-sidebar-foreground/50 text-xs uppercase tracking-wider">
+            <SidebarGroupLabel className="text-sidebar-foreground/30 text-[10px] uppercase tracking-[0.15em] font-semibold mb-1">
               <div className="flex items-center gap-1.5">
-                <Shield className="h-3.5 w-3.5" />
+                <Shield className="h-3 w-3" />
                 Administração
               </div>
             </SidebarGroupLabel>
@@ -91,11 +91,11 @@ export function AppSidebar() {
                       <NavLink
                         to={item.url}
                         end
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                        className="relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sidebar-foreground/60 transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                        activeClassName="bg-sidebar-accent text-primary font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-5 before:w-[3px] before:rounded-r-full before:bg-primary"
                       >
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
+                        <item.icon className="h-[18px] w-[18px]" />
+                        <span className="text-[13px]">{item.title}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -106,21 +106,21 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
-        <div className="flex items-center gap-2 rounded-lg bg-sidebar-accent/50 px-3 py-2 text-xs text-sidebar-foreground/70">
-          <div className="h-6 w-6 rounded-full bg-sidebar-primary/20 flex items-center justify-center text-sidebar-primary font-medium">
+      <SidebarFooter className="p-4 space-y-2">
+        <div className="flex items-center gap-2.5 rounded-xl bg-sidebar-accent/60 px-3 py-2.5">
+          <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-semibold">
             {user?.email?.[0]?.toUpperCase() ?? "U"}
           </div>
-          <span className="flex-1 truncate">{user?.email}</span>
+          <span className="flex-1 truncate text-xs text-sidebar-foreground/70">{user?.email}</span>
         </div>
         <Button
           variant="ghost"
           size="sm"
-          className="mt-1 w-full justify-start text-sidebar-foreground/50 hover:text-sidebar-foreground"
+          className="w-full justify-start text-sidebar-foreground/40 hover:text-destructive hover:bg-destructive/10 transition-colors"
           onClick={signOut}
         >
           <LogOut className="mr-2 h-4 w-4" />
-          Sair
+          <span className="text-xs">Sair</span>
         </Button>
       </SidebarFooter>
     </Sidebar>
