@@ -153,8 +153,13 @@ const Register = () => {
       }
     }
 
-    toast.success("Conta criada com sucesso! A redirecionar...");
-    setTimeout(() => (window.location.href = "/dashboard"), 1500);
+    // Check if session exists (auto-confirm enabled) or not (email verification needed)
+    if (signUpData.session) {
+      toast.success("Conta criada com sucesso! A redirecionar...");
+      setTimeout(() => (window.location.href = "/dashboard"), 1500);
+    } else {
+      toast.success("Conta criada! Verifique o seu email para confirmar o registo.", { duration: 8000 });
+    }
     setLoading(false);
   };
 
