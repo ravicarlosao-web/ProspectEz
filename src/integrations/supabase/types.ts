@@ -206,6 +206,54 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          admin_notes: string | null
+          amount_kz: number
+          amount_usd: number
+          created_at: string
+          id: string
+          package_key: string | null
+          payment_method: string
+          plan_key: string | null
+          receipt_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount_kz?: number
+          amount_usd?: number
+          created_at?: string
+          id?: string
+          package_key?: string | null
+          payment_method?: string
+          plan_key?: string | null
+          receipt_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount_kz?: number
+          amount_usd?: number
+          created_at?: string
+          id?: string
+          package_key?: string | null
+          payment_method?: string
+          plan_key?: string | null
+          receipt_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
