@@ -254,8 +254,8 @@ const Clients = () => {
           </DialogContent>
           </Dialog>
           {leads.length > 0 && (
-            <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
-              <Trash2 className="mr-2 h-4 w-4" />Limpar Todos
+            <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10 sm:size-default" onClick={() => setDeleteAllOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" /><span className="hidden sm:inline">Limpar Todos</span><span className="sm:hidden">Limpar</span>
             </Button>
           )}
         </div>
