@@ -86,15 +86,57 @@ const SOURCE_LABELS: Record<string, string> = {
   directorio: "Directório",
 };
 
-// Normalize business name for dedup
+// Normalize business name for dedup - remove suffixes like Lda, SA, etc.
 const normalizeName = (name: string): string => {
   return name
     .toLowerCase()
     .replace(/\s*[-|–@].*$/, "")
     .replace(/\(.*?\)/g, "")
+    .replace(/\b(lda|limitada|sa|sarl|ep|srl|s\.a\.?|l\.da\.?|unipessoal)\b/gi, "")
     .replace(/[^a-záàâãéèêíïóôõúç\s]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+};
+
+// Extract domain from URL for dedup
+const extractDomain = (url: string | null): string | null => {
+  if (!url) return null;
+  try {
+    const hostname = new URL(url.startsWith("http") ? url : `https://${url}`).hostname;
+    return hostname.replace(/^www\./, "").toLowerCase();
+  } catch { return null; }
+};
+
+// Normalize phone to last 9 digits for comparison
+const normalizePhone = (phone: string | null): string | null => {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 9 ? digits.slice(-9) : null;
+};
+
+// Simple fuzzy match: check if two names overlap significantly
+const fuzzyMatch = (a: string, b: string): boolean => {
+  if (!a || !b || a.length < 3 || b.length < 3) return false;
+  const na = normalizeName(a);
+  const nb = normalizeName(b);
+  if (na === nb) return true;
+  // One contains the other
+  if (na.includes(nb) || nb.includes(na)) return true;
+  // Word overlap: >70% of words match
+  const wordsA = na.split(" ").filter(w => w.length > 2);
+  const wordsB = nb.split(" ").filter(w => w.length > 2);
+  if (wordsA.length === 0 || wordsB.length === 0) return false;
+  const common = wordsA.filter(w => wordsB.includes(w)).length;
+  const maxLen = Math.max(wordsA.length, wordsB.length);
+  return common / maxLen >= 0.7;
+};
+
+type ExistingLeadData = {
+  names: Set<string>;
+  emails: Set<string>;
+  phones: Set<string>;
+  domains: Set<string>;
+  rawNames: string[];
 };
 
 // Extract source from URL
