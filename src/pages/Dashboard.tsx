@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { DashboardSkeleton } from "@/components/PageSkeleton";
 import { Users, UserCheck, Handshake, Trophy, AlertTriangle, TrendingUp, Clock, Target, Bell, CalendarDays, MapPin } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from "@/lib/constants";
 import { motion } from "framer-motion";
