@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ReactNode } from "react";
+import { ReactNode, forwardRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const desktopVariants = {
@@ -24,18 +24,23 @@ const mobileTransition = {
   ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number],
 };
 
-export function PageTransition({ children }: { children: ReactNode }) {
-  const isMobile = useIsMobile();
+export const PageTransition = forwardRef<HTMLDivElement, { children: ReactNode }>(
+  ({ children }, ref) => {
+    const isMobile = useIsMobile();
 
-  return (
-    <motion.div
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      variants={isMobile ? mobileVariants : desktopVariants}
-      transition={isMobile ? mobileTransition : desktopTransition}
-    >
-      {children}
-    </motion.div>
-  );
-}
+    return (
+      <motion.div
+        ref={ref}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        variants={isMobile ? mobileVariants : desktopVariants}
+        transition={isMobile ? mobileTransition : desktopTransition}
+      >
+        {children}
+      </motion.div>
+    );
+  }
+);
+
+PageTransition.displayName = "PageTransition";
