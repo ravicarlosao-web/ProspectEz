@@ -217,7 +217,52 @@ const Clients = () => {
     fetchStatusCounts();
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const startEdit = (lead: Lead) => {
+    setEditForm({
+      name: lead.name || "",
+      company: lead.company || "",
+      email: lead.email || "",
+      phone: lead.phone || "",
+      province: lead.province || "",
+      city: lead.city || "",
+      website: lead.website || "",
+      service_type: lead.service_type || "",
+      notes: lead.notes || "",
+      source: lead.source || "",
+      social_facebook: lead.social_facebook || "",
+      social_instagram: lead.social_instagram || "",
+      social_linkedin: lead.social_linkedin || "",
+      social_tiktok: lead.social_tiktok || "",
+    });
+    setEditMode(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedLead) return;
+    const { error } = await supabase.from("leads").update({
+      name: editForm.name,
+      company: editForm.company || null,
+      email: editForm.email || null,
+      phone: editForm.phone || null,
+      province: editForm.province || null,
+      city: editForm.city || null,
+      website: editForm.website || null,
+      service_type: (editForm.service_type || null) as "social_media" | "website" | "ambos" | null,
+      notes: editForm.notes || null,
+      source: editForm.source || null,
+      social_facebook: editForm.social_facebook || null,
+      social_instagram: editForm.social_instagram || null,
+      social_linkedin: editForm.social_linkedin || null,
+      social_tiktok: editForm.social_tiktok || null,
+    }).eq("id", selectedLead.id);
+    if (error) { toast.error("Erro ao guardar alterações"); return; }
+    toast.success("Lead actualizado com sucesso!");
+    setEditMode(false);
+    setSelectedLead({ ...selectedLead, ...editForm, company: editForm.company || null, email: editForm.email || null, phone: editForm.phone || null, province: editForm.province || null, city: editForm.city || null, website: editForm.website || null, service_type: editForm.service_type || null, notes: editForm.notes || null, source: editForm.source || null, social_facebook: editForm.social_facebook || null, social_instagram: editForm.social_instagram || null, social_linkedin: editForm.social_linkedin || null, social_tiktok: editForm.social_tiktok || null });
+    fetchLeads();
+  };
+
+
     e.preventDefault();
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     const insertData: any = {
