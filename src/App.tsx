@@ -21,6 +21,7 @@ import { AdminUsers } from "./components/admin/AdminUsers";
 import { AdminPlans } from "./components/admin/AdminPlans";
 import { AdminLogs } from "./components/admin/AdminLogs";
 import { AdminAudit } from "./components/admin/AdminAudit";
+import { AdminTemplates } from "./components/admin/AdminTemplates";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
