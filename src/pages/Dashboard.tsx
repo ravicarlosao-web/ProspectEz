@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Users, UserCheck, Handshake, Trophy, AlertTriangle, TrendingUp, Clock, Target } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from "@/lib/constants";
+import { motion } from "framer-motion";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie, Legend,
@@ -32,6 +33,24 @@ type Lead = {
   service_type: string | null;
   created_at: string;
   updated_at: string;
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.08, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
+  }),
+};
+
+const scaleIn = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: (i: number) => ({
+    opacity: 1,
+    scale: 1,
+    transition: { delay: 0.3 + i * 0.1, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
+  }),
 };
 
 const Dashboard = () => {
@@ -79,7 +98,6 @@ const Dashboard = () => {
   const conversionRate = total > 0 ? ((counts.fechado_ganho || 0) / total * 100) : 0;
   const lossRate = total > 0 ? ((counts.perdido || 0) / total * 100) : 0;
 
-  // Weekly goal: 10 new leads
   const weeklyGoal = 10;
   const thisWeekLeads = leads.filter(l => {
     const d = new Date(l.created_at);
@@ -116,78 +134,96 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       {/* Greeting */}
-      <div>
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
         <h1 className="text-2xl font-bold tracking-tight">
           Olá, {userName || "Utilizador"}! 👋
         </h1>
         <p className="text-muted-foreground text-sm">Aqui está o resumo da sua prospecção</p>
-      </div>
+      </motion.div>
 
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((s) => (
-          <Card key={s.label} className="stat-card border-border/50 bg-card/80">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{s.label}</p>
-                  <p className="text-3xl font-bold mt-2">{loading ? "—" : s.value}</p>
+        {statCards.map((s, i) => (
+          <motion.div key={s.label} custom={i} initial="hidden" animate="visible" variants={fadeUp}>
+            <Card className="stat-card border-border/50 bg-card/80">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{s.label}</p>
+                    <p className="text-3xl font-bold mt-2">{loading ? "—" : s.value}</p>
+                  </div>
+                  <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${s.iconBg}`}>
+                    <s.icon className={`h-5 w-5 ${s.iconColor}`} />
+                  </div>
                 </div>
-                <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${s.iconBg}`}>
-                  <s.icon className={`h-5 w-5 ${s.iconColor}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
         ))}
       </div>
 
       {/* Weekly goal + Conversion */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Target className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium">Meta Semanal</span>
-            </div>
-            <div className="flex items-baseline gap-2 mb-3">
-              <span className="text-2xl font-bold">{thisWeekLeads}</span>
-              <span className="text-sm text-muted-foreground">/ {weeklyGoal} leads</span>
-            </div>
-            <Progress value={weeklyProgress} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-2">{weeklyProgress.toFixed(0)}% concluído</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="h-4 w-4 text-emerald-400" />
-              <span className="text-sm font-medium">Taxa de Conversão</span>
-            </div>
-            <p className="text-2xl font-bold text-emerald-400">{loading ? "—" : `${conversionRate.toFixed(1)}%`}</p>
-            <p className="text-xs text-muted-foreground mt-1">Leads fechados / total</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border/50 bg-card/80">
-          <CardContent className="p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="h-4 w-4 text-red-400" />
-              <span className="text-sm font-medium">Taxa de Perda</span>
-            </div>
-            <p className="text-2xl font-bold text-red-400">{loading ? "—" : `${lossRate.toFixed(1)}%`}</p>
-            <p className="text-xs text-muted-foreground mt-1">Leads perdidos / total</p>
-          </CardContent>
-        </Card>
+        {[
+          {
+            icon: <Target className="h-4 w-4 text-primary" />,
+            title: "Meta Semanal",
+            content: (
+              <>
+                <div className="flex items-baseline gap-2 mb-3">
+                  <span className="text-2xl font-bold">{thisWeekLeads}</span>
+                  <span className="text-sm text-muted-foreground">/ {weeklyGoal} leads</span>
+                </div>
+                <Progress value={weeklyProgress} className="h-2" />
+                <p className="text-xs text-muted-foreground mt-2">{weeklyProgress.toFixed(0)}% concluído</p>
+              </>
+            ),
+          },
+          {
+            icon: <TrendingUp className="h-4 w-4 text-emerald-400" />,
+            title: "Taxa de Conversão",
+            content: (
+              <>
+                <p className="text-2xl font-bold text-emerald-400">{loading ? "—" : `${conversionRate.toFixed(1)}%`}</p>
+                <p className="text-xs text-muted-foreground mt-1">Leads fechados / total</p>
+              </>
+            ),
+          },
+          {
+            icon: <AlertTriangle className="h-4 w-4 text-red-400" />,
+            title: "Taxa de Perda",
+            content: (
+              <>
+                <p className="text-2xl font-bold text-red-400">{loading ? "—" : `${lossRate.toFixed(1)}%`}</p>
+                <p className="text-xs text-muted-foreground mt-1">Leads perdidos / total</p>
+              </>
+            ),
+          },
+        ].map((item, i) => (
+          <motion.div key={item.title} custom={i} initial="hidden" animate="visible" variants={scaleIn}>
+            <Card className="border-border/50 bg-card/80">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  {item.icon}
+                  <span className="text-sm font-medium">{item.title}</span>
+                </div>
+                {item.content}
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </div>
 
       {/* Charts row */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border-border/50 bg-card/80">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Funil de Conversão</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {total === 0 && !loading ? (
+        {[
+          {
+            title: "Funil de Conversão",
+            content: total === 0 && !loading ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <AlertTriangle className="mb-2 h-8 w-8" />
                 <p className="text-sm">Sem leads ainda. Comece por adicionar clientes!</p>
@@ -205,16 +241,11 @@ const Dashboard = () => {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/50 bg-card/80">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Leads por Tipo de Serviço</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {serviceData.length === 0 && !loading ? (
+            ),
+          },
+          {
+            title: "Leads por Tipo de Serviço",
+            content: serviceData.length === 0 && !loading ? (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <AlertTriangle className="mb-2 h-8 w-8" />
                 <p className="text-sm">Nenhum lead com serviço definido.</p>
@@ -222,17 +253,7 @@ const Dashboard = () => {
             ) : (
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <Pie
-                    data={serviceData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={95}
-                    paddingAngle={4}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    stroke="none"
-                  >
+                  <Pie data={serviceData} cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={4} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} stroke="none">
                     {serviceData.map((entry, i) => (
                       <Cell key={i} fill={entry.fill} />
                     ))}
@@ -241,49 +262,66 @@ const Dashboard = () => {
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                 </PieChart>
               </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
+            ),
+          },
+        ].map((chart, i) => (
+          <motion.div key={chart.title} custom={i} initial="hidden" animate="visible" variants={scaleIn}>
+            <Card className="border-border/50 bg-card/80">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">{chart.title}</CardTitle>
+              </CardHeader>
+              <CardContent>{chart.content}</CardContent>
+            </Card>
+          </motion.div>
+        ))}
       </div>
 
       {/* Recent activity */}
-      <Card className="border-border/50 bg-card/80">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            Actividade Recente
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentLeads.length === 0 && !loading ? (
-            <p className="text-sm text-muted-foreground text-center py-6">Sem actividade recente.</p>
-          ) : (
-            <div className="space-y-2">
-              {recentLeads.map((lead) => (
-                <div key={lead.id} className="flex items-center justify-between rounded-xl bg-muted/30 border border-border/30 p-3 transition-colors hover:bg-muted/50">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-semibold">
-                      {lead.name.charAt(0).toUpperCase()}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.5 }}>
+        <Card className="border-border/50 bg-card/80">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              Actividade Recente
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recentLeads.length === 0 && !loading ? (
+              <p className="text-sm text-muted-foreground text-center py-6">Sem actividade recente.</p>
+            ) : (
+              <div className="space-y-2">
+                {recentLeads.map((lead, i) => (
+                  <motion.div
+                    key={lead.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.7 + i * 0.05, duration: 0.3 }}
+                    className="flex items-center justify-between rounded-xl bg-muted/30 border border-border/30 p-3 transition-colors hover:bg-muted/50"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-semibold">
+                        {lead.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{lead.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{lead.company || "Sem empresa"}</p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{lead.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{lead.company || "Sem empresa"}</p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="secondary" className={`text-xs ${LEAD_STATUS_COLORS[lead.status] || ""}`}>
+                        {LEAD_STATUS_LABELS[lead.status] || lead.status}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground hidden sm:inline">
+                        {formatDate(lead.updated_at)}
+                      </span>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="secondary" className={`text-xs ${LEAD_STATUS_COLORS[lead.status] || ""}`}>
-                      {LEAD_STATUS_LABELS[lead.status] || lead.status}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground hidden sm:inline">
-                      {formatDate(lead.updated_at)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 };
