@@ -249,8 +249,8 @@ const SettingsPage = () => {
         <Card className="border-border/50 bg-card/80 md:col-span-2">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10">
-                <Shield className="h-4 w-4 text-emerald-400" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/50">
+                <Shield className="h-4 w-4 text-primary" />
               </div>
               <div>
                 <CardTitle className="text-base">Alterar Senha</CardTitle>
