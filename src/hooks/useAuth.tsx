@@ -105,5 +105,3 @@ export const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   return <>{children}</>;
 };
 
-// Inline suspended screen to avoid circular deps
-import { SuspendedScreen } from "@/components/SuspendedScreen";
