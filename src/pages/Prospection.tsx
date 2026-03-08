@@ -703,11 +703,7 @@ const Prospection = () => {
         toast.error("Erro ao guardar lead");
       } else {
         toast.success("Lead guardado como potencial cliente de Social Media!");
-        setExistingLeadNames(prev => {
-          const next = new Set(prev);
-          next.add(normalizeName(result.businessName));
-          return next;
-        });
+        await loadExistingLeads();
         setSocialResults(prev =>
           prev.map(r => r.url === result.url ? { ...r, alreadySaved: true } : r)
         );
