@@ -423,8 +423,6 @@ const Prospection = () => {
         setShowTokenExhausted(true);
         return;
       }
-        return;
-      }
     }
 
     setIsSearchingSocial(true);
