@@ -61,9 +61,17 @@ const Login = () => {
   const isLocked = lockRemaining > 0;
   const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
+  const logSecurityEvent = (event_type: string, targetEmail: string, details?: Record<string, unknown>) => {
+    // Fire and forget — don't block login flow
+    supabase.functions.invoke("log-security-event", {
+      body: { event_type, email: targetEmail, details },
+    }).catch(() => {});
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (checkLock()) {
+      logSecurityEvent("login_while_locked", email, { reason: "attempted_while_locked" });
       toast.error(`Conta bloqueada. Tente novamente em ${formatTime(lockRemaining)}.`);
       return;
     }
@@ -74,10 +82,13 @@ const Login = () => {
     if (error) {
       const rl = getRateLimit();
       const newAttempts = rl.attempts + 1;
+      logSecurityEvent("login_failed", email, { attempt: newAttempts, error: error.message });
+
       if (newAttempts >= MAX_ATTEMPTS) {
         const lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
         setRateLimit(newAttempts, lockedUntil);
         setLockRemaining(Math.ceil(LOCKOUT_DURATION_MS / 1000));
+        logSecurityEvent("account_locked", email, { attempts: newAttempts, lockout_minutes: 5 });
         toast.error(`Demasiadas tentativas falhadas. Conta bloqueada por 5 minutos.`);
       } else {
         setRateLimit(newAttempts, null);
