@@ -6,12 +6,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { User, Shield, Building } from "lucide-react";
+import { User, Shield, Building, Eye, EyeOff, Lock } from "lucide-react";
 
 const SettingsPage = () => {
   const { user } = useAuth();
   const [agencyName, setAgencyName] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
@@ -38,6 +46,90 @@ const SettingsPage = () => {
     }
     toast.success("Nome da agência actualizado!");
   };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword.trim()) {
+      toast.error("Introduza a senha actual");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("A nova senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
+    if (currentPassword === newPassword) {
+      toast.error("A nova senha deve ser diferente da actual");
+      return;
+    }
+
+    setChangingPassword(true);
+
+    // Verify current password by re-signing in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user?.email ?? "",
+      password: currentPassword,
+    });
+
+    if (signInError) {
+      setChangingPassword(false);
+      toast.error("Senha actual incorrecta");
+      return;
+    }
+
+    // Update to new password
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    setChangingPassword(false);
+
+    if (updateError) {
+      toast.error("Erro ao alterar senha: " + updateError.message);
+      return;
+    }
+
+    toast.success("Senha alterada com sucesso!");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+  };
+
+  const PasswordInput = ({
+    value,
+    onChange,
+    show,
+    onToggle,
+    placeholder,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+    show: boolean;
+    onToggle: () => void;
+    placeholder: string;
+  }) => (
+    <div className="relative">
+      <Input
+        type={show ? "text" : "password"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="bg-muted/50 border-border/50 pr-10"
+        maxLength={128}
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </button>
+    </div>
+  );
+
+  const passwordStrength = newPassword.length === 0 ? null : newPassword.length < 6 ? "fraca" : newPassword.length < 10 ? "média" : "forte";
 
   return (
     <div className="space-y-6">
@@ -99,23 +191,69 @@ const SettingsPage = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-border/50 bg-card/80">
+        <Card className="border-border/50 bg-card/80 md:col-span-2">
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10">
                 <Shield className="h-4 w-4 text-emerald-400" />
               </div>
               <div>
-                <CardTitle className="text-base">Segurança</CardTitle>
-                <CardDescription className="text-xs">Gestão de acesso</CardDescription>
+                <CardTitle className="text-base">Alterar Senha</CardTitle>
+                <CardDescription className="text-xs">Introduza a senha actual para confirmar a sua identidade</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Papel: Utilizador (predefinido)
-            </p>
-            <Button variant="outline" size="sm" disabled className="border-border/50">Alterar Senha</Button>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Lock className="h-3 w-3" /> Senha Actual
+                </Label>
+                <PasswordInput
+                  value={currentPassword}
+                  onChange={setCurrentPassword}
+                  show={showCurrent}
+                  onToggle={() => setShowCurrent(!showCurrent)}
+                  placeholder="Senha actual"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Nova Senha</Label>
+                <PasswordInput
+                  value={newPassword}
+                  onChange={setNewPassword}
+                  show={showNew}
+                  onToggle={() => setShowNew(!showNew)}
+                  placeholder="Mínimo 6 caracteres"
+                />
+                {passwordStrength && (
+                  <p className={`text-[11px] ${passwordStrength === "fraca" ? "text-destructive" : passwordStrength === "média" ? "text-yellow-500" : "text-emerald-500"}`}>
+                    Força: {passwordStrength}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Confirmar Nova Senha</Label>
+                <PasswordInput
+                  value={confirmPassword}
+                  onChange={setConfirmPassword}
+                  show={showConfirm}
+                  onToggle={() => setShowConfirm(!showConfirm)}
+                  placeholder="Repetir nova senha"
+                />
+                {confirmPassword && confirmPassword !== newPassword && (
+                  <p className="text-[11px] text-destructive">As senhas não coincidem</p>
+                )}
+              </div>
+            </div>
+            <Button
+              onClick={handleChangePassword}
+              disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
+              size="sm"
+              className="mt-4"
+            >
+              {changingPassword ? "A alterar..." : "Alterar Senha"}
+            </Button>
           </CardContent>
         </Card>
       </div>
