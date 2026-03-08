@@ -112,14 +112,6 @@ const Dashboard = () => {
   const conversionRate = total > 0 ? ((counts.fechado_ganho || 0) / total * 100) : 0;
   const lossRate = total > 0 ? ((counts.perdido || 0) / total * 100) : 0;
 
-  const weeklyGoal = 10;
-  const thisWeekLeads = leads.filter(l => {
-    const d = new Date(l.created_at);
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return d >= weekAgo;
-  }).length;
-  const weeklyProgress = Math.min((thisWeekLeads / weeklyGoal) * 100, 100);
 
   const funnelData = Object.entries(LEAD_STATUS_LABELS).map(([key, label], i) => ({
     name: label,
