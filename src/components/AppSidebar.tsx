@@ -3,6 +3,7 @@ import {
   BarChart3, UserCog, CreditCard, FileText, ClipboardCheck, Wallet
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
 import { motion } from "framer-motion";
@@ -140,6 +141,7 @@ export function AppSidebar() {
           </div>
           <span className="flex-1 truncate text-xs text-sidebar-foreground/70">{user?.email}</span>
         </motion.div>
+        <ThemeToggle />
         <Button
           variant="ghost"
           size="sm"
