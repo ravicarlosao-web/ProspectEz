@@ -172,12 +172,19 @@ const Clients = () => {
     });
   };
 
+  const statusCards = [
+    { label: "Novos", count: leads.filter(l => l.status === "novo").length, color: "text-blue-400", bg: "bg-blue-500/10" },
+    { label: "Contactados", count: leads.filter(l => l.status === "contactado").length, color: "text-amber-400", bg: "bg-amber-500/10" },
+    { label: "Em Negociação", count: leads.filter(l => l.status === "em_negociacao").length, color: "text-purple-400", bg: "bg-purple-500/10" },
+    { label: "Fechados", count: leads.filter(l => l.status === "fechado_ganho").length, color: "text-emerald-400", bg: "bg-emerald-500/10" },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Clientes & Leads</h1>
-          <p className="text-muted-foreground">Gestão de potenciais clientes</p>
+          <p className="text-sm text-muted-foreground">Gestão de potenciais clientes</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -188,42 +195,42 @@ const Clients = () => {
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Nome *</Label>
-                  <Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Nome *</Label>
+                  <Input value={form.name} onChange={e => setForm({...form, name: e.target.value})} required className="bg-muted/50 border-border/50" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Empresa</Label>
-                  <Input value={form.company} onChange={e => setForm({...form, company: e.target.value})} />
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Empresa</Label>
+                  <Input value={form.company} onChange={e => setForm({...form, company: e.target.value})} className="bg-muted/50 border-border/50" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Email</Label>
+                  <Input type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} className="bg-muted/50 border-border/50" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Telefone</Label>
-                  <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Telefone</Label>
+                  <Input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} className="bg-muted/50 border-border/50" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Província</Label>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Província</Label>
                   <Select value={form.province} onValueChange={v => setForm({...form, province: v})}>
-                    <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                    <SelectTrigger className="bg-muted/50 border-border/50"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                     <SelectContent>
                       {PROVINCES_ANGOLA.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Cidade</Label>
-                  <Input value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Cidade</Label>
+                  <Input value={form.city} onChange={e => setForm({...form, city: e.target.value})} className="bg-muted/50 border-border/50" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Website</Label>
-                  <Input value={form.website} onChange={e => setForm({...form, website: e.target.value})} placeholder="https://" />
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Website</Label>
+                  <Input value={form.website} onChange={e => setForm({...form, website: e.target.value})} placeholder="https://" className="bg-muted/50 border-border/50" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Serviço</Label>
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Serviço</Label>
                   <Select value={form.service_type} onValueChange={v => setForm({...form, service_type: v})}>
-                    <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                    <SelectTrigger className="bg-muted/50 border-border/50"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                     <SelectContent>
                       {Object.entries(SERVICE_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                     </SelectContent>
@@ -231,13 +238,27 @@ const Clients = () => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Notas</Label>
-                <Textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={3} />
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Notas</Label>
+                <Textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={3} className="bg-muted/50 border-border/50" />
               </div>
               <Button type="submit" className="w-full">Criar Lead</Button>
             </form>
           </DialogContent>
         </Dialog>
+      </div>
+
+      {/* Status count cards */}
+      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+        {statusCards.map((s) => (
+          <Card key={s.label} className="border-border/50 bg-card/80 stat-card">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${s.bg}`}>
+                <span className={`text-lg font-bold ${s.color}`}>{s.count}</span>
+              </div>
+              <span className="text-xs text-muted-foreground font-medium">{s.label}</span>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Lead Detail Dialog */}
