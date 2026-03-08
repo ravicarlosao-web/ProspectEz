@@ -110,7 +110,7 @@ export const AdminLogs = () => {
             </div>
           ) : (
             <>
-              <Table>
+              <div className="overflow-x-auto"><Table className="min-w-[600px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Utilizador</TableHead>
