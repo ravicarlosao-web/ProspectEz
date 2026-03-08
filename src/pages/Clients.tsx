@@ -22,7 +22,7 @@ import { pt } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import {
   Plus, Search, Phone, Mail, Globe, Building2, MapPin, FileText, Calendar as CalendarIcon,
-  MessageCircle, Copy, Trash2, ChevronLeft, ChevronRight, Filter, X, CalendarDays, Bell
+  MessageCircle, Copy, Trash2, ChevronLeft, ChevronRight, Filter, X, CalendarDays, Bell, Pencil, Save
 } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, SERVICE_TYPE_LABELS, PROVINCES_ANGOLA, MESSAGE_CATEGORIES } from "@/lib/constants";
 import { LeadImportExport } from "@/components/LeadImportExport";
@@ -76,6 +76,8 @@ const Clients = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [followUpDate, setFollowUpDate] = useState<Date | undefined>();
+  const [editMode, setEditMode] = useState(false);
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     name: "", company: "", email: "", phone: "+244 ", province: "", city: "",
     website: "", service_type: "", notes: "",
@@ -213,6 +215,51 @@ const Clients = () => {
     setPage(0);
     fetchLeads();
     fetchStatusCounts();
+  };
+
+  const startEdit = (lead: Lead) => {
+    setEditForm({
+      name: lead.name || "",
+      company: lead.company || "",
+      email: lead.email || "",
+      phone: lead.phone || "",
+      province: lead.province || "",
+      city: lead.city || "",
+      website: lead.website || "",
+      service_type: lead.service_type || "",
+      notes: lead.notes || "",
+      source: lead.source || "",
+      social_facebook: lead.social_facebook || "",
+      social_instagram: lead.social_instagram || "",
+      social_linkedin: lead.social_linkedin || "",
+      social_tiktok: lead.social_tiktok || "",
+    });
+    setEditMode(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedLead) return;
+    const { error } = await supabase.from("leads").update({
+      name: editForm.name,
+      company: editForm.company || null,
+      email: editForm.email || null,
+      phone: editForm.phone || null,
+      province: editForm.province || null,
+      city: editForm.city || null,
+      website: editForm.website || null,
+      service_type: (editForm.service_type || null) as "social_media" | "website" | "ambos" | null,
+      notes: editForm.notes || null,
+      source: editForm.source || null,
+      social_facebook: editForm.social_facebook || null,
+      social_instagram: editForm.social_instagram || null,
+      social_linkedin: editForm.social_linkedin || null,
+      social_tiktok: editForm.social_tiktok || null,
+    }).eq("id", selectedLead.id);
+    if (error) { toast.error("Erro ao guardar alterações"); return; }
+    toast.success("Lead actualizado com sucesso!");
+    setEditMode(false);
+    setSelectedLead({ ...selectedLead, ...editForm, company: editForm.company || null, email: editForm.email || null, phone: editForm.phone || null, province: editForm.province || null, city: editForm.city || null, website: editForm.website || null, service_type: editForm.service_type || null, notes: editForm.notes || null, source: editForm.source || null, social_facebook: editForm.social_facebook || null, social_instagram: editForm.social_instagram || null, social_linkedin: editForm.social_linkedin || null, social_tiktok: editForm.social_tiktok || null });
+    fetchLeads();
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -363,14 +410,101 @@ const Clients = () => {
 
       {/* Lead Detail Dialog */}
       <Dialog open={!!selectedLead} onOpenChange={(open) => {
-        if (!open) { setSelectedLead(null); setFollowUpDate(undefined); }
+        if (!open) { setSelectedLead(null); setFollowUpDate(undefined); setEditMode(false); }
       }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           {selectedLead && (
             <>
               <DialogHeader>
-                <DialogTitle>{selectedLead.name}</DialogTitle>
+                <div className="flex items-center justify-between">
+                  <DialogTitle>{editMode ? "Editar Lead" : selectedLead.name}</DialogTitle>
+                  {!editMode && (
+                    <Button variant="outline" size="sm" onClick={() => startEdit(selectedLead)}>
+                      <Pencil className="mr-1.5 h-3.5 w-3.5" />Editar
+                    </Button>
+                  )}
+                </div>
               </DialogHeader>
+
+              {editMode ? (
+                <div className="space-y-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Nome *</Label>
+                      <Input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} required className="bg-muted/50 border-border/50" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Empresa</Label>
+                      <Input value={editForm.company} onChange={e => setEditForm({...editForm, company: e.target.value})} className="bg-muted/50 border-border/50" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Email</Label>
+                      <Input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className="bg-muted/50 border-border/50" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Telefone</Label>
+                      <Input value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} className="bg-muted/50 border-border/50" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Província</Label>
+                      <Select value={editForm.province} onValueChange={v => setEditForm({...editForm, province: v})}>
+                        <SelectTrigger className="bg-muted/50 border-border/50"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                        <SelectContent>
+                          {PROVINCES_ANGOLA.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Cidade</Label>
+                      <Input value={editForm.city} onChange={e => setEditForm({...editForm, city: e.target.value})} className="bg-muted/50 border-border/50" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Website</Label>
+                      <Input value={editForm.website} onChange={e => setEditForm({...editForm, website: e.target.value})} placeholder="https://" className="bg-muted/50 border-border/50" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Serviço</Label>
+                      <Select value={editForm.service_type} onValueChange={v => setEditForm({...editForm, service_type: v})}>
+                        <SelectTrigger className="bg-muted/50 border-border/50"><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(SERVICE_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Separator />
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Redes Sociais</p>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Facebook</Label>
+                      <Input value={editForm.social_facebook} onChange={e => setEditForm({...editForm, social_facebook: e.target.value})} placeholder="https://facebook.com/..." className="bg-muted/50 border-border/50" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Instagram</Label>
+                      <Input value={editForm.social_instagram} onChange={e => setEditForm({...editForm, social_instagram: e.target.value})} placeholder="https://instagram.com/..." className="bg-muted/50 border-border/50" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">LinkedIn</Label>
+                      <Input value={editForm.social_linkedin} onChange={e => setEditForm({...editForm, social_linkedin: e.target.value})} placeholder="https://linkedin.com/..." className="bg-muted/50 border-border/50" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">TikTok</Label>
+                      <Input value={editForm.social_tiktok} onChange={e => setEditForm({...editForm, social_tiktok: e.target.value})} placeholder="https://tiktok.com/..." className="bg-muted/50 border-border/50" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Notas</Label>
+                    <Textarea value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} rows={3} className="bg-muted/50 border-border/50" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1" onClick={() => setEditMode(false)}>Cancelar</Button>
+                    <Button className="flex-1" onClick={handleSaveEdit} disabled={!editForm.name?.trim()}>
+                      <Save className="mr-1.5 h-3.5 w-3.5" />Guardar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">Estado do Funil</Label>
                 <Select value={selectedLead.status} onValueChange={(v) => { updateLeadStatus(selectedLead, v); toast.success(`Status alterado para ${LEAD_STATUS_LABELS[v]}`); }}>
@@ -556,6 +690,8 @@ const Clients = () => {
                   <Trash2 className="mr-2 h-3.5 w-3.5" />Eliminar Lead
                 </Button>
               </div>
+              </>
+              )}
             </>
           )}
         </DialogContent>
