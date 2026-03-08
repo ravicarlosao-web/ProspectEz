@@ -410,7 +410,7 @@ const Clients = () => {
 
       {/* Lead Detail Dialog */}
       <Dialog open={!!selectedLead} onOpenChange={(open) => {
-        if (!open) { setSelectedLead(null); setFollowUpDate(undefined); }
+        if (!open) { setSelectedLead(null); setFollowUpDate(undefined); setEditMode(false); }
       }}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
           {selectedLead && (
