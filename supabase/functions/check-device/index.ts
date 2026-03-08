@@ -1,3 +1,4 @@
+// Anti-abuse device check v2 - with disposable email, rate limiting, persistent tokens
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -6,6 +7,48 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Disposable email domains (top 200+)
+const DISPOSABLE_DOMAINS = new Set([
+  "mailinator.com","guerrillamail.com","guerrillamail.net","tempmail.com","throwaway.email",
+  "yopmail.com","sharklasers.com","guerrillamailblock.com","grr.la","discard.email",
+  "temp-mail.org","fakeinbox.com","mailnesia.com","trashmail.com","trashmail.net",
+  "trashmail.org","tmpmail.net","tmpmail.org","binkmail.com","getairmail.com",
+  "maildrop.cc","mohmal.com","tempail.com","tempmailaddress.com","tempr.email",
+  "10minutemail.com","10minutemail.net","minutemail.com","emailondeck.com","guerrillamail.de",
+  "harakirimail.com","jetable.org","mailexpire.com","mailcatch.com","nospam.ze.tc",
+  "owlpic.com","spamgourmet.com","trashymail.com","mytrashmail.com","mailnator.com",
+  "mailtemp.info","mt2015.com","thankyou2010.com","trash2009.com","boun.cr",
+  "filzmail.com","mailforspam.com","safetymail.info","spoofmail.de","tempinbox.com",
+  "tempomail.fr","temporaryemail.net","throwam.com","trashmailer.com","wegwerfmail.de",
+  "wegwerfmail.net","einrot.com","0815.ru","0clickemail.com","bccto.me",
+  "bobmail.info","chammy.info","devnullmail.com","discardmail.com","discardmail.de",
+  "e4ward.com","emailmiser.com","emailsensei.com","emailtemporario.com.br","fakedemail.com",
+  "gishpuppy.com","kasmail.com","klzlk.com","lhsdv.com","mailblocks.com",
+  "mailcatch.com","mailimate.com","mailmoat.com","mailseal.de","meltmail.com",
+  "mintemail.com","mytempemail.com","nobulk.com","noclickemail.com","nogmailspam.info",
+  "nomail.xl.cx","nomail2me.com","nospam.ze.tc","nospamfor.us","nowmymail.com",
+  "pjjkp.com","pookmail.com","recode.me","regbypass.com","rejectmail.com",
+  "safe-mail.net","safersignup.de","safetypost.de","shieldedmail.com","sogetthis.com",
+  "soodonims.com","spamcero.com","spamcon.org","spamex.com","spamfree24.com",
+  "spamfree24.de","spamfree24.net","spamfree24.org","spamgoes.in","spaml.com",
+  "spammotel.com","spamobox.com","spamoff.de","spamspot.com","spamthisplease.com",
+  "tempemail.co.za","tempemail.net","tempinbox.co.uk","tempmail.it","tempmailer.com",
+  "tempmailer.de","tempomail.fr","temporarily.de","temporarioemail.com.br",
+  "temporaryemail.us","temporaryforwarding.com","temporaryinbox.com","thankyou2010.com",
+  "thisisnotmyrealemail.com","throwawayemailaddress.com","tittbit.in","tradermail.info",
+  "trash2009.com","trashmail.at","trashmail.me","trashmail.ws","uggsrock.com",
+  "veryreallybadmail.com","viditag.com","whyspam.me","willselfdestruct.com",
+  "xyzfree.net","yopmail.fr","yopmail.net","za.com","zehnminutenmail.de",
+  "zippymail.info","mailsac.com","mailtothis.com","burnthismail.com",
+  "imgof.com","imstations.com","incognitomail.org","insorg.org",
+]);
+
+function isDisposableEmail(email: string): boolean {
+  const domain = email.split("@")[1]?.toLowerCase();
+  if (!domain) return false;
+  return DISPOSABLE_DOMAINS.has(domain);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -13,7 +56,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { fingerprint, action, email, user_id } = body;
+    const { fingerprint, action, email, user_id, persistent_token } = body;
 
     if (!fingerprint || typeof fingerprint !== "string" || fingerprint.length < 10) {
       return new Response(
@@ -33,10 +76,29 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     if (action === "check") {
-      // Check fingerprint
+      // 1. Check persistent token (survives incognito/browser changes if any storage persists)
+      if (persistent_token && typeof persistent_token === "string" && persistent_token.length > 10) {
+        const { data: byToken } = await supabase
+          .from("device_registrations")
+          .select("id, email")
+          .eq("persistent_token", persistent_token)
+          .limit(1);
+
+        if (byToken && byToken.length > 0) {
+          const masked = byToken[0].email
+            ? byToken[0].email.replace(/(.{2})(.*)(@.*)/, "$1***$3")
+            : null;
+          return new Response(
+            JSON.stringify({ blocked: true, reason: "token", registered_email: masked }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      // 2. Check fingerprint
       const { data: byFingerprint } = await supabase
         .from("device_registrations")
-        .select("id, email, created_at")
+        .select("id, email")
         .eq("fingerprint", fingerprint)
         .limit(1);
 
@@ -50,11 +112,11 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Check IP
+      // 3. Check IP
       if (ip !== "unknown") {
         const { data: byIp } = await supabase
           .from("device_registrations")
-          .select("id, email, created_at")
+          .select("id, email")
           .eq("ip_address", ip)
           .limit(1);
 
@@ -69,8 +131,52 @@ Deno.serve(async (req) => {
         }
       }
 
+      // 4. Rate limiting: max 3 attempts per IP in last hour
+      if (ip !== "unknown") {
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+        const { count } = await supabase
+          .from("registration_attempts")
+          .select("id", { count: "exact", head: true })
+          .eq("ip_address", ip)
+          .gte("created_at", oneHourAgo);
+
+        if (count !== null && count >= 3) {
+          return new Response(
+            JSON.stringify({ blocked: true, reason: "rate_limit", registered_email: null }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
       return new Response(
         JSON.stringify({ blocked: false }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (action === "check_email") {
+      // Check disposable email
+      if (email && isDisposableEmail(email)) {
+        return new Response(
+          JSON.stringify({ blocked: true, reason: "disposable_email" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ blocked: false }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (action === "log_attempt") {
+      // Log registration attempt for rate limiting
+      await supabase.from("registration_attempts").insert({
+        ip_address: ip,
+        fingerprint,
+        email: email || null,
+      });
+      return new Response(
+        JSON.stringify({ success: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -81,6 +187,7 @@ Deno.serve(async (req) => {
         ip_address: ip,
         email: email || null,
         user_id: user_id || null,
+        persistent_token: persistent_token || null,
       });
 
       return new Response(
