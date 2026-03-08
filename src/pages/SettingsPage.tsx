@@ -13,6 +13,10 @@ const SettingsPage = () => {
   const [agencyName, setAgencyName] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
