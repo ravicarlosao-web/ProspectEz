@@ -64,6 +64,25 @@ const SettingsPage = () => {
     toast.success("Nome da agência actualizado!");
   };
 
+  const saveProfile = async () => {
+    if (!user?.id) return;
+    if (!fullName.trim()) {
+      toast.error("O nome não pode estar vazio");
+      return;
+    }
+    setSavingProfile(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: fullName.trim(), phone: phone.trim() || null })
+      .eq("user_id", user.id);
+    setSavingProfile(false);
+    if (error) {
+      toast.error("Erro ao guardar perfil");
+      return;
+    }
+    toast.success("Perfil actualizado!");
+  };
+
   const handleChangePassword = async () => {
     if (!currentPassword.trim()) {
       toast.error("Introduza a senha actual");
