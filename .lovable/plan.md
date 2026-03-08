@@ -1,95 +1,64 @@
 
 
-# Sistema AngolaProsp – Prospecção de Clientes
+## Plano de Implementação: Paginação, Avatar e Deduplicação
 
-## Visão Geral
-Sistema de prospecção de clientes para uma agência de Social Media e Websites em Angola, em Português (pt-AO), com gestão de leads, templates de mensagens e ferramentas de prospecção.
+### 1. Paginação Real na Tabela de Clientes (`Clients.tsx`)
 
----
+Actualmente o `fetchLeads` carrega todos os leads sem limite. Vamos implementar paginação server-side com `range()` do Supabase.
 
-## Fase 1 – Base do Sistema
-
-### Autenticação e Perfis
-- Página de login, registo e recuperação de senha
-- Perfis de utilizador com foto e dados pessoais
-- Sistema de papéis: Admin, Gestor, Vendedor
-- Toda a interface em Português angolano
-
-### Dashboard Principal
-- Resumo de leads totais, contactados, em negociação, fechados
-- Gráfico de funil de conversão
-- Actividades recentes e alertas de follow-up
-- Leads por província/cidade de Angola
+**Alterações:**
+- Adicionar estados `page`, `pageSize` (20), `totalCount`
+- Usar query `.range(from, to)` e header `count: 'exact'` para obter o total
+- Substituir a query actual por: `supabase.from("leads").select("*", { count: "exact" }).range(from, to)`
+- Os cards de contagem no topo continuam a funcionar via `count` queries separadas (ou usar os dados da paginação actual)
+- Adicionar componente de paginação no fundo da tabela com Previous/Next e indicador de página
+- Recalcular os status cards com queries `count` separadas por status (para não depender dos dados paginados)
 
 ---
 
-## Fase 2 – Gestão de Clientes e Leads
+### 2. Avatar/Foto de Perfil nas Configurações (`SettingsPage.tsx`)
 
-### Lista de Clientes/Leads
-- Tabela com pesquisa, ordenação e paginação
-- Campos: nome, empresa, email, telefone (+244), província, cidade, website, redes sociais
-- Estados do funil: Novo → Contactado → Em negociação → Fechado ganho / Perdido
-- Formulário de criação e edição de leads com validação
+**Base de dados:**
+- Criar bucket de storage `avatars` (público) via migração SQL
+- Política RLS: utilizadores podem fazer upload/delete dos seus próprios avatars
 
-### Filtros Inteligentes
-- Filtrar por cidade/província de Angola
-- Tipo de serviço (Social Media, Website, ambos)
-- Existência de website
-- Estado do funil
-- Palavras-chave
+**Frontend:**
+- No card de Perfil, adicionar um Avatar circular com fallback de iniciais
+- Botão de upload que aceita imagens (max 2MB, jpg/png/webp)
+- Upload para `avatars/{user_id}.{ext}` via Supabase Storage
+- Guardar o URL público em `profiles.avatar_url`
+- Pré-visualização instantânea após upload
 
 ---
 
-## Fase 3 – Templates e Mensagens
+### 3. Deduplicação Robusta na Prospecção (CRUCIAL)
 
-### Templates de Mensagem
-- Biblioteca de templates em Português: mensagem inicial, follow-ups, proposta de reunião, agradecimento, abandono
-- Campos dinâmicos: {{NomeCliente}}, {{Empresa}}, {{ServiçoInteressado}}, {{DataContato}}
-- Editor de templates personalizados
+A deduplicação actual compara apenas nomes normalizados. Precisa ser reforçada com múltiplos critérios.
 
-### Gestão de Mensagens
-- Histórico de mensagens enviadas por lead
-- Pré-visualização com dados do cliente preenchidos
-- Copiar mensagem formatada para enviar via WhatsApp/Email manualmente
-- Agendamento de follow-ups com lembretes
+**Melhorias na deduplicação:**
+- Carregar leads existentes com `name, company, email, phone, website, social_facebook, social_instagram` (não apenas name/company)
+- Criar sets separados para: nomes normalizados, emails, telefones normalizados (só dígitos), domínios de websites
+- Na função `analyzeResults` e `analyzeSocialPresence`, verificar match em QUALQUER critério:
+  - Nome/empresa normalizado já existe
+  - Email já existe na base
+  - Telefone (últimos 9 dígitos) já existe
+  - Domínio do website já existe
+- Adicionar verificação de similaridade fuzzy nos nomes (ex: Levenshtein simplificado ou substring match com >80% de overlap)
+- Na função `saveAsLead`/`saveAsSocialLead`, fazer verificação final antes de inserir para evitar race conditions (query ao DB imediatamente antes do insert)
+- Mostrar badge diferenciado: "Já guardado" vs "Possível duplicado" (match parcial)
 
----
-
-## Fase 4 – Prospecção e Scraping
-
-### Prospecção Web (via Firecrawl)
-- Pesquisa de empresas angolanas por palavra-chave e localização
-- Extracção automática de emails, telefones (+244) e redes sociais de websites
-- Identificação de empresas sem website ou presença digital fraca
-- Logs de prospecção com histórico e deduplicação
-
-### Importação Manual
-- Importar leads via CSV/Excel
-- Formulário rápido de adição manual
+**Deduplicação intra-resultados (dentro da mesma pesquisa):**
+- O `businessMap` actual agrupa por nome normalizado exacto. Melhorar para também detectar nomes muito semelhantes e mergear (ex: "Restaurante Xpto" e "Restaurante XPTO Lda")
+- Normalizar removendo sufixos comuns: "lda", "sa", "limitada", "sarl", "ep"
 
 ---
 
-## Fase 5 – Relatórios e Exportação
+### Resumo de Ficheiros a Editar
 
-### Analytics
-- Tabela de leads por estado com contagens
-- Gráficos mensais de conversão e actividade
-- Desempenho por vendedor
-- Exportação para CSV/Excel
-
----
-
-## Especificações Angolanas
-- Moeda: Kwanza (AKZ)
-- Telefone: formato +244
-- Províncias e cidades de Angola pré-carregadas
-- Interface 100% em Português angolano
-
-## Navegação
-- `/login`, `/registar`, `/recuperar-senha`
-- `/dashboard` (painel principal)
-- `/clientes` (lista, criação, edição)
-- `/prospeccao` (pesquisa e scraping)
-- `/mensagens` (templates e histórico)
-- `/configuracoes` (conta e preferências)
+| Ficheiro | Alteração |
+|---|---|
+| `src/pages/Clients.tsx` | Paginação server-side com range() |
+| `src/pages/SettingsPage.tsx` | Upload de avatar com preview |
+| `src/pages/Prospection.tsx` | Deduplicação multi-critério reforçada |
+| Migração SQL | Bucket `avatars` + políticas storage |
 
