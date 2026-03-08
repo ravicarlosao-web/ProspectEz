@@ -378,7 +378,7 @@ const Clients = () => {
                     <MessageCircle className="h-4 w-4" />
                     Enviar Mensagem via WhatsApp
                   </h4>
-                  {(templates.length > 0 ? templates : DEFAULT_TEMPLATES.map((t, i) => ({ ...t, id: `default-${i}` }))).map(t => (
+                  {templates.map(t => (
                     <div key={t.id} className="rounded-md border p-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">{t.title}</span>
