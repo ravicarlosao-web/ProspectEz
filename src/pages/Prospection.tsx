@@ -11,6 +11,7 @@ import { Search, Globe, Loader2, ExternalLink, Phone, Mail, UserPlus, AlertTrian
 import { firecrawlApi } from "@/lib/api/firecrawl";
 import { supabase } from "@/integrations/supabase/client";
 import { PROVINCES_ANGOLA } from "@/lib/constants";
+import { TokenExhaustedDialog } from "@/components/TokenExhaustedDialog";
 
 type SearchResult = {
   url: string;
@@ -246,6 +247,7 @@ const Prospection = () => {
   const [savingUrl, setSavingUrl] = useState<string | null>(null);
   const [existingLeadNames, setExistingLeadNames] = useState<Set<string>>(new Set());
   const [searchProgress, setSearchProgress] = useState("");
+  const [showTokenExhausted, setShowTokenExhausted] = useState(false);
 
   // Load existing leads for dedup
   const loadExistingLeads = useCallback(async () => {
@@ -319,7 +321,7 @@ const Prospection = () => {
     if (user) {
       const { data: allowed } = await supabase.rpc("consume_search_token", { p_user_id: user.id });
       if (!allowed) {
-        toast.error("Limite diário de pesquisas atingido. Contacte o administrador.");
+        setShowTokenExhausted(true);
         return;
       }
     }
@@ -418,7 +420,7 @@ const Prospection = () => {
     if (user) {
       const { data: allowed } = await supabase.rpc("consume_search_token", { p_user_id: user.id });
       if (!allowed) {
-        toast.error("Limite diário de pesquisas atingido. Contacte o administrador.");
+        setShowTokenExhausted(true);
         return;
       }
     }
@@ -1112,6 +1114,7 @@ const Prospection = () => {
           )}
         </TabsContent>
       </Tabs>
+      <TokenExhaustedDialog open={showTokenExhausted} onOpenChange={setShowTokenExhausted} />
     </div>
   );
 };

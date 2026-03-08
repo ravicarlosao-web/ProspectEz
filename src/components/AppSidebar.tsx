@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Search, MessageSquare, Settings, LogOut, Zap, Shield,
-  BarChart3, UserCog, CreditCard, FileText, ClipboardCheck
+  BarChart3, UserCog, CreditCard, FileText, ClipboardCheck, Wallet
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +24,7 @@ const menuItems = [
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Prospecção", url: "/prospeccao", icon: Search },
   { title: "Mensagens", url: "/mensagens", icon: MessageSquare },
+  { title: "Financeiro", url: "/financeiro", icon: Wallet },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];
 
@@ -31,6 +32,7 @@ const adminItems = [
   { title: "Visão Geral", url: "/admin", icon: BarChart3 },
   { title: "Utilizadores", url: "/admin/utilizadores", icon: UserCog },
   { title: "Planos", url: "/admin/planos", icon: CreditCard },
+  { title: "Financeiro", url: "/admin/financeiro", icon: Wallet },
   { title: "Logs", url: "/admin/logs", icon: FileText },
   { title: "Auditoria", url: "/admin/auditoria", icon: ClipboardCheck },
   { title: "Templates", url: "/admin/templates", icon: MessageSquare },
