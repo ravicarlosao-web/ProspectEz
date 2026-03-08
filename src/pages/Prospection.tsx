@@ -288,7 +288,7 @@ const Prospection = () => {
   const [isScraping, setIsScraping] = useState(false);
 
   const [savingUrl, setSavingUrl] = useState<string | null>(null);
-  const [existingLeadNames, setExistingLeadNames] = useState<Set<string>>(new Set());
+  const [existingLeads, setExistingLeads] = useState<ExistingLeadData>({ names: new Set(), emails: new Set(), phones: new Set(), domains: new Set(), rawNames: [] });
   const [searchProgress, setSearchProgress] = useState("");
   const [showTokenExhausted, setShowTokenExhausted] = useState(false);
 
