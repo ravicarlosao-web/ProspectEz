@@ -386,6 +386,26 @@ const Clients = () => {
                   </Select>
                 </div>
               </div>
+              <Separator />
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Redes Sociais</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Facebook</Label>
+                  <Input value={form.social_facebook} onChange={e => setForm({...form, social_facebook: e.target.value})} placeholder="facebook.com/..." className="bg-muted/50 border-border/50" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Instagram</Label>
+                  <Input value={form.social_instagram} onChange={e => setForm({...form, social_instagram: e.target.value})} placeholder="@username" className="bg-muted/50 border-border/50" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">LinkedIn</Label>
+                  <Input value={form.social_linkedin} onChange={e => setForm({...form, social_linkedin: e.target.value})} placeholder="linkedin.com/in/..." className="bg-muted/50 border-border/50" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">TikTok</Label>
+                  <Input value={form.social_tiktok} onChange={e => setForm({...form, social_tiktok: e.target.value})} placeholder="@username" className="bg-muted/50 border-border/50" />
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground uppercase tracking-wider">Notas</Label>
                 <Textarea value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={3} className="bg-muted/50 border-border/50" />
