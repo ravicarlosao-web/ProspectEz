@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { CreditCard, Upload, Check, Clock, XCircle, Zap, Loader2, FileText, AlertCircle } from "lucide-react";
+import { CreditCard, Upload, Check, Clock, XCircle, Loader2, FileText, AlertCircle } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
@@ -222,7 +223,7 @@ const Finance = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <Zap className="h-5 w-5 text-primary" />
+                <img src={logoImg} alt="ProspectEz" className="h-5 w-5" />
                 Plano Atual: {PLANS.find(p => p.key === currentPlan)?.name || "Free"}
               </CardTitle>
               <CardDescription className="mt-1">

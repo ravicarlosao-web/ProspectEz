@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Lock, Zap, Eye, EyeOff } from "lucide-react";
+import { Lock, Eye, EyeOff } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { StarfieldBackground } from "@/components/StarfieldBackground";
 
 const ResetPassword = () => {
@@ -81,7 +82,7 @@ const ResetPassword = () => {
       <div className="relative z-10 w-full max-w-md space-y-8">
         <div className="text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary glow-primary">
-            <Zap className="h-8 w-8 text-primary-foreground" />
+            <img src={logoImg} alt="ProspectEz" className="h-9 w-9" />
           </div>
           <h1 className="mt-5 text-3xl font-bold tracking-tight gradient-text">ProspectEz</h1>
         </div>
