@@ -277,6 +277,10 @@ const Clients = () => {
       website: form.website || null,
       service_type: form.service_type || null,
       notes: form.notes || null,
+      social_facebook: form.social_facebook || null,
+      social_instagram: form.social_instagram || null,
+      social_linkedin: form.social_linkedin || null,
+      social_tiktok: form.social_tiktok || null,
       user_id: currentUser?.id,
     };
     const { error } = await supabase.from("leads").insert(insertData);
