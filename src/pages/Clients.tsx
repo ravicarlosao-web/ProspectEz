@@ -252,8 +252,13 @@ const Clients = () => {
               <Button type="submit" className="w-full">Criar Lead</Button>
             </form>
           </DialogContent>
-        </Dialog>
-      </div>
+          </Dialog>
+          {leads.length > 0 && (
+            <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />Limpar Todos
+            </Button>
+          )}
+        </div>
 
       {/* Status count cards */}
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
