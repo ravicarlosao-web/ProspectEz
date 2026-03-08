@@ -78,7 +78,11 @@ const Clients = () => {
   const fetchLeads = async () => {
     let query = supabase.from("leads").select("*").order("created_at", { ascending: false });
     if (statusFilter !== "all") query = query.eq("status", statusFilter as any);
-    if (search) query = query.or(`name.ilike.%${search}%,company.ilike.%${search}%,email.ilike.%${search}%`);
+    if (search) {
+      // Sanitize search input - escape special Postgres pattern chars
+      const sanitized = search.replace(/[%_\\]/g, '\\$&');
+      query = query.or(`name.ilike.%${sanitized}%,company.ilike.%${sanitized}%,email.ilike.%${sanitized}%`);
+    }
     const { data } = await query;
     setLeads((data as Lead[]) || []);
     setLoading(false);
