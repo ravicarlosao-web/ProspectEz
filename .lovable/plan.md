@@ -1,95 +1,73 @@
 
 
-# Sistema AngolaProsp – Prospecção de Clientes
+## Plano: Sistema Financeiro com Pagamentos e Comprovativos
 
-## Visão Geral
-Sistema de prospecção de clientes para uma agência de Social Media e Websites em Angola, em Português (pt-AO), com gestão de leads, templates de mensagens e ferramentas de prospecção.
+### Contexto
+O projeto já tem planos definidos em `app_settings` (Free, Starter, Pro, Business) com preços em Kz e USD, e pacotes de tokens avulso. Falta a interface do utilizador para pagamentos, upload de comprovativos, área admin para verificar pagamentos, e popup de tokens esgotados.
 
----
+### Alterações na Base de Dados
 
-## Fase 1 – Base do Sistema
+**1. Nova tabela `payments`** para registar pedidos de pagamento/upgrade:
+- `id`, `user_id`, `plan_key`, `package_key` (nullable), `amount_kz`, `amount_usd`, `payment_method` (transferencia, multicaixa, etc.), `status` (pendente, aprovado, rejeitado), `receipt_url` (ficheiro PDF), `admin_notes`, `reviewed_by`, `reviewed_at`, `created_at`
+- RLS: utilizador vê/insere os seus; admin vê/atualiza todos
 
-### Autenticação e Perfis
-- Página de login, registo e recuperação de senha
-- Perfis de utilizador com foto e dados pessoais
-- Sistema de papéis: Admin, Gestor, Vendedor
-- Toda a interface em Português angolano
+**2. Storage bucket `payment-receipts`** (privado) para os PDFs de comprovativo (limite 1MB validado no frontend)
 
-### Dashboard Principal
-- Resumo de leads totais, contactados, em negociação, fechados
-- Gráfico de funil de conversão
-- Actividades recentes e alertas de follow-up
-- Leads por província/cidade de Angola
+**3. Políticas RLS no bucket**: utilizador faz upload na sua pasta; admin lê tudo
 
----
+### Novas Páginas e Componentes
 
-## Fase 2 – Gestão de Clientes e Leads
+**4. Página `/financeiro` (user-facing)**
+- Lista os planos disponíveis (lidos de `app_settings`) com preços em cards
+- Plano atual do utilizador destacado (lido de `search_quotas.plan_type`)
+- Botão "Atualizar Plano" abre dialog com:
+  - Seleção do plano/pacote desejado
+  - Método de pagamento (Transferência, Multicaixa Express, etc.)
+  - Dados bancários/referências (configuráveis pelo admin em `app_settings`)
+  - Upload do comprovativo PDF (max 1MB)
+  - Submissão cria registo em `payments` com status "pendente"
+- Histórico de pagamentos do utilizador
 
-### Lista de Clientes/Leads
-- Tabela com pesquisa, ordenação e paginação
-- Campos: nome, empresa, email, telefone (+244), província, cidade, website, redes sociais
-- Estados do funil: Novo → Contactado → Em negociação → Fechado ganho / Perdido
-- Formulário de criação e edição de leads com validação
+**5. Componente `TokenExhaustedDialog`**
+- Popup modal que aparece quando `consume_search_token` retorna false
+- Mostra tokens restantes = 0, sugere renovar ou fazer upgrade
+- Botão redireciona para `/financeiro`
+- Integrado na página de Prospecção (onde os tokens são consumidos)
 
-### Filtros Inteligentes
-- Filtrar por cidade/província de Angola
-- Tipo de serviço (Social Media, Website, ambos)
-- Existência de website
-- Estado do funil
-- Palavras-chave
+**6. Área Admin `/admin/financeiro` (`AdminFinance.tsx`)**
+- Dashboard com total de receitas (aprovados), pendentes, rejeitados
+- Tabela de todos os pagamentos com filtros por status
+- Ao clicar num pagamento: ver detalhes, abrir/descarregar comprovativo PDF, aprovar ou rejeitar
+- Ao aprovar: atualiza `search_quotas` do utilizador (plan_type, limites, ou tokens_added_manually), regista em `admin_audit_log`
 
----
+### Navegação
+- Novo item "Financeiro" na sidebar do utilizador (ícone CreditCard)
+- Novo item "Financeiro" na secção admin da sidebar
+- Nova rota `/financeiro` e `/admin/financeiro` em `App.tsx`
 
-## Fase 3 – Templates e Mensagens
+### Ficheiros a criar/editar
+- **Criar**: `src/pages/Finance.tsx`, `src/components/admin/AdminFinance.tsx`, `src/components/TokenExhaustedDialog.tsx`
+- **Editar**: `src/App.tsx` (rotas), `src/components/AppSidebar.tsx` (nav items), `src/pages/Prospection.tsx` (integrar popup tokens esgotados)
+- **Migração SQL**: tabela `payments`, bucket `payment-receipts`, políticas RLS
 
-### Templates de Mensagem
-- Biblioteca de templates em Português: mensagem inicial, follow-ups, proposta de reunião, agradecimento, abandono
-- Campos dinâmicos: {{NomeCliente}}, {{Empresa}}, {{ServiçoInteressado}}, {{DataContato}}
-- Editor de templates personalizados
+### Fluxo Resumido
 
-### Gestão de Mensagens
-- Histórico de mensagens enviadas por lead
-- Pré-visualização com dados do cliente preenchidos
-- Copiar mensagem formatada para enviar via WhatsApp/Email manualmente
-- Agendamento de follow-ups com lembretes
-
----
-
-## Fase 4 – Prospecção e Scraping
-
-### Prospecção Web (via Firecrawl)
-- Pesquisa de empresas angolanas por palavra-chave e localização
-- Extracção automática de emails, telefones (+244) e redes sociais de websites
-- Identificação de empresas sem website ou presença digital fraca
-- Logs de prospecção com histórico e deduplicação
-
-### Importação Manual
-- Importar leads via CSV/Excel
-- Formulário rápido de adição manual
-
----
-
-## Fase 5 – Relatórios e Exportação
-
-### Analytics
-- Tabela de leads por estado com contagens
-- Gráficos mensais de conversão e actividade
-- Desempenho por vendedor
-- Exportação para CSV/Excel
-
----
-
-## Especificações Angolanas
-- Moeda: Kwanza (AKZ)
-- Telefone: formato +244
-- Províncias e cidades de Angola pré-carregadas
-- Interface 100% em Português angolano
-
-## Navegação
-- `/login`, `/registar`, `/recuperar-senha`
-- `/dashboard` (painel principal)
-- `/clientes` (lista, criação, edição)
-- `/prospeccao` (pesquisa e scraping)
-- `/mensagens` (templates e histórico)
-- `/configuracoes` (conta e preferências)
+```text
+Utilizador                          Admin
+    │                                  │
+    ├─ /financeiro                     │
+    ├─ Escolhe plano/pacote            │
+    ├─ Seleciona método pagamento      │
+    ├─ Upload comprovativo PDF         │
+    ├─ Submete (status: pendente)      │
+    │                                  │
+    │                    /admin/financeiro
+    │                    ├─ Vê pagamento pendente
+    │                    ├─ Abre comprovativo PDF
+    │                    ├─ Aprova → atualiza quotas
+    │                    └─ Ou rejeita com nota
+    │                                  │
+    ├─ Tokens esgotados?               │
+    ├─ Popup → redireciona /financeiro │
+```
 
