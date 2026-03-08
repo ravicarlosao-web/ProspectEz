@@ -54,6 +54,7 @@ const itemVariants = {
 export function AppSidebar() {
   const { signOut, user } = useAuth();
   const { isAdmin } = useAdmin();
+  const pendingPayments = usePendingPayments();
 
   return (
     <Sidebar className="border-r-0">
