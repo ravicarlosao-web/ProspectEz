@@ -321,7 +321,9 @@ const Prospection = () => {
     if (user) {
       const { data: allowed } = await supabase.rpc("consume_search_token", { p_user_id: user.id });
       if (!allowed) {
-        toast.error("Limite diário de pesquisas atingido. Contacte o administrador.");
+        setShowTokenExhausted(true);
+        return;
+      }
         return;
       }
     }
