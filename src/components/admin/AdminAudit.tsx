@@ -109,7 +109,7 @@ export const AdminAudit = () => {
             </div>
           ) : (
             <>
-              <Table>
+              <div className="overflow-x-auto"><Table className="min-w-[650px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Admin</TableHead>
