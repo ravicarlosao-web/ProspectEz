@@ -9,7 +9,11 @@ import { toast } from "sonner";
 import { UserPlus, ShieldAlert, CreditCard } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { StarfieldBackground } from "@/components/StarfieldBackground";
-import { generateDeviceFingerprint } from "@/lib/fingerprint";
+import {
+  generateDeviceFingerprint,
+  getPersistentDeviceToken,
+  createPersistentDeviceToken,
+} from "@/lib/fingerprint";
 
 const Register = () => {
   const [fullName, setFullName] = useState("");
@@ -17,28 +21,33 @@ const Register = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [fingerprint, setFingerprint] = useState<string | null>(null);
+  const [persistentToken, setPersistentToken] = useState<string | null>(null);
   const [blocked, setBlocked] = useState(false);
   const [blockedEmail, setBlockedEmail] = useState<string | null>(null);
+  const [blockedReason, setBlockedReason] = useState<string>("");
   const [checking, setChecking] = useState(true);
 
-  // Generate fingerprint and check device on mount
   useEffect(() => {
     const checkDevice = async () => {
       try {
-        const fp = await generateDeviceFingerprint();
+        const [fp, token] = await Promise.all([
+          generateDeviceFingerprint(),
+          getPersistentDeviceToken(),
+        ]);
         setFingerprint(fp);
+        setPersistentToken(token);
 
         const { data, error } = await supabase.functions.invoke("check-device", {
-          body: { fingerprint: fp, action: "check" },
+          body: { fingerprint: fp, persistent_token: token, action: "check" },
         });
 
         if (!error && data?.blocked) {
           setBlocked(true);
           setBlockedEmail(data.registered_email || null);
+          setBlockedReason(data.reason || "");
         }
       } catch (err) {
         console.error("Device check failed:", err);
-        // Allow registration if check fails (graceful degradation)
       } finally {
         setChecking(false);
       }
@@ -48,20 +57,6 @@ const Register = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Re-check device before registration
-    if (fingerprint) {
-      try {
-        const { data } = await supabase.functions.invoke("check-device", {
-          body: { fingerprint, action: "check" },
-        });
-        if (data?.blocked) {
-          setBlocked(true);
-          setBlockedEmail(data.registered_email || null);
-          return;
-        }
-      } catch {}
-    }
 
     const trimmedName = fullName.trim();
     const trimmedEmail = email.trim().toLowerCase();
@@ -88,6 +83,42 @@ const Register = () => {
 
     setLoading(true);
 
+    // 1. Check disposable email
+    try {
+      const { data: emailCheck } = await supabase.functions.invoke("check-device", {
+        body: { fingerprint: fingerprint || "unknown", action: "check_email", email: trimmedEmail },
+      });
+      if (emailCheck?.blocked) {
+        toast.error("Emails temporários ou descartáveis não são permitidos. Use um email real.");
+        setLoading(false);
+        return;
+      }
+    } catch {}
+
+    // 2. Re-check device
+    if (fingerprint) {
+      try {
+        const { data } = await supabase.functions.invoke("check-device", {
+          body: { fingerprint, persistent_token: persistentToken, action: "check" },
+        });
+        if (data?.blocked) {
+          setBlocked(true);
+          setBlockedEmail(data.registered_email || null);
+          setBlockedReason(data.reason || "");
+          setLoading(false);
+          return;
+        }
+      } catch {}
+    }
+
+    // 3. Log attempt for rate limiting
+    try {
+      await supabase.functions.invoke("check-device", {
+        body: { fingerprint: fingerprint || "unknown", action: "log_attempt", email: trimmedEmail },
+      });
+    } catch {}
+
+    // 4. Create account
     const { data: signUpData, error } = await supabase.auth.signUp({
       email: trimmedEmail,
       password,
@@ -103,7 +134,9 @@ const Register = () => {
       return;
     }
 
-    // Register device fingerprint after successful signup
+    // 5. Create persistent token and register device
+    const newToken = await createPersistentDeviceToken();
+
     if (fingerprint) {
       try {
         await supabase.functions.invoke("check-device", {
@@ -112,6 +145,7 @@ const Register = () => {
             action: "register",
             email: trimmedEmail,
             user_id: signUpData.user?.id || null,
+            persistent_token: newToken,
           },
         });
       } catch (err) {
@@ -122,6 +156,20 @@ const Register = () => {
     toast.success("Conta criada com sucesso! A redirecionar...");
     setTimeout(() => (window.location.href = "/dashboard"), 1500);
     setLoading(false);
+  };
+
+  const getBlockedMessage = () => {
+    switch (blockedReason) {
+      case "rate_limit":
+        return "Demasiadas tentativas de registo detectadas a partir da sua rede. Aguarde algum tempo antes de tentar novamente.";
+      default:
+        return (
+          <>
+            O nosso sistema detectou que este dispositivo já foi utilizado para criar uma conta gratuita
+            {blockedEmail && <span className="font-medium"> ({blockedEmail})</span>}.
+          </>
+        );
+    }
   };
 
   return (
@@ -160,14 +208,12 @@ const Register = () => {
               disabled={loading || checking}
             >
               <UserPlus className="mr-2 h-4 w-4" />
-              {checking ? "A verificar..." : loading ? "A criar..." : "Criar Conta"}
+              {checking ? "A verificar dispositivo..." : loading ? "A criar..." : "Criar Conta"}
             </Button>
           </form>
           <p className="text-center text-sm text-muted-foreground">
             Já tem conta?{" "}
-            <Link to="/login" className="text-primary hover:text-primary/80 transition-colors">
-              Entrar
-            </Link>
+            <Link to="/login" className="text-primary hover:text-primary/80 transition-colors">Entrar</Link>
           </p>
         </div>
       </div>
@@ -178,20 +224,14 @@ const Register = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <ShieldAlert className="h-5 w-5" />
-              Conta Gratuita Já Utilizada
+              {blockedReason === "rate_limit" ? "Limite de Tentativas Excedido" : "Conta Gratuita Já Utilizada"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-3">
-              <p className="text-sm text-foreground">
-                O nosso sistema detectou que este dispositivo já foi utilizado para criar uma conta gratuita
-                {blockedEmail && (
-                  <span className="font-medium"> ({blockedEmail})</span>
-                )}
-                .
-              </p>
+              <p className="text-sm text-foreground">{getBlockedMessage()}</p>
               <p className="text-sm text-muted-foreground">
-                Cada dispositivo tem direito a <strong>apenas uma conta gratuita</strong>. 
+                Cada dispositivo tem direito a <strong>apenas uma conta gratuita</strong>.
                 Esta política existe para garantir um serviço justo para todos os utilizadores.
               </p>
             </div>
@@ -200,20 +240,17 @@ const Register = () => {
               <p className="text-sm font-medium text-foreground">O que pode fazer:</p>
               <ul className="text-sm text-muted-foreground space-y-1">
                 <li>• <strong>Entrar na sua conta existente</strong> com o email já registado</li>
-                <li>• <strong>Adquirir um plano</strong> para continuar a usar o ProspectEz com todos os recursos</li>
+                <li>• <strong>Adquirir um plano pago</strong> para continuar a usar o ProspectEz</li>
               </ul>
             </div>
 
             <div className="flex flex-col gap-2 pt-2">
               <Link to="/login" className="w-full">
-                <Button className="w-full" variant="default">
-                  Entrar na Minha Conta
-                </Button>
+                <Button className="w-full" variant="default">Entrar na Minha Conta</Button>
               </Link>
               <Link to="/login" className="w-full">
                 <Button className="w-full" variant="outline">
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Ver Planos Disponíveis
+                  <CreditCard className="mr-2 h-4 w-4" />Ver Planos Disponíveis
                 </Button>
               </Link>
             </div>
