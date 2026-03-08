@@ -100,6 +100,22 @@ const Finance = () => {
       setPayments(paymentsData);
     }
 
+    // Fetch payment methods from settings
+    const { data: settingsData } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "payment_methods")
+      .single();
+
+    if (settingsData?.value) {
+      try {
+        const methods = JSON.parse(settingsData.value);
+        if (Array.isArray(methods) && methods.length > 0) {
+          setPaymentMethods(methods);
+        }
+      } catch { /* keep defaults */ }
+    }
+
     setIsLoading(false);
   };
 
