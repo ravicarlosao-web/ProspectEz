@@ -364,7 +364,7 @@ const Finance = () => {
             <div className="space-y-3">
               <Label>Método de Pagamento</Label>
               <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                {PAYMENT_METHODS.map((method) => (
+                {paymentMethods.map((method) => (
                   <div key={method.value} className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
                     <RadioGroupItem value={method.value} id={method.value} className="mt-0.5" />
                     <div className="flex-1">
