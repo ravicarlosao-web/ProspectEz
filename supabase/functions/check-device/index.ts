@@ -7,8 +7,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Disposable email domains (top 200+)
+// Disposable email domains (expanded list including tempmail.com generators)
 const DISPOSABLE_DOMAINS = new Set([
+  // Classic disposable providers
   "mailinator.com","guerrillamail.com","guerrillamail.net","tempmail.com","throwaway.email",
   "yopmail.com","sharklasers.com","guerrillamailblock.com","grr.la","discard.email",
   "temp-mail.org","fakeinbox.com","mailnesia.com","trashmail.com","trashmail.net",
@@ -24,23 +25,45 @@ const DISPOSABLE_DOMAINS = new Set([
   "bobmail.info","chammy.info","devnullmail.com","discardmail.com","discardmail.de",
   "e4ward.com","emailmiser.com","emailsensei.com","emailtemporario.com.br","fakedemail.com",
   "gishpuppy.com","kasmail.com","klzlk.com","lhsdv.com","mailblocks.com",
-  "mailcatch.com","mailimate.com","mailmoat.com","mailseal.de","meltmail.com",
+  "mailimate.com","mailmoat.com","mailseal.de","meltmail.com",
   "mintemail.com","mytempemail.com","nobulk.com","noclickemail.com","nogmailspam.info",
-  "nomail.xl.cx","nomail2me.com","nospam.ze.tc","nospamfor.us","nowmymail.com",
+  "nomail.xl.cx","nomail2me.com","nospamfor.us","nowmymail.com",
   "pjjkp.com","pookmail.com","recode.me","regbypass.com","rejectmail.com",
   "safe-mail.net","safersignup.de","safetypost.de","shieldedmail.com","sogetthis.com",
   "soodonims.com","spamcero.com","spamcon.org","spamex.com","spamfree24.com",
   "spamfree24.de","spamfree24.net","spamfree24.org","spamgoes.in","spaml.com",
   "spammotel.com","spamobox.com","spamoff.de","spamspot.com","spamthisplease.com",
   "tempemail.co.za","tempemail.net","tempinbox.co.uk","tempmail.it","tempmailer.com",
-  "tempmailer.de","tempomail.fr","temporarily.de","temporarioemail.com.br",
-  "temporaryemail.us","temporaryforwarding.com","temporaryinbox.com","thankyou2010.com",
+  "tempmailer.de","temporarily.de","temporarioemail.com.br",
+  "temporaryemail.us","temporaryforwarding.com","temporaryinbox.com",
   "thisisnotmyrealemail.com","throwawayemailaddress.com","tittbit.in","tradermail.info",
-  "trash2009.com","trashmail.at","trashmail.me","trashmail.ws","uggsrock.com",
+  "trashmail.at","trashmail.me","trashmail.ws","uggsrock.com",
   "veryreallybadmail.com","viditag.com","whyspam.me","willselfdestruct.com",
   "xyzfree.net","yopmail.fr","yopmail.net","za.com","zehnminutenmail.de",
   "zippymail.info","mailsac.com","mailtothis.com","burnthismail.com",
   "imgof.com","imstations.com","incognitomail.org","insorg.org",
+  // TempMail / temp-mail.org generated domains (rotate frequently)
+  "keecs.com","nezid.com","cyclelove.cc","inboxbear.com","mailto.plus",
+  "fexpost.com","esmoud.com","knowledgemd.com","tenvil.com","rungel.com",
+  "jiooq.com","dromund.com","csjza.com","vintomaper.com","breazs.com",
+  "emlhub.com","finews.biz","emlpro.com","fuioj.com","rsjhi.com",
+  "labworld.org","gufum.com","txcct.com","cevav.com","kzccv.com",
+  "exdonuts.com","inboxes.com","getmule.com","temil.com","logicstreak.com",
+  "nqmo.com","dcctb.com","rteet.com","1secmail.com","1secmail.net","1secmail.org",
+  "ezztt.com","vjuum.com","laafd.com","txoof.com","rfcdrive.com",
+  "tmmbt.net","tmmcv.net","tmpmail.org","tmpmailtor.com",
+  // Guerrilla Mail variants
+  "guerrillamail.info","guerrillamailblock.com","pokemail.net","spam4.me",
+  // Other popular temp services
+  "tempmailo.com","emailfake.com","generator.email","guerrillamail.biz",
+  "guerrillamail.org","crazymailing.com","disposableemailaddresses.emailmiser.com",
+  "emkei.cz","fakemailgenerator.com","tempmail.ninja","tempmail.dev",
+  "tempmail.plus","temp-mail.io","temp-mail.live","emailnax.com",
+  "burnermail.io","guerrillamail.com","mailgw.com","moakt.com","moakt.ws",
+  "mytemp.email","throwmail.com","tmpbox.net","tmpmail.net",
+  // Russian/CIS temp mail
+  "dropmail.me","mailfa.tk","mail-temporaire.fr","mohmal.im","mohmal.in",
+  "emailna.co","email-fake.com","cmail.net","cmail.org",
 ]);
 
 function isDisposableEmail(email: string): boolean {
