@@ -440,8 +440,8 @@ const Clients = () => {
             </Select>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[500px]">
             <TableHeader>
               <TableRow className="border-border/30 hover:bg-transparent">
                 <TableHead className="text-xs text-muted-foreground uppercase tracking-wider">Nome</TableHead>

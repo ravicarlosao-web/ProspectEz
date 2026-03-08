@@ -227,8 +227,8 @@ export const AdminPlans = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {paymentMethods.map((method, i) => (
-            <div key={i} className="flex items-start gap-3 p-4 rounded-lg border bg-muted/30">
-              <div className="flex-1 grid gap-3 sm:grid-cols-3">
+            <div key={i} className="flex flex-col sm:flex-row items-start gap-3 p-3 sm:p-4 rounded-lg border bg-muted/30">
+              <div className="flex-1 w-full grid gap-3 grid-cols-1 sm:grid-cols-3">
                 <div>
                   <label className="text-xs text-muted-foreground font-medium">Identificador</label>
                   <Input

@@ -311,7 +311,7 @@ export const AdminUsers = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-[800px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome / Email</TableHead>

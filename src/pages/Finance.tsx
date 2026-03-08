@@ -297,14 +297,14 @@ const Finance = () => {
         ) : (
           <div className="space-y-3">
             {payments.map((payment) => (
-              <Card key={payment.id} className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Card key={payment.id} className="p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                       <CreditCard className="h-5 w-5 text-primary" />
                     </div>
-                    <div>
-                      <p className="font-medium">
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">
                         {payment.plan_key ? `Plano ${PLANS.find(p => p.key === payment.plan_key)?.name || payment.plan_key}` : "Pacote de Tokens"}
                       </p>
                       <p className="text-sm text-muted-foreground">
@@ -312,8 +312,8 @@ const Finance = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
+                  <div className="flex items-center gap-3 sm:gap-4 justify-between sm:justify-end">
+                    <div className="text-left sm:text-right">
                       <p className="font-semibold">{payment.amount_kz.toLocaleString()} Kz</p>
                       <p className="text-xs text-muted-foreground">${payment.amount_usd}</p>
                     </div>
