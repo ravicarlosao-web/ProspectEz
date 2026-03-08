@@ -292,16 +292,25 @@ const Prospection = () => {
   const [searchProgress, setSearchProgress] = useState("");
   const [showTokenExhausted, setShowTokenExhausted] = useState(false);
 
-  // Load existing leads for dedup
+  // Load existing leads for multi-criteria dedup
   const loadExistingLeads = useCallback(async () => {
-    const { data } = await supabase.from("leads").select("name, company");
+    const { data } = await supabase.from("leads").select("name, company, email, phone, website, social_facebook, social_instagram");
     if (data) {
       const names = new Set<string>();
+      const emails = new Set<string>();
+      const phones = new Set<string>();
+      const domains = new Set<string>();
+      const rawNames: string[] = [];
       for (const lead of data) {
-        if (lead.name) names.add(normalizeName(lead.name));
-        if (lead.company) names.add(normalizeName(lead.company));
+        if (lead.name) { names.add(normalizeName(lead.name)); rawNames.push(lead.name); }
+        if (lead.company) { names.add(normalizeName(lead.company)); rawNames.push(lead.company); }
+        if (lead.email) emails.add(lead.email.toLowerCase().trim());
+        const normPhone = normalizePhone(lead.phone);
+        if (normPhone) phones.add(normPhone);
+        const domain = extractDomain(lead.website);
+        if (domain && !DIRECTORY_DOMAINS.some(d => domain.includes(d))) domains.add(domain);
       }
-      setExistingLeadNames(names);
+      setExistingLeads({ names, emails, phones, domains, rawNames });
     }
   }, []);
 
