@@ -188,15 +188,15 @@ const Clients = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Clientes & Leads</h1>
           <p className="text-sm text-muted-foreground">Gestão de potenciais clientes</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" />Novo Lead</Button>
+              <Button size="sm" className="sm:size-default"><Plus className="mr-2 h-4 w-4" />Novo Lead</Button>
             </DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
               <DialogHeader><DialogTitle>Criar Novo Lead</DialogTitle></DialogHeader>
