@@ -14,11 +14,11 @@ export const LEAD_STATUS_LABELS: Record<string, string> = {
 };
 
 export const LEAD_STATUS_COLORS: Record<string, string> = {
-  novo: "bg-blue-100 text-blue-800",
-  contactado: "bg-amber-100 text-amber-800",
-  em_negociacao: "bg-purple-100 text-purple-800",
-  fechado_ganho: "bg-green-100 text-green-800",
-  perdido: "bg-red-100 text-red-800",
+  novo: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+  contactado: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+  em_negociacao: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+  fechado_ganho: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+  perdido: "bg-red-500/15 text-red-400 border-red-500/20",
 };
 
 export const SERVICE_TYPE_LABELS: Record<string, string> = {

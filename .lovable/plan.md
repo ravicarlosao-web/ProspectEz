@@ -1,78 +1,95 @@
 
 
-# Upgrade de Design -- ProspectEz
+# Sistema AngolaProsp – Prospecção de Clientes
 
 ## Visão Geral
+Sistema de prospecção de clientes para uma agência de Social Media e Websites em Angola, em Português (pt-AO), com gestão de leads, templates de mensagens e ferramentas de prospecção.
 
-Transformar o design actual (genérico, claro, sem personalidade) num design moderno e premium inspirado nas referências enviadas: tema escuro, cards com bordas subtis e efeitos de partículas/pontos, tipografia limpa e acentos de cor vibrantes.
+---
 
-## Mudanças Principais
+## Fase 1 – Base do Sistema
 
-### 1. Tema Escuro como Padrão
-- Forçar o tema escuro por defeito em toda a aplicação
-- Ajustar as variáveis CSS do dark mode para corresponder ao visual das referências (fundo quase preto `~hsl(220, 25%, 5%)`, cards com fundo `~hsl(220, 22%, 8%)`, bordas subtis esverdeadas/cinzentas)
+### Autenticação e Perfis
+- Página de login, registo e recuperação de senha
+- Perfis de utilizador com foto e dados pessoais
+- Sistema de papéis: Admin, Gestor, Vendedor
+- Toda a interface em Português angolano
 
-### 2. Efeito de Partículas no Fundo
-- Criar um componente `StarfieldBackground` com pontos animados subtis (como nas referências) usando CSS puro ou canvas leve
-- Aplicar como fundo global nas páginas principais
+### Dashboard Principal
+- Resumo de leads totais, contactados, em negociação, fechados
+- Gráfico de funil de conversão
+- Actividades recentes e alertas de follow-up
+- Leads por província/cidade de Angola
 
-### 3. Sidebar Redesenhada
-- Estilo mais limpo, com indicador lateral verde no item activo (como na referência)
-- "Sair" no fundo com ícone, layout mais espaçado
+---
 
-### 4. Páginas de Login/Registo
-- Fundo escuro com efeito de partículas
-- Card de login com estilo glass-morphism subtil
-- Manter o branding ProspectEz mas com visual premium
+## Fase 2 – Gestão de Clientes e Leads
 
-### 5. Dashboard (Painel Principal)
-- Saudação personalizada: "Olá, [Nome]!" com subtítulo
-- Cards de estatísticas redesenhados: fundo escuro, ícones coloridos no canto, números grandes e brancos
-- Barra de progresso para metas (como "Meta Semanal" na referência)
-- Secção de actividade recente com layout mais limpo
-- Gráficos com cores vibrantes sobre fundo escuro
+### Lista de Clientes/Leads
+- Tabela com pesquisa, ordenação e paginação
+- Campos: nome, empresa, email, telefone (+244), província, cidade, website, redes sociais
+- Estados do funil: Novo → Contactado → Em negociação → Fechado ganho / Perdido
+- Formulário de criação e edição de leads com validação
 
-### 6. Página de Clientes
-- Cards de contagem por status no topo (como na referência: "Em análise", "Em contacto", etc.) com ícones coloridos
-- Tabela com fundo escuro, linhas com hover subtil
-- Botão "+ Adicionar Novo Cliente" com destaque verde/primário
-- Barra de pesquisa integrada no card
+### Filtros Inteligentes
+- Filtrar por cidade/província de Angola
+- Tipo de serviço (Social Media, Website, ambos)
+- Existência de website
+- Estado do funil
+- Palavras-chave
 
-### 7. Páginas Restantes (Prospecção, Mensagens, Configurações, Admin)
-- Aplicar o mesmo padrão visual: cards escuros, tipografia limpa, espaçamento consistente
-- Tabs com estilo mais elegante
-- Inputs e selects com estilo escuro
+---
 
-### 8. Componentes UI Globais
-- Cards: `bg-card` mais escuro, `border` subtil, cantos arredondados `rounded-xl`
-- Badges: mais contrastantes com cores vibrantes
-- Buttons: primário com gradiente ou cor sólida vibrante
-- Inputs: fundo ligeiramente mais claro que o card, bordas subtis
-- Tables: sem bordas pesadas, separadores subtis
+## Fase 3 – Templates e Mensagens
 
-## Ficheiros a Alterar
+### Templates de Mensagem
+- Biblioteca de templates em Português: mensagem inicial, follow-ups, proposta de reunião, agradecimento, abandono
+- Campos dinâmicos: {{NomeCliente}}, {{Empresa}}, {{ServiçoInteressado}}, {{DataContato}}
+- Editor de templates personalizados
 
-| Ficheiro | Alteração |
-|---|---|
-| `src/index.css` | Actualizar variáveis CSS dark, adicionar classes de partículas |
-| `src/components/StarfieldBackground.tsx` | **Novo** -- componente de fundo animado |
-| `src/components/AppSidebar.tsx` | Redesenhar com indicador activo lateral |
-| `src/components/AppLayout.tsx` | Integrar StarfieldBackground, header redesenhado |
-| `src/pages/Login.tsx` | Visual escuro premium |
-| `src/pages/Register.tsx` | Mesmo estilo do login |
-| `src/pages/RecoverPassword.tsx` | Mesmo estilo |
-| `src/pages/Dashboard.tsx` | Saudação, stat cards redesenhados, barra de meta |
-| `src/pages/Clients.tsx` | Cards de contagem, tabela escura |
-| `src/pages/Prospection.tsx` | Cards e tabs com estilo escuro |
-| `src/pages/Messages.tsx` | Mesmo padrão visual |
-| `src/pages/SettingsPage.tsx` | Cards escuros, inputs estilizados |
-| `src/pages/Index.tsx` | Landing page com visual consistente |
-| `tailwind.config.ts` | Novas animações para partículas |
+### Gestão de Mensagens
+- Histórico de mensagens enviadas por lead
+- Pré-visualização com dados do cliente preenchidos
+- Copiar mensagem formatada para enviar via WhatsApp/Email manualmente
+- Agendamento de follow-ups com lembretes
 
-## Abordagem Técnica
+---
 
-- Usar `next-themes` (já instalado) para forçar dark mode
-- Manter shadcn/ui como base, apenas sobrescrever variáveis CSS
-- Efeito de estrelas com `position: fixed` e `pointer-events: none`
-- Sem dependências novas necessárias
+## Fase 4 – Prospecção e Scraping
+
+### Prospecção Web (via Firecrawl)
+- Pesquisa de empresas angolanas por palavra-chave e localização
+- Extracção automática de emails, telefones (+244) e redes sociais de websites
+- Identificação de empresas sem website ou presença digital fraca
+- Logs de prospecção com histórico e deduplicação
+
+### Importação Manual
+- Importar leads via CSV/Excel
+- Formulário rápido de adição manual
+
+---
+
+## Fase 5 – Relatórios e Exportação
+
+### Analytics
+- Tabela de leads por estado com contagens
+- Gráficos mensais de conversão e actividade
+- Desempenho por vendedor
+- Exportação para CSV/Excel
+
+---
+
+## Especificações Angolanas
+- Moeda: Kwanza (AKZ)
+- Telefone: formato +244
+- Províncias e cidades de Angola pré-carregadas
+- Interface 100% em Português angolano
+
+## Navegação
+- `/login`, `/registar`, `/recuperar-senha`
+- `/dashboard` (painel principal)
+- `/clientes` (lista, criação, edição)
+- `/prospeccao` (pesquisa e scraping)
+- `/mensagens` (templates e histórico)
+- `/configuracoes` (conta e preferências)
 
