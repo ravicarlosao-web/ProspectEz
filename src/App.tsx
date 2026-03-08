@@ -27,6 +27,7 @@ import { AdminAudit } from "./components/admin/AdminAudit";
 import { AdminTemplates } from "./components/admin/AdminTemplates";
 import { AdminFinance } from "./components/admin/AdminFinance";
 import { AdminFirecrawl } from "./components/admin/AdminFirecrawl";
+import { AdminSecurityLogs } from "./components/admin/AdminSecurityLogs";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
