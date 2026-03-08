@@ -247,6 +247,7 @@ const Prospection = () => {
   const [savingUrl, setSavingUrl] = useState<string | null>(null);
   const [existingLeadNames, setExistingLeadNames] = useState<Set<string>>(new Set());
   const [searchProgress, setSearchProgress] = useState("");
+  const [showTokenExhausted, setShowTokenExhausted] = useState(false);
 
   // Load existing leads for dedup
   const loadExistingLeads = useCallback(async () => {
