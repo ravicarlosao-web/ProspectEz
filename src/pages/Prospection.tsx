@@ -192,10 +192,19 @@ const analyzeSocialPresence = (
 
     if (!normalizedName || normalizedName.length < 2) continue;
 
-    if (!businessMap.has(normalizedName)) {
-      businessMap.set(normalizedName, { results: [], profiles: [], sources: new Set() });
+    // Fuzzy intra-results dedup
+    let key = normalizedName;
+    for (const existingKey of businessMap.keys()) {
+      if (fuzzyMatch(rawName, existingKey) || fuzzyMatch(normalizedName, existingKey)) {
+        key = existingKey;
+        break;
+      }
     }
-    const entry = businessMap.get(normalizedName)!;
+
+    if (!businessMap.has(key)) {
+      businessMap.set(key, { results: [], profiles: [], sources: new Set() });
+    }
+    const entry = businessMap.get(key)!;
     entry.results.push(r);
     entry.sources.add(detectSource(r.url));
 
