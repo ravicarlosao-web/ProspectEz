@@ -653,11 +653,8 @@ const Prospection = () => {
       } else {
         toast.success("Lead guardado!");
         // Update existing leads set and mark as saved
-        setExistingLeadNames(prev => {
-          const next = new Set(prev);
-          next.add(normalizeName(result.businessName));
-          return next;
-        });
+        // Reload existing leads to keep dedup up to date
+        await loadExistingLeads();
         setAnalyzedResults(prev =>
           prev.map(r => r.url === result.url ? { ...r, alreadySaved: true } : r)
         );
