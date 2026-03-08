@@ -418,9 +418,9 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={provinceData} layout="vertical">
+                  <BarChart data={provinceData} layout="vertical" margin={{ left: -10 }}>
                     <XAxis type="number" allowDecimals={false} stroke="hsl(215, 15%, 35%)" fontSize={11} />
-                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11, fill: "hsl(215, 15%, 55%)" }} />
+                    <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 10, fill: "hsl(215, 15%, 55%)" }} />
                     <Tooltip contentStyle={{ backgroundColor: "hsl(220, 22%, 10%)", border: "1px solid hsl(220, 18%, 18%)", borderRadius: "8px", color: "#fff" }} />
                     <Bar dataKey="value" name="Leads" radius={[0, 6, 6, 0]} barSize={20} fill="#8b5cf6" />
                   </BarChart>
