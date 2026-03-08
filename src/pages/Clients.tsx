@@ -402,6 +402,15 @@ const Clients = () => {
                     </div>
                   ))}
                 </div>
+                <Separator />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
+                  onClick={() => setDeleteLeadId(selectedLead.id)}
+                >
+                  <Trash2 className="mr-2 h-3.5 w-3.5" />Eliminar Lead
+                </Button>
               </div>
             </>
           )}
