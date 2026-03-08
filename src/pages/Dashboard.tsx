@@ -4,9 +4,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Users, UserCheck, Handshake, Trophy, AlertTriangle, TrendingUp, Clock, Target } from "lucide-react";
+import { Users, UserCheck, Handshake, Trophy, AlertTriangle, TrendingUp, Clock, Target, Bell, CalendarDays } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from "@/lib/constants";
 import { motion } from "framer-motion";
+import { format } from "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
   PieChart, Pie, Legend,
@@ -33,6 +34,7 @@ type Lead = {
   service_type: string | null;
   created_at: string;
   updated_at: string;
+  next_contact_date: string | null;
 };
 
 const fadeUp = {
@@ -63,7 +65,7 @@ const Dashboard = () => {
     const fetchData = async () => {
       const { data } = await supabase
         .from("leads")
-        .select("id, name, company, status, service_type, created_at, updated_at")
+        .select("id, name, company, status, service_type, created_at, updated_at, next_contact_date")
         .order("updated_at", { ascending: false });
       setLeads((data as Lead[]) || []);
       setLoading(false);
@@ -87,6 +89,18 @@ const Dashboard = () => {
   });
 
   const total = leads.length;
+
+  // Follow-up alerts
+  const today = new Date().toDateString();
+  const overdueLeads = leads.filter(l => l.next_contact_date && new Date(l.next_contact_date) < new Date(today));
+  const todayLeads = leads.filter(l => l.next_contact_date && new Date(l.next_contact_date).toDateString() === today);
+  const upcomingLeads = leads.filter(l => {
+    if (!l.next_contact_date) return false;
+    const d = new Date(l.next_contact_date);
+    const now = new Date();
+    const threeDays = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    return d > now && d <= threeDays;
+  });
 
   const statCards = [
     { label: "Total de Leads", value: total, icon: Users, iconBg: "bg-blue-500/10", iconColor: "text-blue-400" },
@@ -131,6 +145,8 @@ const Dashboard = () => {
   const formatDate = (dateStr: string) =>
     new Date(dateStr).toLocaleDateString("pt-AO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
+  const hasFollowUpAlerts = overdueLeads.length > 0 || todayLeads.length > 0 || upcomingLeads.length > 0;
+
   return (
     <div className="space-y-6">
       {/* Greeting */}
@@ -144,6 +160,68 @@ const Dashboard = () => {
         </h1>
         <p className="text-muted-foreground text-sm">Aqui está o resumo da sua prospecção</p>
       </motion.div>
+
+      {/* Follow-up Alerts */}
+      {hasFollowUpAlerts && !loading && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+          <Card className="border-border/50 bg-card/80">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Bell className="h-4 w-4 text-amber-400" />
+                Lembretes de Follow-up
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {overdueLeads.length > 0 && (
+                <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
+                  <p className="text-sm font-medium text-destructive flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    {overdueLeads.length} follow-up{overdueLeads.length > 1 ? "s" : ""} atrasado{overdueLeads.length > 1 ? "s" : ""}
+                  </p>
+                  <div className="mt-2 space-y-1">
+                    {overdueLeads.slice(0, 5).map(l => (
+                      <p key={l.id} className="text-xs text-destructive/80">
+                        • {l.name} {l.company ? `(${l.company})` : ""} — {format(new Date(l.next_contact_date!), "dd/MM/yyyy")}
+                      </p>
+                    ))}
+                    {overdueLeads.length > 5 && <p className="text-xs text-destructive/60">... e mais {overdueLeads.length - 5}</p>}
+                  </div>
+                </div>
+              )}
+              {todayLeads.length > 0 && (
+                <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+                  <p className="text-sm font-medium text-amber-400 flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4" />
+                    {todayLeads.length} follow-up{todayLeads.length > 1 ? "s" : ""} para hoje
+                  </p>
+                  <div className="mt-2 space-y-1">
+                    {todayLeads.slice(0, 5).map(l => (
+                      <p key={l.id} className="text-xs text-amber-400/80">
+                        • {l.name} {l.company ? `(${l.company})` : ""}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {upcomingLeads.length > 0 && (
+                <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3">
+                  <p className="text-sm font-medium text-blue-400 flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4" />
+                    {upcomingLeads.length} follow-up{upcomingLeads.length > 1 ? "s" : ""} nos próximos 3 dias
+                  </p>
+                  <div className="mt-2 space-y-1">
+                    {upcomingLeads.slice(0, 5).map(l => (
+                      <p key={l.id} className="text-xs text-blue-400/80">
+                        • {l.name} {l.company ? `(${l.company})` : ""} — {format(new Date(l.next_contact_date!), "dd/MM")}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Stat cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
