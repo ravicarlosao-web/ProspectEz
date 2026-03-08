@@ -570,7 +570,7 @@ const Prospection = () => {
       setSearchProgress("");
 
       if (allResults.length > 0) {
-        const analyzed = analyzeSocialPresence(allResults, existingLeadNames);
+        const analyzed = analyzeSocialPresence(allResults, isAlreadySaved);
         setSocialResults(analyzed);
 
         const highOpp = analyzed.filter(r => r.socialScore >= 70 && !r.alreadySaved).length;
