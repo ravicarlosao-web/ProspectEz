@@ -32,6 +32,7 @@ type Lead = {
   company: string | null;
   status: string;
   service_type: string | null;
+  province: string | null;
   created_at: string;
   updated_at: string;
   next_contact_date: string | null;
