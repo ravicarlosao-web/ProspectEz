@@ -107,7 +107,7 @@ const SettingsPage = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              Papel: Vendedor (predefinido)
+              Papel: Utilizador (predefinido)
             </p>
             <Button variant="outline" size="sm" disabled>Alterar Senha</Button>
           </CardContent>
