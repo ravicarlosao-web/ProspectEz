@@ -113,7 +113,7 @@ const Login = () => {
       <div className="relative z-10 w-full max-w-md space-y-8">
         <div className="text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary glow-primary">
-            <Zap className="h-8 w-8 text-primary-foreground" />
+            <img src={logoImg} alt="ProspectEz" className="h-9 w-9" />
           </div>
           <h1 className="mt-5 text-3xl font-bold tracking-tight gradient-text">ProspectEz</h1>
           <p className="mt-2 text-sm text-muted-foreground">Prospecção de Clientes</p>
