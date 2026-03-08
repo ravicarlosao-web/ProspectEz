@@ -176,3 +176,123 @@ export async function generateDeviceFingerprint(): Promise<string> {
 
   return hashString(combined);
 }
+
+// ==========================================
+// Multi-storage persistent device token
+// ==========================================
+const STORAGE_KEY = "pez_device_token";
+
+function generateToken(): string {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function setToLocalStorage(token: string) {
+  try { localStorage.setItem(STORAGE_KEY, token); } catch {}
+}
+function getFromLocalStorage(): string | null {
+  try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+}
+
+function setToSessionStorage(token: string) {
+  try { sessionStorage.setItem(STORAGE_KEY, token); } catch {}
+}
+function getFromSessionStorage(): string | null {
+  try { return sessionStorage.getItem(STORAGE_KEY); } catch { return null; }
+}
+
+function setToCookie(token: string) {
+  try {
+    const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+    document.cookie = `${STORAGE_KEY}=${token}; expires=${expires}; path=/; SameSite=Lax`;
+  } catch {}
+}
+function getFromCookie(): string | null {
+  try {
+    const match = document.cookie.match(new RegExp(`(?:^|; )${STORAGE_KEY}=([^;]*)`));
+    return match ? match[1] : null;
+  } catch { return null; }
+}
+
+function setToIndexedDB(token: string): Promise<void> {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.open("pez_antiabuse", 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains("tokens")) {
+          db.createObjectStore("tokens");
+        }
+      };
+      req.onsuccess = () => {
+        const db = req.result;
+        const tx = db.transaction("tokens", "readwrite");
+        tx.objectStore("tokens").put(token, "device");
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); resolve(); };
+      };
+      req.onerror = () => resolve();
+    } catch { resolve(); }
+  });
+}
+
+function getFromIndexedDB(): Promise<string | null> {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.open("pez_antiabuse", 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains("tokens")) {
+          db.createObjectStore("tokens");
+        }
+      };
+      req.onsuccess = () => {
+        const db = req.result;
+        const tx = db.transaction("tokens", "readonly");
+        const getReq = tx.objectStore("tokens").get("device");
+        getReq.onsuccess = () => { db.close(); resolve(getReq.result || null); };
+        getReq.onerror = () => { db.close(); resolve(null); };
+      };
+      req.onerror = () => resolve(null);
+    } catch { resolve(null); }
+  });
+}
+
+/**
+ * Gets or creates a persistent device token stored across
+ * localStorage, sessionStorage, cookies, and IndexedDB.
+ * If ANY of them has a token, it restores all others.
+ */
+export async function getPersistentDeviceToken(): Promise<string | null> {
+  const sources = [
+    getFromLocalStorage(),
+    getFromSessionStorage(),
+    getFromCookie(),
+    await getFromIndexedDB(),
+  ];
+
+  const existing = sources.find((s) => s && s.length > 10);
+  if (existing) {
+    // Restore to all storages
+    setToLocalStorage(existing);
+    setToSessionStorage(existing);
+    setToCookie(existing);
+    await setToIndexedDB(existing);
+    return existing;
+  }
+
+  return null;
+}
+
+/**
+ * Creates and persists a new device token across all storages.
+ */
+export async function createPersistentDeviceToken(): Promise<string> {
+  const token = generateToken();
+  setToLocalStorage(token);
+  setToSessionStorage(token);
+  setToCookie(token);
+  await setToIndexedDB(token);
+  return token;
+}
