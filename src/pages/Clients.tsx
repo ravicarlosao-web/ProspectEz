@@ -850,7 +850,7 @@ const Clients = () => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-border/30">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t border-border/30">
               <p className="text-xs text-muted-foreground">
                 {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalCount)} de {totalCount}
               </p>
@@ -861,10 +861,11 @@ const Clients = () => {
                   disabled={page === 0}
                   onClick={() => setPage(p => p - 1)}
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" />Anterior
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline ml-1">Anterior</span>
                 </Button>
                 <span className="text-xs text-muted-foreground">
-                  {page + 1} / {totalPages}
+                  {page + 1}/{totalPages}
                 </span>
                 <Button
                   variant="outline"
@@ -872,7 +873,8 @@ const Clients = () => {
                   disabled={page >= totalPages - 1}
                   onClick={() => setPage(p => p + 1)}
                 >
-                  Próximo<ChevronRight className="h-4 w-4 ml-1" />
+                  <span className="hidden sm:inline mr-1">Próximo</span>
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
