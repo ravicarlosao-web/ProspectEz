@@ -318,6 +318,34 @@ const Prospection = () => {
     loadExistingLeads();
   }, [loadExistingLeads]);
 
+  // Multi-criteria dedup check
+  const isAlreadySaved = (name: string, contacts: { emails: string[]; phones: string[] }, url?: string): boolean => {
+    const normalized = normalizeName(name);
+    // Exact name match
+    if (existingLeads.names.has(normalized)) return true;
+    // Email match
+    if (contacts.emails.some(e => existingLeads.emails.has(e.toLowerCase().trim()))) return true;
+    // Phone match (last 9 digits)
+    if (contacts.phones.some(p => { const np = normalizePhone(p); return np ? existingLeads.phones.has(np) : false; })) return true;
+    // Domain match
+    if (url) {
+      const domain = extractDomain(url);
+      if (domain && !DIRECTORY_DOMAINS.some(d => domain.includes(d)) && existingLeads.domains.has(domain)) return true;
+    }
+    // Fuzzy name match
+    if (existingLeads.rawNames.some(rn => fuzzyMatch(name, rn))) return true;
+    return false;
+  };
+
+  // Intra-results dedup: find existing key in businessMap using fuzzy matching
+  const findExistingKey = (businessMap: Map<string, any>, normalized: string, rawName: string): string | null => {
+    if (businessMap.has(normalized)) return normalized;
+    for (const key of businessMap.keys()) {
+      if (fuzzyMatch(rawName, key) || fuzzyMatch(normalized, key)) return key;
+    }
+    return null;
+  };
+
   const analyzeResults = (results: SearchResult[]): AnalyzedResult[] => {
     const businessMap = new Map<string, {
       results: SearchResult[];
@@ -329,26 +357,30 @@ const Prospection = () => {
       const normalized = normalizeName(rawName);
       if (!normalized || normalized.length < 2) continue;
 
-      if (!businessMap.has(normalized)) {
-        businessMap.set(normalized, { results: [], sources: new Set() });
+      const existingKey = findExistingKey(businessMap, normalized, rawName);
+      const key = existingKey || normalized;
+
+      if (!businessMap.has(key)) {
+        businessMap.set(key, { results: [], sources: new Set() });
       }
-      const entry = businessMap.get(normalized)!;
+      const entry = businessMap.get(key)!;
       entry.results.push(r);
       entry.sources.add(detectSource(r.url));
     }
 
     const analyzed: AnalyzedResult[] = [];
-    for (const [normalized, entry] of businessMap) {
+    for (const [, entry] of businessMap) {
       const mainResult = entry.results[0];
       const allMarkdown = entry.results.map(r => r.markdown || "").join(" ");
       const noWebsite = entry.results.every(r => isDirectoryOrSocial(r.url));
       const contacts = extractContactInfoStatic(allMarkdown + " " + entry.results.map(r => r.description || "").join(" "));
-      const alreadySaved = existingLeadNames.has(normalized);
+      const businessName = mainResult.title?.replace(/\s*[-|–].*$/, "").trim() || "Sem nome";
+      const alreadySaved = isAlreadySaved(businessName, contacts, noWebsite ? undefined : mainResult.url);
 
       analyzed.push({
         ...mainResult,
         hasWebsite: !noWebsite,
-        businessName: mainResult.title?.replace(/\s*[-|–].*$/, "").trim() || "Sem nome",
+        businessName,
         contacts,
         sources: [...entry.sources],
         alreadySaved,
