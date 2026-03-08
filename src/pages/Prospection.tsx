@@ -239,7 +239,7 @@ const analyzeSocialPresence = (
     if (indicators.noWebsiteLink) score += 10;
 
     const contacts = extractContactInfoStatic(allText);
-    const alreadySaved = existingNames.has(normalizedName);
+    const alreadySaved = dedupCheck(mainResult.title?.replace(/\s*[-|–@].*$/, "").replace(/\(.*?\)/g, "").trim() || "Sem nome", contacts);
 
     analyzed.push({
       ...mainResult,
