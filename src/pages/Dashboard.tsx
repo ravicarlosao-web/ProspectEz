@@ -345,7 +345,7 @@ const Dashboard = () => {
             ) : (
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <Pie data={serviceData} cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={4} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} stroke="none">
+                  <Pie data={serviceData} cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={4} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} stroke="none" labelLine={false}>
                     {serviceData.map((entry, i) => (
                       <Cell key={i} fill={entry.fill} />
                     ))}
