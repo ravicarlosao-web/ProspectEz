@@ -219,9 +219,9 @@ const Finance = () => {
       {/* Current Plan Card */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <Zap className="h-5 w-5 text-primary" />
                 Plano Atual: {PLANS.find(p => p.key === currentPlan)?.name || "Free"}
               </CardTitle>
@@ -229,7 +229,7 @@ const Finance = () => {
                 {tokensRemaining} tokens restantes este mês
               </CardDescription>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <div className="text-2xl font-bold text-primary">{quota?.used_this_month || 0}</div>
               <div className="text-xs text-muted-foreground">de {(quota?.monthly_limit || 0) + (quota?.tokens_added_manually || 0)} usados</div>
             </div>
@@ -240,7 +240,7 @@ const Finance = () => {
       {/* Plans Grid */}
       <div>
         <h2 className="text-lg font-semibold mb-4">Planos Disponíveis</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {PLANS.map((plan) => (
             <Card
               key={plan.key}
@@ -297,14 +297,14 @@ const Finance = () => {
         ) : (
           <div className="space-y-3">
             {payments.map((payment) => (
-              <Card key={payment.id} className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Card key={payment.id} className="p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 sm:gap-4">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                       <CreditCard className="h-5 w-5 text-primary" />
                     </div>
-                    <div>
-                      <p className="font-medium">
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">
                         {payment.plan_key ? `Plano ${PLANS.find(p => p.key === payment.plan_key)?.name || payment.plan_key}` : "Pacote de Tokens"}
                       </p>
                       <p className="text-sm text-muted-foreground">
@@ -312,8 +312,8 @@ const Finance = () => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
+                  <div className="flex items-center gap-3 sm:gap-4 justify-between sm:justify-end">
+                    <div className="text-left sm:text-right">
                       <p className="font-semibold">{payment.amount_kz.toLocaleString()} Kz</p>
                       <p className="text-xs text-muted-foreground">${payment.amount_usd}</p>
                     </div>

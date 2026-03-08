@@ -256,13 +256,14 @@ export const AdminUsers = () => {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-3">
-            <div className="relative flex-1 min-w-[200px]">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+            <div className="relative flex-1 min-w-0 sm:min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Pesquisar por nome ou email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" />
             </div>
+            <div className="flex gap-2 flex-wrap">
             <Select value={filterRole} onValueChange={setFilterRole}>
-              <SelectTrigger className="w-[140px]"><SelectValue placeholder="Papel" /></SelectTrigger>
+              <SelectTrigger className="w-[130px]"><SelectValue placeholder="Papel" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos papéis</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
@@ -288,10 +289,11 @@ export const AdminUsers = () => {
                 <SelectItem value="suspended">Suspensos</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={() => setResetAllOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setResetAllOpen(true)}>
               <RefreshCw className="mr-2 h-4 w-4" />
-              Resetar Todos (Mês)
+              <span className="hidden sm:inline">Resetar Todos (Mês)</span><span className="sm:hidden">Reset</span>
             </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -309,7 +311,7 @@ export const AdminUsers = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table>
+              <Table className="min-w-[800px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome / Email</TableHead>
