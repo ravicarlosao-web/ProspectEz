@@ -33,6 +33,7 @@ const adminItems = [
   { title: "Planos", url: "/admin/planos", icon: CreditCard },
   { title: "Logs", url: "/admin/logs", icon: FileText },
   { title: "Auditoria", url: "/admin/auditoria", icon: ClipboardCheck },
+  { title: "Templates", url: "/admin/templates", icon: MessageSquare },
 ];
 
 const itemVariants = {
