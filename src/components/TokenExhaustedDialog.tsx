@@ -34,7 +34,7 @@ export function TokenExhaustedDialog({ open, onOpenChange }: TokenExhaustedDialo
           <div className="rounded-xl bg-muted/50 border p-4 space-y-3">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Zap className="h-5 w-5 text-primary" />
+                <img src={logoImg} alt="ProspectEz" className="h-5 w-5" />
               </div>
               <div>
                 <p className="font-medium">Precisa de mais pesquisas?</p>

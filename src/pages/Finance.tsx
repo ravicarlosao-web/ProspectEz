@@ -223,7 +223,7 @@ const Finance = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <Zap className="h-5 w-5 text-primary" />
+                <img src={logoImg} alt="ProspectEz" className="h-5 w-5" />
                 Plano Atual: {PLANS.find(p => p.key === currentPlan)?.name || "Free"}
               </CardTitle>
               <CardDescription className="mt-1">
