@@ -219,9 +219,9 @@ const Finance = () => {
       {/* Current Plan Card */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <Zap className="h-5 w-5 text-primary" />
                 Plano Atual: {PLANS.find(p => p.key === currentPlan)?.name || "Free"}
               </CardTitle>
@@ -229,7 +229,7 @@ const Finance = () => {
                 {tokensRemaining} tokens restantes este mês
               </CardDescription>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <div className="text-2xl font-bold text-primary">{quota?.used_this_month || 0}</div>
               <div className="text-xs text-muted-foreground">de {(quota?.monthly_limit || 0) + (quota?.tokens_added_manually || 0)} usados</div>
             </div>
