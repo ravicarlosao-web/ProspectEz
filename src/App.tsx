@@ -44,6 +44,7 @@ function AnimatedRoutes() {
           <Route path="/mensagens" element={<Messages />} />
           <Route path="/prospeccao" element={<Prospection />} />
           <Route path="/configuracoes" element={<SettingsPage />} />
+          <Route path="/financeiro" element={<Finance />} />
           <Route path="/admin" element={<Admin />}>
             <Route index element={<AdminOverview />} />
             <Route path="utilizadores" element={<AdminUsers />} />
