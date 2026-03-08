@@ -1,30 +1,95 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { LogIn, Zap } from "lucide-react";
+import { LogIn, Zap, ShieldAlert } from "lucide-react";
 import { StarfieldBackground } from "@/components/StarfieldBackground";
+
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+const STORAGE_KEY = "login_rate_limit";
+
+function getRateLimit(): { attempts: number; lockedUntil: number | null } {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { attempts: 0, lockedUntil: null };
+}
+
+function setRateLimit(attempts: number, lockedUntil: number | null) {
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ attempts, lockedUntil }));
+}
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [lockRemaining, setLockRemaining] = useState(0);
   const navigate = useNavigate();
+
+  const checkLock = useCallback(() => {
+    const { lockedUntil } = getRateLimit();
+    if (lockedUntil && Date.now() < lockedUntil) {
+      setLockRemaining(Math.ceil((lockedUntil - Date.now()) / 1000));
+      return true;
+    }
+    if (lockedUntil) {
+      setRateLimit(0, null);
+      setLockRemaining(0);
+    }
+    return false;
+  }, []);
+
+  useEffect(() => {
+    checkLock();
+    const interval = setInterval(() => {
+      const { lockedUntil } = getRateLimit();
+      if (lockedUntil && Date.now() < lockedUntil) {
+        setLockRemaining(Math.ceil((lockedUntil - Date.now()) / 1000));
+      } else if (lockedUntil) {
+        setRateLimit(0, null);
+        setLockRemaining(0);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [checkLock]);
+
+  const isLocked = lockRemaining > 0;
+  const formatTime = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (checkLock()) {
+      toast.error(`Conta bloqueada. Tente novamente em ${formatTime(lockRemaining)}.`);
+      return;
+    }
     setLoading(true);
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      toast.error(error.message === "Invalid login credentials"
-        ? "Credenciais inválidas. Verifique o email e a senha."
-        : error.message);
+      const rl = getRateLimit();
+      const newAttempts = rl.attempts + 1;
+      if (newAttempts >= MAX_ATTEMPTS) {
+        const lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+        setRateLimit(newAttempts, lockedUntil);
+        setLockRemaining(Math.ceil(LOCKOUT_DURATION_MS / 1000));
+        toast.error(`Demasiadas tentativas falhadas. Conta bloqueada por 5 minutos.`);
+      } else {
+        setRateLimit(newAttempts, null);
+        const remaining = MAX_ATTEMPTS - newAttempts;
+        toast.error(
+          error.message === "Invalid login credentials"
+            ? `Credenciais inválidas. ${remaining} tentativa${remaining !== 1 ? "s" : ""} restante${remaining !== 1 ? "s" : ""}.`
+            : error.message
+        );
+      }
     } else {
+      setRateLimit(0, null);
       navigate("/dashboard");
     }
     setLoading(false);
