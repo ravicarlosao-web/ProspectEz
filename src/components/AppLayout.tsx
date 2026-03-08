@@ -1,9 +1,13 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { StarfieldBackground } from "@/components/StarfieldBackground";
+import { PageTransition } from "@/components/PageTransition";
+import { AnimatePresence } from "framer-motion";
 
 export function AppLayout() {
+  const location = useLocation();
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
@@ -14,7 +18,11 @@ export function AppLayout() {
             <SidebarTrigger />
           </header>
           <div className="p-6">
-            <Outlet />
+            <AnimatePresence mode="wait">
+              <PageTransition key={location.pathname}>
+                <Outlet />
+              </PageTransition>
+            </AnimatePresence>
           </div>
         </main>
       </div>
