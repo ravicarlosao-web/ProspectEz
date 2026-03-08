@@ -185,8 +185,8 @@ export const AdminPlans = () => {
           <CardTitle className="text-lg">Pacotes de Tokens Avulso</CardTitle>
           <CardDescription>Configure pacotes de tokens para compra individual</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table>
+        <CardContent className="overflow-x-auto">
+          <Table className="min-w-[450px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
