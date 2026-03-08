@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Zap, CreditCard, AlertTriangle } from "lucide-react";
+import { CreditCard, AlertTriangle } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { useNavigate } from "react-router-dom";
 
 interface TokenExhaustedDialogProps {
