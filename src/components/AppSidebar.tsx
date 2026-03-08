@@ -6,6 +6,7 @@ import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdmin } from "@/hooks/useAdmin";
+import { usePendingPayments } from "@/hooks/usePendingPayments";
 import { motion } from "framer-motion";
 import {
   Sidebar,
@@ -53,6 +54,7 @@ const itemVariants = {
 export function AppSidebar() {
   const { signOut, user } = useAuth();
   const { isAdmin } = useAdmin();
+  const pendingPayments = usePendingPayments();
 
   return (
     <Sidebar className="border-r-0">
@@ -119,7 +121,12 @@ export function AppSidebar() {
                           activeClassName="bg-sidebar-accent text-primary font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-5 before:w-[3px] before:rounded-r-full before:bg-primary"
                         >
                           <item.icon className="h-[18px] w-[18px]" />
-                          <span className="text-[13px]">{item.title}</span>
+                          <span className="text-[13px] flex-1">{item.title}</span>
+                          {item.url === "/admin/financeiro" && pendingPayments > 0 && (
+                            <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white animate-pulse">
+                              {pendingPayments}
+                            </span>
+                          )}
                         </NavLink>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
