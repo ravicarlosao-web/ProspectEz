@@ -97,7 +97,7 @@ const Messages = () => {
   const socialTemplates = SOCIAL_MEDIA_TEMPLATES.map((t, i) => ({ ...t, id: `social-${i}` }));
 
   const getTemplateIcon = (category: string) => {
-    if (category.startsWith("social_")) return <Instagram className="h-4 w-4 text-pink-500" />;
+    if (category.startsWith("social_")) return <Instagram className="h-4 w-4 text-pink-400" />;
     return <MessageSquare className="h-4 w-4 text-muted-foreground" />;
   };
 
@@ -106,7 +106,7 @@ const Messages = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Mensagens & Templates</h1>
-          <p className="text-muted-foreground">Biblioteca de mensagens para prospecção</p>
+          <p className="text-sm text-muted-foreground">Biblioteca de mensagens para prospecção</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -116,22 +116,22 @@ const Messages = () => {
             <DialogHeader><DialogTitle>Criar Template</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="space-y-2">
-                <Label>Título</Label>
-                <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} required />
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Título</Label>
+                <Input value={form.title} onChange={e => setForm({...form, title: e.target.value})} required className="bg-muted/50 border-border/50" />
               </div>
               <div className="space-y-2">
-                <Label>Categoria</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Categoria</Label>
                 <Select value={form.category} onValueChange={v => setForm({...form, category: v})}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="bg-muted/50 border-border/50"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {MESSAGE_CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Conteúdo</Label>
+                <Label className="text-xs text-muted-foreground uppercase tracking-wider">Conteúdo</Label>
                 <Textarea value={form.content} onChange={e => setForm({...form, content: e.target.value})} rows={8} required
-                  placeholder="Use {{NomeCliente}}, {{Empresa}}, {{ServiçoInteressado}}, {{DataContato}}" />
+                  placeholder="Use {{NomeCliente}}, {{Empresa}}, {{ServiçoInteressado}}, {{DataContato}}" className="bg-muted/50 border-border/50" />
               </div>
               <Button type="submit" className="w-full">Criar Template</Button>
             </form>
@@ -140,7 +140,7 @@ const Messages = () => {
       </div>
 
       <Tabs defaultValue="geral" className="space-y-4">
-        <TabsList>
+        <TabsList className="bg-muted/50 border border-border/30">
           <TabsTrigger value="geral">
             <Globe className="mr-2 h-4 w-4" />
             Geral & Website
@@ -155,12 +155,12 @@ const Messages = () => {
         <TabsContent value="geral">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {allTemplates.map(t => (
-              <Card key={t.id} className="flex flex-col">
+              <Card key={t.id} className="flex flex-col border-border/50 bg-card/80 stat-card">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-base">{t.title}</CardTitle>
-                      <CardDescription className="mt-1">
+                      <CardTitle className="text-sm">{t.title}</CardTitle>
+                      <CardDescription className="mt-1 text-xs">
                         {MESSAGE_CATEGORIES.find(c => c.value === t.category)?.label || t.category}
                       </CardDescription>
                     </div>
@@ -168,12 +168,12 @@ const Messages = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1">
-                  <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-sans leading-relaxed">
+                  <pre className="whitespace-pre-wrap text-xs text-muted-foreground font-sans leading-relaxed">
                     {t.content}
                   </pre>
                 </CardContent>
-                <div className="border-t p-4">
-                  <Button variant="outline" size="sm" className="w-full" onClick={() => copyToClipboard(t.content)}>
+                <div className="border-t border-border/30 p-4">
+                  <Button variant="outline" size="sm" className="w-full border-border/50" onClick={() => copyToClipboard(t.content)}>
                     <Copy className="mr-2 h-3.5 w-3.5" />Copiar Mensagem
                   </Button>
                 </div>
@@ -183,16 +183,14 @@ const Messages = () => {
         </TabsContent>
 
         <TabsContent value="social">
-          {/* Social Media Info Banner */}
-          <Card className="mb-4 border-pink-200 bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950/20 dark:to-purple-950/20 dark:border-pink-800">
+          <Card className="mb-4 border-pink-500/20 bg-pink-500/5">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
-                <TrendingUp className="h-5 w-5 text-pink-600 mt-0.5 shrink-0" />
+                <TrendingUp className="h-5 w-5 text-pink-400 mt-0.5 shrink-0" />
                 <div>
                   <h4 className="font-medium text-sm">Templates com Métricas de Social Media</h4>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Estas mensagens usam dados e métricas do mercado angolano para convencer potenciais clientes. 
-                    Inclua números reais após analisar as redes do cliente na página de Prospecção.
+                    Estas mensagens usam dados e métricas do mercado angolano para convencer potenciais clientes.
                   </p>
                 </div>
               </div>
@@ -201,23 +199,23 @@ const Messages = () => {
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {socialTemplates.map(t => (
-              <Card key={t.id} className="flex flex-col border-pink-100 dark:border-pink-900/30">
+              <Card key={t.id} className="flex flex-col border-pink-500/15 bg-card/80 stat-card">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <CardTitle className="text-base">{t.title}</CardTitle>
-                      <CardDescription className="mt-1">Social Media</CardDescription>
+                      <CardTitle className="text-sm">{t.title}</CardTitle>
+                      <CardDescription className="mt-1 text-xs">Social Media</CardDescription>
                     </div>
-                    <Instagram className="h-4 w-4 text-pink-500" />
+                    <Instagram className="h-4 w-4 text-pink-400" />
                   </div>
                 </CardHeader>
                 <CardContent className="flex-1">
-                  <pre className="whitespace-pre-wrap text-sm text-muted-foreground font-sans leading-relaxed">
+                  <pre className="whitespace-pre-wrap text-xs text-muted-foreground font-sans leading-relaxed">
                     {t.content}
                   </pre>
                 </CardContent>
-                <div className="border-t p-4">
-                  <Button variant="outline" size="sm" className="w-full" onClick={() => copyToClipboard(t.content)}>
+                <div className="border-t border-border/30 p-4">
+                  <Button variant="outline" size="sm" className="w-full border-border/50" onClick={() => copyToClipboard(t.content)}>
                     <Copy className="mr-2 h-3.5 w-3.5" />Copiar Mensagem
                   </Button>
                 </div>
