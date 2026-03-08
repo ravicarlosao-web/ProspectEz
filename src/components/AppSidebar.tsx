@@ -1,7 +1,8 @@
 import {
-  LayoutDashboard, Users, Search, MessageSquare, Settings, LogOut, Zap, Shield,
+  LayoutDashboard, Users, Search, MessageSquare, Settings, LogOut, Shield,
   BarChart3, UserCog, CreditCard, FileText, ClipboardCheck, Wallet, Flame, ShieldAlert
 } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
