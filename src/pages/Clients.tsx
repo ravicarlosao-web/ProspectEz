@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, SERVICE_TYPE_LABELS, PROVINCES_ANGOLA, MESSAGE_CATEGORIES } from "@/lib/constants";
 import { LeadImportExport } from "@/components/LeadImportExport";
+import { ClientsSkeleton } from "@/components/PageSkeleton";
 
 type Template = {
   id: string;
