@@ -10,8 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Search, Phone, Mail, Globe, Building2, MapPin, FileText, Calendar, MessageCircle, Copy } from "lucide-react";
+import { Plus, Search, Phone, Mail, Globe, Building2, MapPin, FileText, Calendar, MessageCircle, Copy, Trash2 } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, SERVICE_TYPE_LABELS, PROVINCES_ANGOLA, MESSAGE_CATEGORIES } from "@/lib/constants";
 
 type Template = {
@@ -20,24 +24,6 @@ type Template = {
   content: string;
   category: string;
 };
-
-const DEFAULT_TEMPLATES: Omit<Template, "id">[] = [
-  {
-    title: "Mensagem Inicial",
-    category: "inicial",
-    content: `Olá {{NomeCliente}},\n\nO meu nome é [Seu Nome] e faço parte da equipa da [Agência]. Reparámos que a {{Empresa}} tem um excelente potencial para crescer nas redes sociais.\n\nGostaria de agendar uma breve conversa para apresentar as nossas soluções de {{ServiçoInteressado}}.\n\nCumprimentos!`,
-  },
-  {
-    title: "Follow-up 1",
-    category: "follow_up_1",
-    content: `Olá {{NomeCliente}},\n\nEstou a escrever para dar seguimento à nossa última conversa sobre {{ServiçoInteressado}} para a {{Empresa}}.\n\nTem disponibilidade esta semana para conversarmos?\n\nCumprimentos!`,
-  },
-  {
-    title: "Proposta de Reunião",
-    category: "reuniao",
-    content: `Olá {{NomeCliente}},\n\nGostaria de propor uma reunião para apresentar uma proposta personalizada de {{ServiçoInteressado}} para a {{Empresa}}.\n\nConfirma a sua disponibilidade?\n\nCumprimentos!`,
-  },
-];
 
 type Lead = {
   id: string;
@@ -69,6 +55,8 @@ const Clients = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [sellerName, setSellerName] = useState("");
   const [agencyName, setAgencyName] = useState("KYS Digital");
+  const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [form, setForm] = useState({
     name: "", company: "", email: "", phone: "+244 ", province: "", city: "",
     website: "", service_type: "", notes: "",
@@ -142,6 +130,25 @@ const Clients = () => {
     }
   };
 
+  const handleDeleteLead = async () => {
+    if (!deleteLeadId) return;
+    const { error } = await supabase.from("leads").delete().eq("id", deleteLeadId);
+    if (error) { toast.error("Erro ao eliminar lead"); return; }
+    toast.success("Lead eliminado!");
+    setDeleteLeadId(null);
+    setSelectedLead(null);
+    fetchLeads();
+  };
+
+  const handleDeleteAll = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { error } = await supabase.from("leads").delete().eq("user_id", user.id);
+    if (error) { toast.error("Erro ao eliminar leads"); return; }
+    toast.success("Todos os leads foram eliminados!");
+    setDeleteAllOpen(false);
+    fetchLeads();
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -186,12 +193,13 @@ const Clients = () => {
           <h1 className="text-2xl font-bold tracking-tight">Clientes & Leads</h1>
           <p className="text-sm text-muted-foreground">Gestão de potenciais clientes</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />Novo Lead</Button>
-          </DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-            <DialogHeader><DialogTitle>Criar Novo Lead</DialogTitle></DialogHeader>
+        <div className="flex gap-2">
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="mr-2 h-4 w-4" />Novo Lead</Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+              <DialogHeader><DialogTitle>Criar Novo Lead</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -244,7 +252,13 @@ const Clients = () => {
               <Button type="submit" className="w-full">Criar Lead</Button>
             </form>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+          {leads.length > 0 && (
+            <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" />Limpar Todos
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Status count cards */}
@@ -371,7 +385,7 @@ const Clients = () => {
                     <MessageCircle className="h-4 w-4" />
                     Enviar Mensagem via WhatsApp
                   </h4>
-                  {(templates.length > 0 ? templates : DEFAULT_TEMPLATES.map((t, i) => ({ ...t, id: `default-${i}` }))).map(t => (
+                  {templates.map(t => (
                     <div key={t.id} className="rounded-md border p-3 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">{t.title}</span>
@@ -395,6 +409,15 @@ const Clients = () => {
                     </div>
                   ))}
                 </div>
+                <Separator />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-destructive border-destructive/30 hover:bg-destructive/10"
+                  onClick={() => setDeleteLeadId(selectedLead.id)}
+                >
+                  <Trash2 className="mr-2 h-3.5 w-3.5" />Eliminar Lead
+                </Button>
               </div>
             </>
           )}
@@ -460,6 +483,34 @@ const Clients = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Delete single lead */}
+      <AlertDialog open={!!deleteLeadId} onOpenChange={open => !open && setDeleteLeadId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar Lead</AlertDialogTitle>
+            <AlertDialogDescription>Tem a certeza que deseja eliminar este lead? Esta acção não pode ser revertida.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteLead} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete all leads */}
+      <AlertDialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Limpar Todos os Leads</AlertDialogTitle>
+            <AlertDialogDescription>Tem a certeza que deseja eliminar TODOS os seus leads ({leads.length})? Esta acção não pode ser revertida.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Eliminar Todos</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
