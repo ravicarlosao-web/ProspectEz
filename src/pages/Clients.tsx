@@ -82,6 +82,7 @@ const Clients = () => {
   const [form, setForm] = useState({
     name: "", company: "", email: "", phone: "+244 ", province: "", city: "",
     website: "", service_type: "", notes: "",
+    social_facebook: "", social_instagram: "", social_linkedin: "", social_tiktok: "",
   });
 
   const activeFilterCount = [serviceFilter !== "all", websiteFilter !== "all"].filter(Boolean).length;
