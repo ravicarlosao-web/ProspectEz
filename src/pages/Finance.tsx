@@ -41,7 +41,13 @@ const PLANS: Plan[] = [
   { key: "business", name: "Business", tokens: 300, priceKz: 35000, priceUsd: 35, features: ["300 pesquisas/mês", "Suporte dedicado", "API access", "Multi-utilizadores"] },
 ];
 
-const PAYMENT_METHODS = [
+type PaymentMethod = {
+  value: string;
+  label: string;
+  details: string;
+};
+
+const DEFAULT_PAYMENT_METHODS: PaymentMethod[] = [
   { value: "transferencia", label: "Transferência Bancária", details: "IBAN: AO06 0040 0000 1234 5678 9012 3" },
   { value: "multicaixa", label: "Multicaixa Express", details: "Referência: 12345 | Entidade: 12345" },
 ];
@@ -56,6 +62,7 @@ const Finance = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [quota, setQuota] = useState<{ used_this_month: number; monthly_limit: number; tokens_added_manually: number } | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(DEFAULT_PAYMENT_METHODS);
 
   useEffect(() => {
     fetchData();
@@ -91,6 +98,22 @@ const Finance = () => {
 
     if (paymentsData) {
       setPayments(paymentsData);
+    }
+
+    // Fetch payment methods from settings
+    const { data: settingsData } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "payment_methods")
+      .single();
+
+    if (settingsData?.value) {
+      try {
+        const methods = JSON.parse(settingsData.value);
+        if (Array.isArray(methods) && methods.length > 0) {
+          setPaymentMethods(methods);
+        }
+      } catch { /* keep defaults */ }
     }
 
     setIsLoading(false);
@@ -341,7 +364,7 @@ const Finance = () => {
             <div className="space-y-3">
               <Label>Método de Pagamento</Label>
               <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                {PAYMENT_METHODS.map((method) => (
+                {paymentMethods.map((method) => (
                   <div key={method.value} className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors">
                     <RadioGroupItem value={method.value} id={method.value} className="mt-0.5" />
                     <div className="flex-1">
