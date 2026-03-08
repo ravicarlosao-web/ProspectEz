@@ -324,7 +324,7 @@ const Dashboard = () => {
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={funnelData} layout="vertical">
                   <XAxis type="number" allowDecimals={false} stroke="hsl(215, 15%, 35%)" fontSize={11} />
-                  <YAxis dataKey="name" type="category" width={110} tick={{ fontSize: 11, fill: "hsl(215, 15%, 55%)" }} />
+                  <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 10, fill: "hsl(215, 15%, 55%)" }} />
                   <Tooltip contentStyle={{ backgroundColor: "hsl(220, 22%, 10%)", border: "1px solid hsl(220, 18%, 18%)", borderRadius: "8px", color: "#fff" }} />
                   <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={24}>
                     {funnelData.map((entry, i) => (
@@ -345,7 +345,7 @@ const Dashboard = () => {
             ) : (
               <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <Pie data={serviceData} cx="50%" cy="50%" innerRadius={55} outerRadius={95} paddingAngle={4} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} stroke="none">
+                  <Pie data={serviceData} cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={4} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} stroke="none" labelLine={false}>
                     {serviceData.map((entry, i) => (
                       <Cell key={i} fill={entry.fill} />
                     ))}
@@ -418,9 +418,9 @@ const Dashboard = () => {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={provinceData} layout="vertical">
+                  <BarChart data={provinceData} layout="vertical" margin={{ left: -10 }}>
                     <XAxis type="number" allowDecimals={false} stroke="hsl(215, 15%, 35%)" fontSize={11} />
-                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11, fill: "hsl(215, 15%, 55%)" }} />
+                    <YAxis dataKey="name" type="category" width={90} tick={{ fontSize: 10, fill: "hsl(215, 15%, 55%)" }} />
                     <Tooltip contentStyle={{ backgroundColor: "hsl(220, 22%, 10%)", border: "1px solid hsl(220, 18%, 18%)", borderRadius: "8px", color: "#fff" }} />
                     <Bar dataKey="value" name="Leads" radius={[0, 6, 6, 0]} barSize={20} fill="#8b5cf6" />
                   </BarChart>

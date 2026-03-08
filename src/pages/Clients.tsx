@@ -727,37 +727,38 @@ const Clients = () => {
 
       <Card className="border-border/50 bg-card/80">
         <CardHeader className="pb-3">
-          <div className="flex flex-wrap gap-3">
-            <div className="relative flex-1 min-w-[200px]">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Pesquisar por nome, empresa, email, notas..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-muted/50 border-border/50" />
+              <Input placeholder="Pesquisar..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-muted/50 border-border/50" />
             </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px] bg-muted/50 border-border/50"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os estados</SelectItem>
-                {Object.entries(LEAD_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Button
-              variant={showAdvancedFilters ? "secondary" : "outline"}
-              size="sm"
-              className="border-border/50"
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            >
-              <Filter className="mr-2 h-4 w-4" />
-              Filtros
-              {activeFilterCount > 0 && (
-                <Badge className="ml-2 text-xs h-5 w-5 p-0 flex items-center justify-center rounded-full">{activeFilterCount}</Badge>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-[160px] bg-muted/50 border-border/50"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os estados</SelectItem>
+                  {Object.entries(LEAD_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Button
+                variant={showAdvancedFilters ? "secondary" : "outline"}
+                size="icon"
+                className="border-border/50 shrink-0"
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              >
+                <Filter className="h-4 w-4" />
+                {activeFilterCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 text-[10px] h-4 w-4 p-0 flex items-center justify-center rounded-full">{activeFilterCount}</Badge>
+                )}
+              </Button>
+            </div>
           </div>
 
           {/* Advanced filters */}
           {showAdvancedFilters && (
-            <div className="flex flex-wrap gap-3 pt-3 border-t border-border/30 mt-3">
+            <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-border/30 mt-3">
               <Select value={serviceFilter} onValueChange={setServiceFilter}>
-                <SelectTrigger className="w-[180px] bg-muted/50 border-border/50">
+                <SelectTrigger className="w-full sm:w-[160px] bg-muted/50 border-border/50">
                   <SelectValue placeholder="Tipo de serviço" />
                 </SelectTrigger>
                 <SelectContent>
@@ -766,7 +767,7 @@ const Clients = () => {
                 </SelectContent>
               </Select>
               <Select value={websiteFilter} onValueChange={setWebsiteFilter}>
-                <SelectTrigger className="w-[180px] bg-muted/50 border-border/50">
+                <SelectTrigger className="w-full sm:w-[160px] bg-muted/50 border-border/50">
                   <SelectValue placeholder="Website" />
                 </SelectTrigger>
                 <SelectContent>
@@ -849,7 +850,7 @@ const Clients = () => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-border/30">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 py-3 border-t border-border/30">
               <p className="text-xs text-muted-foreground">
                 {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalCount)} de {totalCount}
               </p>
@@ -860,10 +861,11 @@ const Clients = () => {
                   disabled={page === 0}
                   onClick={() => setPage(p => p - 1)}
                 >
-                  <ChevronLeft className="h-4 w-4 mr-1" />Anterior
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline ml-1">Anterior</span>
                 </Button>
                 <span className="text-xs text-muted-foreground">
-                  {page + 1} / {totalPages}
+                  {page + 1}/{totalPages}
                 </span>
                 <Button
                   variant="outline"
@@ -871,7 +873,8 @@ const Clients = () => {
                   disabled={page >= totalPages - 1}
                   onClick={() => setPage(p => p + 1)}
                 >
-                  Próximo<ChevronRight className="h-4 w-4 ml-1" />
+                  <span className="hidden sm:inline mr-1">Próximo</span>
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             </div>
