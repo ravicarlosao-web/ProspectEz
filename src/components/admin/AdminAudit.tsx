@@ -133,7 +133,7 @@ export const AdminAudit = () => {
                     <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhum registo de auditoria</TableCell></TableRow>
                   )}
                 </TableBody>
-              </Table>
+              </Table></div>
 
               {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-4">
