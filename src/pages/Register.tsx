@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { UserPlus, Zap } from "lucide-react";
+import { UserPlus } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { StarfieldBackground } from "@/components/StarfieldBackground";
 
 const Register = () => {
