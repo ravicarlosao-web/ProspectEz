@@ -137,22 +137,22 @@ export const AdminPlans = () => {
     <div className="space-y-6">
       {/* Plans */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <CardTitle className="text-lg">Configuração de Planos</CardTitle>
             <CardDescription>Defina os limites e preços de cada plano</CardDescription>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setApplyFreeOpen(true)}>
-              <Zap className="mr-1 h-4 w-4" /> Aplicar Free a Todos
+          <div className="flex gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => setApplyFreeOpen(true)}>
+              <Zap className="mr-1 h-4 w-4" /> <span className="hidden sm:inline">Aplicar Free a Todos</span><span className="sm:hidden">Free</span>
             </Button>
-            <Button onClick={savePlans} disabled={saving}>
-              <Save className="mr-1 h-4 w-4" /> {saving ? "..." : "Guardar Tudo"}
+            <Button size="sm" onClick={savePlans} disabled={saving}>
+              <Save className="mr-1 h-4 w-4" /> {saving ? "..." : "Guardar"}
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <Table>
+        <CardContent className="overflow-x-auto">
+          <Table className="min-w-[600px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Plano</TableHead>
