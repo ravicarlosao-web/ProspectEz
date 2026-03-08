@@ -319,6 +319,8 @@ const Clients = () => {
     setStatusFilter("all");
   };
 
+  if (loading && leads.length === 0) return <ClientsSkeleton />;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
