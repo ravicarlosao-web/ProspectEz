@@ -112,18 +112,26 @@ const Login = () => {
             <h2 className="text-xl font-semibold text-foreground">Entrar</h2>
             <p className="text-sm text-muted-foreground">Introduza as suas credenciais para aceder ao sistema</p>
           </div>
+          {isLocked && (
+            <div className="flex items-center gap-2 rounded-lg bg-destructive/10 border border-destructive/20 p-3">
+              <ShieldAlert className="h-4 w-4 text-destructive shrink-0" />
+              <p className="text-sm text-destructive">
+                Bloqueado por demasiadas tentativas. Tente novamente em <span className="font-bold">{formatTime(lockRemaining)}</span>.
+              </p>
+            </div>
+          )}
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-xs text-muted-foreground uppercase tracking-wider">Email</Label>
-              <Input id="email" type="email" placeholder="email@exemplo.co.ao" value={email} onChange={e => setEmail(e.target.value)} required className="h-11 bg-muted/50 border-border/50 focus:border-primary" />
+              <Input id="email" type="email" placeholder="email@exemplo.co.ao" value={email} onChange={e => setEmail(e.target.value)} required disabled={isLocked} className="h-11 bg-muted/50 border-border/50 focus:border-primary" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="text-xs text-muted-foreground uppercase tracking-wider">Senha</Label>
-              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="h-11 bg-muted/50 border-border/50 focus:border-primary" />
+              <Input id="password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required disabled={isLocked} className="h-11 bg-muted/50 border-border/50 focus:border-primary" />
             </div>
-            <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium" disabled={loading}>
+            <Button type="submit" className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium" disabled={loading || isLocked}>
               <LogIn className="mr-2 h-4 w-4" />
-              {loading ? "A entrar..." : "Entrar"}
+              {isLocked ? `Bloqueado (${formatTime(lockRemaining)})` : loading ? "A entrar..." : "Entrar"}
             </Button>
           </form>
           <div className="flex justify-between text-sm">
