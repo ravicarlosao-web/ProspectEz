@@ -324,8 +324,6 @@ const Prospection = () => {
         setShowTokenExhausted(true);
         return;
       }
-        return;
-      }
     }
 
     setIsSearching(true);
