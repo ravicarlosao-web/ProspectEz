@@ -2,9 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, ProtectedRoute } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
+import { PageTransition } from "@/components/PageTransition";
+import { AnimatePresence } from "framer-motion";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import RecoverPassword from "./pages/RecoverPassword";
@@ -23,6 +25,36 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+        <Route path="/registar" element={<PageTransition><Register /></PageTransition>} />
+        <Route path="/recuperar-senha" element={<PageTransition><RecoverPassword /></PageTransition>} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/clientes" element={<Clients />} />
+          <Route path="/mensagens" element={<Messages />} />
+          <Route path="/prospeccao" element={<Prospection />} />
+          <Route path="/configuracoes" element={<SettingsPage />} />
+          <Route path="/admin" element={<Admin />}>
+            <Route index element={<AdminOverview />} />
+            <Route path="utilizadores" element={<AdminUsers />} />
+            <Route path="planos" element={<AdminPlans />} />
+            <Route path="logs" element={<AdminLogs />} />
+            <Route path="auditoria" element={<AdminAudit />} />
+          </Route>
+        </Route>
+        <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -30,27 +62,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/registar" element={<Register />} />
-            <Route path="/recuperar-senha" element={<RecoverPassword />} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/clientes" element={<Clients />} />
-              <Route path="/mensagens" element={<Messages />} />
-              <Route path="/prospeccao" element={<Prospection />} />
-              <Route path="/configuracoes" element={<SettingsPage />} />
-              <Route path="/admin" element={<Admin />}>
-                <Route index element={<AdminOverview />} />
-                <Route path="utilizadores" element={<AdminUsers />} />
-                <Route path="planos" element={<AdminPlans />} />
-                <Route path="logs" element={<AdminLogs />} />
-                <Route path="auditoria" element={<AdminAudit />} />
-              </Route>
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AnimatedRoutes />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
