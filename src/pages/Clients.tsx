@@ -55,6 +55,8 @@ const Clients = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [sellerName, setSellerName] = useState("");
   const [agencyName, setAgencyName] = useState("KYS Digital");
+  const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [form, setForm] = useState({
     name: "", company: "", email: "", phone: "+244 ", province: "", city: "",
     website: "", service_type: "", notes: "",
