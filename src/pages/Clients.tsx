@@ -401,15 +401,15 @@ const Clients = () => {
         </DialogContent>
       </Dialog>
 
-      <Card>
+      <Card className="border-border/50 bg-card/80">
         <CardHeader className="pb-3">
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Pesquisar leads..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+              <Input placeholder="Pesquisar leads..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 bg-muted/50 border-border/50" />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[180px] bg-muted/50 border-border/50"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os estados</SelectItem>
                 {Object.entries(LEAD_STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
@@ -420,12 +420,12 @@ const Clients = () => {
         <CardContent className="p-0">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead className="hidden md:table-cell">Empresa</TableHead>
-                <TableHead className="hidden lg:table-cell">Contacto</TableHead>
-                <TableHead className="hidden lg:table-cell">Província</TableHead>
-                <TableHead>Estado</TableHead>
+              <TableRow className="border-border/30 hover:bg-transparent">
+                <TableHead className="text-xs text-muted-foreground uppercase tracking-wider">Nome</TableHead>
+                <TableHead className="hidden md:table-cell text-xs text-muted-foreground uppercase tracking-wider">Empresa</TableHead>
+                <TableHead className="hidden lg:table-cell text-xs text-muted-foreground uppercase tracking-wider">Contacto</TableHead>
+                <TableHead className="hidden lg:table-cell text-xs text-muted-foreground uppercase tracking-wider">Província</TableHead>
+                <TableHead className="text-xs text-muted-foreground uppercase tracking-wider">Estado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -436,11 +436,11 @@ const Clients = () => {
               ) : leads.map(lead => (
                 <TableRow
                   key={lead.id}
-                  className="cursor-pointer hover:bg-muted/50"
+                  className="cursor-pointer border-border/20 hover:bg-muted/30 transition-colors"
                   onClick={() => setSelectedLead(lead)}
                 >
-                  <TableCell className="font-medium">{lead.name}</TableCell>
-                  <TableCell className="hidden md:table-cell text-muted-foreground">{lead.company || "—"}</TableCell>
+                  <TableCell className="font-medium text-sm">{lead.name}</TableCell>
+                  <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{lead.company || "—"}</TableCell>
                   <TableCell className="hidden lg:table-cell">
                     <div className="flex gap-2 text-muted-foreground">
                       {lead.phone && <Phone className="h-3.5 w-3.5" />}
@@ -448,7 +448,7 @@ const Clients = () => {
                       {lead.website && <Globe className="h-3.5 w-3.5" />}
                     </div>
                   </TableCell>
-                  <TableCell className="hidden lg:table-cell text-muted-foreground">{lead.province || "—"}</TableCell>
+                  <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{lead.province || "—"}</TableCell>
                   <TableCell>
                     <Badge variant="secondary" className={LEAD_STATUS_COLORS[lead.status] || ""}>
                       {LEAD_STATUS_LABELS[lead.status] || lead.status}
