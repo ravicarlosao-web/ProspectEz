@@ -137,22 +137,22 @@ export const AdminPlans = () => {
     <div className="space-y-6">
       {/* Plans */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <CardTitle className="text-lg">Configuração de Planos</CardTitle>
             <CardDescription>Defina os limites e preços de cada plano</CardDescription>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setApplyFreeOpen(true)}>
-              <Zap className="mr-1 h-4 w-4" /> Aplicar Free a Todos
+          <div className="flex gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => setApplyFreeOpen(true)}>
+              <Zap className="mr-1 h-4 w-4" /> <span className="hidden sm:inline">Aplicar Free a Todos</span><span className="sm:hidden">Free</span>
             </Button>
-            <Button onClick={savePlans} disabled={saving}>
-              <Save className="mr-1 h-4 w-4" /> {saving ? "..." : "Guardar Tudo"}
+            <Button size="sm" onClick={savePlans} disabled={saving}>
+              <Save className="mr-1 h-4 w-4" /> {saving ? "..." : "Guardar"}
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
-          <Table>
+        <CardContent className="overflow-x-auto">
+          <Table className="min-w-[600px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Plano</TableHead>
@@ -185,8 +185,8 @@ export const AdminPlans = () => {
           <CardTitle className="text-lg">Pacotes de Tokens Avulso</CardTitle>
           <CardDescription>Configure pacotes de tokens para compra individual</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table>
+        <CardContent className="overflow-x-auto">
+          <Table className="min-w-[450px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
@@ -213,7 +213,7 @@ export const AdminPlans = () => {
 
       {/* Payment Methods */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <CardTitle className="text-lg flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
@@ -221,14 +221,14 @@ export const AdminPlans = () => {
             </CardTitle>
             <CardDescription>Configure os dados bancários e referências que os clientes verão ao pagar</CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={addPaymentMethod}>
+          <Button variant="outline" size="sm" className="shrink-0 self-start" onClick={addPaymentMethod}>
             <Plus className="mr-1 h-4 w-4" /> Adicionar
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           {paymentMethods.map((method, i) => (
-            <div key={i} className="flex items-start gap-3 p-4 rounded-lg border bg-muted/30">
-              <div className="flex-1 grid gap-3 sm:grid-cols-3">
+            <div key={i} className="flex flex-col sm:flex-row items-start gap-3 p-3 sm:p-4 rounded-lg border bg-muted/30">
+              <div className="flex-1 w-full grid gap-3 grid-cols-1 sm:grid-cols-3">
                 <div>
                   <label className="text-xs text-muted-foreground font-medium">Identificador</label>
                   <Input

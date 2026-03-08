@@ -859,7 +859,7 @@ const Prospection = () => {
 
           {/* Social Results Summary */}
           {socialResults.length > 0 && (
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
               <Card className="border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800">
                 <CardContent className="p-4 text-center">
                   <div className="text-2xl font-bold text-green-600">{socialResults.filter(r => r.socialScore >= 70 && !r.alreadySaved).length}</div>

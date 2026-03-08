@@ -110,7 +110,7 @@ export const AdminLogs = () => {
             </div>
           ) : (
             <>
-              <Table>
+              <div className="overflow-x-auto"><Table className="min-w-[600px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Utilizador</TableHead>
@@ -137,7 +137,7 @@ export const AdminLogs = () => {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
+              </Table></div>
 
               {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-4">

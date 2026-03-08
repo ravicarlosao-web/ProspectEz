@@ -219,7 +219,7 @@ const Dashboard = () => {
       </div>
 
       {/* Charts row */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         {[
           {
             title: "Funil de Conversão",

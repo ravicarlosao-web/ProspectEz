@@ -249,7 +249,7 @@ export function AdminFinance() {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
@@ -301,8 +301,8 @@ export function AdminFinance() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-4">
-            <div className="relative flex-1">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
+            <div className="relative flex-1 min-w-0">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Pesquisar por email ou nome..."
@@ -312,7 +312,7 @@ export function AdminFinance() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filtrar por status" />
               </SelectTrigger>
               <SelectContent>
@@ -325,8 +325,8 @@ export function AdminFinance() {
           </div>
 
           {/* Payments Table */}
-          <div className="rounded-md border">
-            <Table>
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[700px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Utilizador</TableHead>

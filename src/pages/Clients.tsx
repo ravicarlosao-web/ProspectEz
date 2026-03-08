@@ -188,15 +188,15 @@ const Clients = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Clientes & Leads</h1>
           <p className="text-sm text-muted-foreground">Gestão de potenciais clientes</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="mr-2 h-4 w-4" />Novo Lead</Button>
+              <Button size="sm" className="sm:size-default"><Plus className="mr-2 h-4 w-4" />Novo Lead</Button>
             </DialogTrigger>
             <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
               <DialogHeader><DialogTitle>Criar Novo Lead</DialogTitle></DialogHeader>
@@ -254,8 +254,8 @@ const Clients = () => {
           </DialogContent>
           </Dialog>
           {leads.length > 0 && (
-            <Button variant="outline" className="text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => setDeleteAllOpen(true)}>
-              <Trash2 className="mr-2 h-4 w-4" />Limpar Todos
+            <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10 sm:size-default" onClick={() => setDeleteAllOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" /><span className="hidden sm:inline">Limpar Todos</span><span className="sm:hidden">Limpar</span>
             </Button>
           )}
         </div>
@@ -440,8 +440,8 @@ const Clients = () => {
             </Select>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[500px]">
             <TableHeader>
               <TableRow className="border-border/30 hover:bg-transparent">
                 <TableHead className="text-xs text-muted-foreground uppercase tracking-wider">Nome</TableHead>
