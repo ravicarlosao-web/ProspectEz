@@ -69,7 +69,7 @@ const Clients = () => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [sellerName, setSellerName] = useState("");
-  const [agencyName, setAgencyName] = useState("KYS Digital");
+  const [agencyName, setAgencyName] = useState("");
   const [deleteLeadId, setDeleteLeadId] = useState<string | null>(null);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   const [page, setPage] = useState(0);
