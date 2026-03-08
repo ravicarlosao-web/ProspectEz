@@ -262,7 +262,7 @@ const Clients = () => {
     fetchLeads();
   };
 
-
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     const insertData: any = {
