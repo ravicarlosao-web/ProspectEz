@@ -65,6 +65,33 @@ export type Database = {
         }
         Relationships: []
       }
+      device_registrations: {
+        Row: {
+          created_at: string
+          email: string | null
+          fingerprint: string
+          id: string
+          ip_address: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          fingerprint: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          fingerprint?: string
+          id?: string
+          ip_address?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           city: string | null
