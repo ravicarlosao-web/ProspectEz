@@ -15,6 +15,7 @@ import Clients from "./pages/Clients";
 import Messages from "./pages/Messages";
 import Prospection from "./pages/Prospection";
 import SettingsPage from "./pages/SettingsPage";
+import Finance from "./pages/Finance";
 import Admin from "./pages/Admin";
 import { AdminOverview } from "./components/admin/AdminOverview";
 import { AdminUsers } from "./components/admin/AdminUsers";
@@ -22,6 +23,7 @@ import { AdminPlans } from "./components/admin/AdminPlans";
 import { AdminLogs } from "./components/admin/AdminLogs";
 import { AdminAudit } from "./components/admin/AdminAudit";
 import { AdminTemplates } from "./components/admin/AdminTemplates";
+import { AdminFinance } from "./components/admin/AdminFinance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
