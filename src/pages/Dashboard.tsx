@@ -4,13 +4,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Users, UserCheck, Handshake, Trophy, AlertTriangle, TrendingUp, Clock, Target, Bell, CalendarDays } from "lucide-react";
+import { Users, UserCheck, Handshake, Trophy, AlertTriangle, TrendingUp, Clock, Target, Bell, CalendarDays, MapPin } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  PieChart, Pie, Legend,
+  PieChart, Pie, Legend, LineChart, Line, CartesianGrid,
 } from "recharts";
 
 const FUNNEL_COLORS = ["#3b82f6", "#f59e0b", "#8b5cf6", "#22c55e", "#ef4444"];
@@ -32,6 +32,7 @@ type Lead = {
   company: string | null;
   status: string;
   service_type: string | null;
+  province: string | null;
   created_at: string;
   updated_at: string;
   next_contact_date: string | null;
@@ -65,7 +66,7 @@ const Dashboard = () => {
     const fetchData = async () => {
       const { data } = await supabase
         .from("leads")
-        .select("id, name, company, status, service_type, created_at, updated_at, next_contact_date")
+        .select("id, name, company, status, service_type, province, created_at, updated_at, next_contact_date")
         .order("updated_at", { ascending: false });
       setLeads((data as Lead[]) || []);
       setLoading(false);
@@ -131,6 +132,38 @@ const Dashboard = () => {
   if (noServiceCount > 0) {
     serviceData.push({ name: "Não definido", value: noServiceCount, fill: "#475569" });
   }
+
+  // Monthly evolution data (last 6 months)
+  const monthlyData = (() => {
+    const months: { month: string; novos: number; fechados: number; perdidos: number }[] = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleDateString("pt-AO", { month: "short", year: "2-digit" });
+      const inMonth = leads.filter(l => l.created_at.startsWith(monthKey));
+      months.push({
+        month: label,
+        novos: inMonth.length,
+        fechados: inMonth.filter(l => l.status === "fechado_ganho").length,
+        perdidos: inMonth.filter(l => l.status === "perdido").length,
+      });
+    }
+    return months;
+  })();
+
+  // Province data
+  const provinceData = (() => {
+    const provinceCounts: Record<string, number> = {};
+    leads.forEach(l => {
+      const p = l.province || "Não definida";
+      provinceCounts[p] = (provinceCounts[p] || 0) + 1;
+    });
+    return Object.entries(provinceCounts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  })();
 
   const recentLeads = leads.slice(0, 8);
 
@@ -332,7 +365,70 @@ const Dashboard = () => {
         ))}
       </div>
 
-      {/* Recent activity */}
+      {/* Monthly Evolution + Province charts */}
+      <div className="grid gap-4 md:grid-cols-2">
+        <motion.div custom={0} initial="hidden" animate="visible" variants={scaleIn}>
+          <Card className="border-border/50 bg-card/80">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                Evolução Mensal
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {total === 0 && !loading ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <AlertTriangle className="mb-2 h-8 w-8" />
+                  <p className="text-sm">Sem dados para mostrar.</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 18%, 18%)" />
+                    <XAxis dataKey="month" stroke="hsl(215, 15%, 45%)" fontSize={11} />
+                    <YAxis allowDecimals={false} stroke="hsl(215, 15%, 35%)" fontSize={11} />
+                    <Tooltip contentStyle={{ backgroundColor: "hsl(220, 22%, 10%)", border: "1px solid hsl(220, 18%, 18%)", borderRadius: "8px", color: "#fff" }} />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Line type="monotone" dataKey="novos" name="Novos" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="fechados" name="Fechados" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="perdidos" name="Perdidos" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div custom={1} initial="hidden" animate="visible" variants={scaleIn}>
+          <Card className="border-border/50 bg-card/80">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                Leads por Província
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {provinceData.length === 0 && !loading ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <AlertTriangle className="mb-2 h-8 w-8" />
+                  <p className="text-sm">Sem dados de província.</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={provinceData} layout="vertical">
+                    <XAxis type="number" allowDecimals={false} stroke="hsl(215, 15%, 35%)" fontSize={11} />
+                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11, fill: "hsl(215, 15%, 55%)" }} />
+                    <Tooltip contentStyle={{ backgroundColor: "hsl(220, 22%, 10%)", border: "1px solid hsl(220, 18%, 18%)", borderRadius: "8px", color: "#fff" }} />
+                    <Bar dataKey="value" name="Leads" radius={[0, 6, 6, 0]} barSize={20} fill="#8b5cf6" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.5 }}>
         <Card className="border-border/50 bg-card/80">
           <CardHeader className="pb-3">
