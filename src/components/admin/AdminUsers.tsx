@@ -289,10 +289,11 @@ export const AdminUsers = () => {
                 <SelectItem value="suspended">Suspensos</SelectItem>
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={() => setResetAllOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setResetAllOpen(true)}>
               <RefreshCw className="mr-2 h-4 w-4" />
-              Resetar Todos (Mês)
+              <span className="hidden sm:inline">Resetar Todos (Mês)</span><span className="sm:hidden">Reset</span>
             </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
