@@ -193,12 +193,13 @@ const Clients = () => {
           <h1 className="text-2xl font-bold tracking-tight">Clientes & Leads</h1>
           <p className="text-sm text-muted-foreground">Gestão de potenciais clientes</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />Novo Lead</Button>
-          </DialogTrigger>
-          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-            <DialogHeader><DialogTitle>Criar Novo Lead</DialogTitle></DialogHeader>
+        <div className="flex gap-2">
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button><Plus className="mr-2 h-4 w-4" />Novo Lead</Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+              <DialogHeader><DialogTitle>Criar Novo Lead</DialogTitle></DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
