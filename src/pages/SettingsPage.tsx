@@ -26,7 +26,7 @@ const SettingsPage = () => {
   const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchSettings = async () => {
       const { data } = await supabase
         .from("app_settings" as any)
         .select("value")
@@ -34,8 +34,21 @@ const SettingsPage = () => {
         .single();
       if (data) setAgencyName((data as any).value || "");
     };
-    fetch();
-  }, []);
+    const fetchProfile = async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, phone")
+        .eq("user_id", user.id)
+        .single();
+      if (data) {
+        setFullName(data.full_name || "");
+        setPhone(data.phone || "");
+      }
+    };
+    fetchSettings();
+    fetchProfile();
+  }, [user?.id]);
 
   const saveAgencyName = async () => {
     setSaving(true);
