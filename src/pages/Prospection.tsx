@@ -178,7 +178,7 @@ const extractContactInfoStatic = (text: string | undefined) => {
 
 const analyzeSocialPresence = (
   results: SearchResult[],
-  existingNames: Set<string>
+  dedupCheck: (name: string, contacts: { emails: string[]; phones: string[] }, url?: string) => boolean
 ): SocialAnalyzedResult[] => {
   const businessMap = new Map<string, {
     results: SearchResult[];
