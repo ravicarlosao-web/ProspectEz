@@ -59,6 +59,7 @@ function AnimatedRoutes() {
             <Route path="templates" element={<AdminTemplates />} />
             <Route path="financeiro" element={<AdminFinance />} />
             <Route path="firecrawl" element={<AdminFirecrawl />} />
+            <Route path="seguranca" element={<AdminSecurityLogs />} />
           </Route>
         </Route>
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
