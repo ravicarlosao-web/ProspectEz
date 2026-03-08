@@ -133,6 +133,38 @@ const Dashboard = () => {
     serviceData.push({ name: "Não definido", value: noServiceCount, fill: "#475569" });
   }
 
+  // Monthly evolution data (last 6 months)
+  const monthlyData = (() => {
+    const months: { month: string; novos: number; fechados: number; perdidos: number }[] = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const label = d.toLocaleDateString("pt-AO", { month: "short", year: "2-digit" });
+      const inMonth = leads.filter(l => l.created_at.startsWith(monthKey));
+      months.push({
+        month: label,
+        novos: inMonth.length,
+        fechados: inMonth.filter(l => l.status === "fechado_ganho").length,
+        perdidos: inMonth.filter(l => l.status === "perdido").length,
+      });
+    }
+    return months;
+  })();
+
+  // Province data
+  const provinceData = (() => {
+    const provinceCounts: Record<string, number> = {};
+    leads.forEach(l => {
+      const p = l.province || "Não definida";
+      provinceCounts[p] = (provinceCounts[p] || 0) + 1;
+    });
+    return Object.entries(provinceCounts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  })();
+
   const recentLeads = leads.slice(0, 8);
 
   const formatDate = (dateStr: string) =>
