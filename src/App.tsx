@@ -48,6 +48,7 @@ function AnimatedRoutes() {
             <Route path="planos" element={<AdminPlans />} />
             <Route path="logs" element={<AdminLogs />} />
             <Route path="auditoria" element={<AdminAudit />} />
+            <Route path="templates" element={<AdminTemplates />} />
           </Route>
         </Route>
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
