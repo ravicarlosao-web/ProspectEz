@@ -13,6 +13,10 @@ const SettingsPage = () => {
   const [agencyName, setAgencyName] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -22,7 +26,7 @@ const SettingsPage = () => {
   const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchSettings = async () => {
       const { data } = await supabase
         .from("app_settings" as any)
         .select("value")
@@ -30,8 +34,21 @@ const SettingsPage = () => {
         .single();
       if (data) setAgencyName((data as any).value || "");
     };
-    fetch();
-  }, []);
+    const fetchProfile = async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name, phone")
+        .eq("user_id", user.id)
+        .single();
+      if (data) {
+        setFullName(data.full_name || "");
+        setPhone(data.phone || "");
+      }
+    };
+    fetchSettings();
+    fetchProfile();
+  }, [user?.id]);
 
   const saveAgencyName = async () => {
     setSaving(true);
@@ -45,6 +62,25 @@ const SettingsPage = () => {
       return;
     }
     toast.success("Nome da agência actualizado!");
+  };
+
+  const saveProfile = async () => {
+    if (!user?.id) return;
+    if (!fullName.trim()) {
+      toast.error("O nome não pode estar vazio");
+      return;
+    }
+    setSavingProfile(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: fullName.trim(), phone: phone.trim() || null })
+      .eq("user_id", user.id);
+    setSavingProfile(false);
+    if (error) {
+      toast.error("Erro ao guardar perfil");
+      return;
+    }
+    toast.success("Perfil actualizado!");
   };
 
   const handleChangePassword = async () => {
@@ -170,32 +206,51 @@ const SettingsPage = () => {
         <Card className="border-border/50 bg-card/80">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/10">
-                <User className="h-4 w-4 text-blue-400" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/50">
+                <User className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-base">Conta</CardTitle>
-                <CardDescription className="text-xs">Informações do perfil</CardDescription>
+                <CardTitle className="text-base">Perfil</CardTitle>
+                <CardDescription className="text-xs">Nome, telefone e informações da conta</CardDescription>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Nome Completo</Label>
+              <Input
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Seu nome completo"
+                className="bg-muted/50 border-border/50"
+                maxLength={100}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Telefone</Label>
+              <Input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Ex: +244 923 456 789"
+                className="bg-muted/50 border-border/50"
+                maxLength={20}
+              />
+            </div>
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wider">Email</p>
               <p className="text-sm font-medium mt-1">{user?.email}</p>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">ID</p>
-              <p className="font-mono text-xs text-muted-foreground mt-1">{user?.id}</p>
-            </div>
+            <Button onClick={saveProfile} disabled={savingProfile} size="sm">
+              {savingProfile ? "A guardar..." : "Guardar Perfil"}
+            </Button>
           </CardContent>
         </Card>
 
         <Card className="border-border/50 bg-card/80 md:col-span-2">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10">
-                <Shield className="h-4 w-4 text-emerald-400" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/50">
+                <Shield className="h-4 w-4 text-primary" />
               </div>
               <div>
                 <CardTitle className="text-base">Alterar Senha</CardTitle>
