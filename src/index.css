@@ -149,6 +149,16 @@
   border: 1px solid hsl(220 18% 18% / 0.5);
 }
 
+:root .glass-card {
+  background: hsl(0 0% 100% / 0.7);
+  border: 1px solid hsl(220 13% 88% / 0.6);
+}
+
+.dark .glass-card {
+  background: hsl(220 22% 8% / 0.7);
+  border: 1px solid hsl(220 18% 18% / 0.5);
+}
+
 /* Gradient text */
 .gradient-text {
   background: linear-gradient(135deg, hsl(142 70% 45%), hsl(142 70% 65%));
@@ -171,4 +181,14 @@
   transform: translateY(-2px);
   box-shadow: 0 8px 25px hsl(220 25% 0% / 0.4);
   border-color: hsl(220 18% 20%);
+}
+
+:root .stat-card:hover {
+  box-shadow: 0 8px 25px hsl(220 25% 50% / 0.1);
+  border-color: hsl(220 13% 82%);
+}
+
+/* Smooth theme transition */
+*, *::before, *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.15s ease;
 }
