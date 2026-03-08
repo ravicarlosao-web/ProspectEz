@@ -82,6 +82,7 @@ const Clients = () => {
   const [form, setForm] = useState({
     name: "", company: "", email: "", phone: "+244 ", province: "", city: "",
     website: "", service_type: "", notes: "",
+    social_facebook: "", social_instagram: "", social_linkedin: "", social_tiktok: "",
   });
 
   const activeFilterCount = [serviceFilter !== "all", websiteFilter !== "all"].filter(Boolean).length;
@@ -276,13 +277,17 @@ const Clients = () => {
       website: form.website || null,
       service_type: form.service_type || null,
       notes: form.notes || null,
+      social_facebook: form.social_facebook || null,
+      social_instagram: form.social_instagram || null,
+      social_linkedin: form.social_linkedin || null,
+      social_tiktok: form.social_tiktok || null,
       user_id: currentUser?.id,
     };
     const { error } = await supabase.from("leads").insert(insertData);
     if (error) { toast.error("Erro ao criar lead"); return; }
     toast.success("Lead criado com sucesso!");
     setDialogOpen(false);
-    setForm({ name: "", company: "", email: "", phone: "+244 ", province: "", city: "", website: "", service_type: "", notes: "" });
+    setForm({ name: "", company: "", email: "", phone: "+244 ", province: "", city: "", website: "", service_type: "", notes: "", social_facebook: "", social_instagram: "", social_linkedin: "", social_tiktok: "" });
     fetchLeads();
     fetchStatusCounts();
   };
@@ -379,6 +384,26 @@ const Clients = () => {
                       {Object.entries(SERVICE_TYPE_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+              <Separator />
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Redes Sociais</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Facebook</Label>
+                  <Input value={form.social_facebook} onChange={e => setForm({...form, social_facebook: e.target.value})} placeholder="facebook.com/..." className="bg-muted/50 border-border/50" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">Instagram</Label>
+                  <Input value={form.social_instagram} onChange={e => setForm({...form, social_instagram: e.target.value})} placeholder="@username" className="bg-muted/50 border-border/50" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">LinkedIn</Label>
+                  <Input value={form.social_linkedin} onChange={e => setForm({...form, social_linkedin: e.target.value})} placeholder="linkedin.com/in/..." className="bg-muted/50 border-border/50" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wider">TikTok</Label>
+                  <Input value={form.social_tiktok} onChange={e => setForm({...form, social_tiktok: e.target.value})} placeholder="@username" className="bg-muted/50 border-border/50" />
                 </div>
               </div>
               <div className="space-y-2">
