@@ -66,7 +66,7 @@ const Dashboard = () => {
     const fetchData = async () => {
       const { data } = await supabase
         .from("leads")
-        .select("id, name, company, status, service_type, created_at, updated_at, next_contact_date")
+        .select("id, name, company, status, service_type, province, created_at, updated_at, next_contact_date")
         .order("updated_at", { ascending: false });
       setLeads((data as Lead[]) || []);
       setLoading(false);
