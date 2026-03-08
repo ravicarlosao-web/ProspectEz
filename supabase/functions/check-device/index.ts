@@ -196,7 +196,7 @@ Deno.serve(async (req) => {
 
     if (action === "check_email") {
       // Check disposable email
-      if (email && isDisposableEmail(email)) {
+      if (email && await isDisposableEmail(email)) {
         return new Response(
           JSON.stringify({ blocked: true, reason: "disposable_email" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
