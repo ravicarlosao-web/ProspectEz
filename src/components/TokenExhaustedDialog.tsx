@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Zap, CreditCard, AlertTriangle } from "lucide-react";
+import { CreditCard, AlertTriangle } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { useNavigate } from "react-router-dom";
 
 interface TokenExhaustedDialogProps {
@@ -33,7 +34,7 @@ export function TokenExhaustedDialog({ open, onOpenChange }: TokenExhaustedDialo
           <div className="rounded-xl bg-muted/50 border p-4 space-y-3">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Zap className="h-5 w-5 text-primary" />
+                <img src={logoImg} alt="ProspectEz" className="h-5 w-5" />
               </div>
               <div>
                 <p className="font-medium">Precisa de mais pesquisas?</p>
