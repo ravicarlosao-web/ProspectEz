@@ -66,7 +66,7 @@ export function AppSidebar() {
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary glow-primary">
-          <Zap className="h-5 w-5 text-primary-foreground" />
+          <img src={logoImg} alt="ProspectEz" className="h-6 w-6" />
         </div>
         <div className="flex flex-col">
           <span className="text-sm font-bold text-sidebar-foreground">ProspectEz</span>
