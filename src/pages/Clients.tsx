@@ -23,8 +23,8 @@ import { cn } from "@/lib/utils";
 import {
   Plus, Search, Phone, Mail, Globe, Building2, MapPin, FileText, Calendar as CalendarIcon,
   MessageCircle, Copy, Trash2, ChevronLeft, ChevronRight, Filter, X, CalendarDays, Bell
-} from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS, SERVICE_TYPE_LABELS, PROVINCES_ANGOLA, MESSAGE_CATEGORIES } from "@/lib/constants";
+import { LeadImportExport } from "@/components/LeadImportExport";
 
 type Template = {
   id: string;
