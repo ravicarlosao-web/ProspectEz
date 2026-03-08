@@ -86,15 +86,57 @@ const SOURCE_LABELS: Record<string, string> = {
   directorio: "Directório",
 };
 
-// Normalize business name for dedup
+// Normalize business name for dedup - remove suffixes like Lda, SA, etc.
 const normalizeName = (name: string): string => {
   return name
     .toLowerCase()
     .replace(/\s*[-|–@].*$/, "")
     .replace(/\(.*?\)/g, "")
+    .replace(/\b(lda|limitada|sa|sarl|ep|srl|s\.a\.?|l\.da\.?|unipessoal)\b/gi, "")
     .replace(/[^a-záàâãéèêíïóôõúç\s]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+};
+
+// Extract domain from URL for dedup
+const extractDomain = (url: string | null): string | null => {
+  if (!url) return null;
+  try {
+    const hostname = new URL(url.startsWith("http") ? url : `https://${url}`).hostname;
+    return hostname.replace(/^www\./, "").toLowerCase();
+  } catch { return null; }
+};
+
+// Normalize phone to last 9 digits for comparison
+const normalizePhone = (phone: string | null): string | null => {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 9 ? digits.slice(-9) : null;
+};
+
+// Simple fuzzy match: check if two names overlap significantly
+const fuzzyMatch = (a: string, b: string): boolean => {
+  if (!a || !b || a.length < 3 || b.length < 3) return false;
+  const na = normalizeName(a);
+  const nb = normalizeName(b);
+  if (na === nb) return true;
+  // One contains the other
+  if (na.includes(nb) || nb.includes(na)) return true;
+  // Word overlap: >70% of words match
+  const wordsA = na.split(" ").filter(w => w.length > 2);
+  const wordsB = nb.split(" ").filter(w => w.length > 2);
+  if (wordsA.length === 0 || wordsB.length === 0) return false;
+  const common = wordsA.filter(w => wordsB.includes(w)).length;
+  const maxLen = Math.max(wordsA.length, wordsB.length);
+  return common / maxLen >= 0.7;
+};
+
+type ExistingLeadData = {
+  names: Set<string>;
+  emails: Set<string>;
+  phones: Set<string>;
+  domains: Set<string>;
+  rawNames: string[];
 };
 
 // Extract source from URL
@@ -136,7 +178,7 @@ const extractContactInfoStatic = (text: string | undefined) => {
 
 const analyzeSocialPresence = (
   results: SearchResult[],
-  existingNames: Set<string>
+  dedupCheck: (name: string, contacts: { emails: string[]; phones: string[] }, url?: string) => boolean
 ): SocialAnalyzedResult[] => {
   const businessMap = new Map<string, {
     results: SearchResult[];
@@ -150,10 +192,19 @@ const analyzeSocialPresence = (
 
     if (!normalizedName || normalizedName.length < 2) continue;
 
-    if (!businessMap.has(normalizedName)) {
-      businessMap.set(normalizedName, { results: [], profiles: [], sources: new Set() });
+    // Fuzzy intra-results dedup
+    let key = normalizedName;
+    for (const existingKey of businessMap.keys()) {
+      if (fuzzyMatch(rawName, existingKey) || fuzzyMatch(normalizedName, existingKey)) {
+        key = existingKey;
+        break;
+      }
     }
-    const entry = businessMap.get(normalizedName)!;
+
+    if (!businessMap.has(key)) {
+      businessMap.set(key, { results: [], profiles: [], sources: new Set() });
+    }
+    const entry = businessMap.get(key)!;
     entry.results.push(r);
     entry.sources.add(detectSource(r.url));
 
@@ -197,7 +248,7 @@ const analyzeSocialPresence = (
     if (indicators.noWebsiteLink) score += 10;
 
     const contacts = extractContactInfoStatic(allText);
-    const alreadySaved = existingNames.has(normalizedName);
+    const alreadySaved = dedupCheck(mainResult.title?.replace(/\s*[-|–@].*$/, "").replace(/\(.*?\)/g, "").trim() || "Sem nome", contacts);
 
     analyzed.push({
       ...mainResult,
@@ -246,26 +297,63 @@ const Prospection = () => {
   const [isScraping, setIsScraping] = useState(false);
 
   const [savingUrl, setSavingUrl] = useState<string | null>(null);
-  const [existingLeadNames, setExistingLeadNames] = useState<Set<string>>(new Set());
+  const [existingLeads, setExistingLeads] = useState<ExistingLeadData>({ names: new Set(), emails: new Set(), phones: new Set(), domains: new Set(), rawNames: [] });
   const [searchProgress, setSearchProgress] = useState("");
   const [showTokenExhausted, setShowTokenExhausted] = useState(false);
 
-  // Load existing leads for dedup
+  // Load existing leads for multi-criteria dedup
   const loadExistingLeads = useCallback(async () => {
-    const { data } = await supabase.from("leads").select("name, company");
+    const { data } = await supabase.from("leads").select("name, company, email, phone, website, social_facebook, social_instagram");
     if (data) {
       const names = new Set<string>();
+      const emails = new Set<string>();
+      const phones = new Set<string>();
+      const domains = new Set<string>();
+      const rawNames: string[] = [];
       for (const lead of data) {
-        if (lead.name) names.add(normalizeName(lead.name));
-        if (lead.company) names.add(normalizeName(lead.company));
+        if (lead.name) { names.add(normalizeName(lead.name)); rawNames.push(lead.name); }
+        if (lead.company) { names.add(normalizeName(lead.company)); rawNames.push(lead.company); }
+        if (lead.email) emails.add(lead.email.toLowerCase().trim());
+        const normPhone = normalizePhone(lead.phone);
+        if (normPhone) phones.add(normPhone);
+        const domain = extractDomain(lead.website);
+        if (domain && !DIRECTORY_DOMAINS.some(d => domain.includes(d))) domains.add(domain);
       }
-      setExistingLeadNames(names);
+      setExistingLeads({ names, emails, phones, domains, rawNames });
     }
   }, []);
 
   useEffect(() => {
     loadExistingLeads();
   }, [loadExistingLeads]);
+
+  // Multi-criteria dedup check
+  const isAlreadySaved = (name: string, contacts: { emails: string[]; phones: string[] }, url?: string): boolean => {
+    const normalized = normalizeName(name);
+    // Exact name match
+    if (existingLeads.names.has(normalized)) return true;
+    // Email match
+    if (contacts.emails.some(e => existingLeads.emails.has(e.toLowerCase().trim()))) return true;
+    // Phone match (last 9 digits)
+    if (contacts.phones.some(p => { const np = normalizePhone(p); return np ? existingLeads.phones.has(np) : false; })) return true;
+    // Domain match
+    if (url) {
+      const domain = extractDomain(url);
+      if (domain && !DIRECTORY_DOMAINS.some(d => domain.includes(d)) && existingLeads.domains.has(domain)) return true;
+    }
+    // Fuzzy name match
+    if (existingLeads.rawNames.some(rn => fuzzyMatch(name, rn))) return true;
+    return false;
+  };
+
+  // Intra-results dedup: find existing key in businessMap using fuzzy matching
+  const findExistingKey = (businessMap: Map<string, any>, normalized: string, rawName: string): string | null => {
+    if (businessMap.has(normalized)) return normalized;
+    for (const key of businessMap.keys()) {
+      if (fuzzyMatch(rawName, key) || fuzzyMatch(normalized, key)) return key;
+    }
+    return null;
+  };
 
   const analyzeResults = (results: SearchResult[]): AnalyzedResult[] => {
     const businessMap = new Map<string, {
@@ -278,26 +366,30 @@ const Prospection = () => {
       const normalized = normalizeName(rawName);
       if (!normalized || normalized.length < 2) continue;
 
-      if (!businessMap.has(normalized)) {
-        businessMap.set(normalized, { results: [], sources: new Set() });
+      const existingKey = findExistingKey(businessMap, normalized, rawName);
+      const key = existingKey || normalized;
+
+      if (!businessMap.has(key)) {
+        businessMap.set(key, { results: [], sources: new Set() });
       }
-      const entry = businessMap.get(normalized)!;
+      const entry = businessMap.get(key)!;
       entry.results.push(r);
       entry.sources.add(detectSource(r.url));
     }
 
     const analyzed: AnalyzedResult[] = [];
-    for (const [normalized, entry] of businessMap) {
+    for (const [, entry] of businessMap) {
       const mainResult = entry.results[0];
       const allMarkdown = entry.results.map(r => r.markdown || "").join(" ");
       const noWebsite = entry.results.every(r => isDirectoryOrSocial(r.url));
       const contacts = extractContactInfoStatic(allMarkdown + " " + entry.results.map(r => r.description || "").join(" "));
-      const alreadySaved = existingLeadNames.has(normalized);
+      const businessName = mainResult.title?.replace(/\s*[-|–].*$/, "").trim() || "Sem nome";
+      const alreadySaved = isAlreadySaved(businessName, contacts, noWebsite ? undefined : mainResult.url);
 
       analyzed.push({
         ...mainResult,
         hasWebsite: !noWebsite,
-        businessName: mainResult.title?.replace(/\s*[-|–].*$/, "").trim() || "Sem nome",
+        businessName,
         contacts,
         sources: [...entry.sources],
         alreadySaved,
@@ -487,7 +579,7 @@ const Prospection = () => {
       setSearchProgress("");
 
       if (allResults.length > 0) {
-        const analyzed = analyzeSocialPresence(allResults, existingLeadNames);
+        const analyzed = analyzeSocialPresence(allResults, isAlreadySaved);
         setSocialResults(analyzed);
 
         const highOpp = analyzed.filter(r => r.socialScore >= 70 && !r.alreadySaved).length;
@@ -570,11 +662,8 @@ const Prospection = () => {
       } else {
         toast.success("Lead guardado!");
         // Update existing leads set and mark as saved
-        setExistingLeadNames(prev => {
-          const next = new Set(prev);
-          next.add(normalizeName(result.businessName));
-          return next;
-        });
+        // Reload existing leads to keep dedup up to date
+        await loadExistingLeads();
         setAnalyzedResults(prev =>
           prev.map(r => r.url === result.url ? { ...r, alreadySaved: true } : r)
         );
@@ -623,11 +712,7 @@ const Prospection = () => {
         toast.error("Erro ao guardar lead");
       } else {
         toast.success("Lead guardado como potencial cliente de Social Media!");
-        setExistingLeadNames(prev => {
-          const next = new Set(prev);
-          next.add(normalizeName(result.businessName));
-          return next;
-        });
+        await loadExistingLeads();
         setSocialResults(prev =>
           prev.map(r => r.url === result.url ? { ...r, alreadySaved: true } : r)
         );
