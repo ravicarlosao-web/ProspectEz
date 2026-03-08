@@ -41,7 +41,13 @@ const PLANS: Plan[] = [
   { key: "business", name: "Business", tokens: 300, priceKz: 35000, priceUsd: 35, features: ["300 pesquisas/mês", "Suporte dedicado", "API access", "Multi-utilizadores"] },
 ];
 
-const PAYMENT_METHODS = [
+type PaymentMethod = {
+  value: string;
+  label: string;
+  details: string;
+};
+
+const DEFAULT_PAYMENT_METHODS: PaymentMethod[] = [
   { value: "transferencia", label: "Transferência Bancária", details: "IBAN: AO06 0040 0000 1234 5678 9012 3" },
   { value: "multicaixa", label: "Multicaixa Express", details: "Referência: 12345 | Entidade: 12345" },
 ];
@@ -56,6 +62,7 @@ const Finance = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [quota, setQuota] = useState<{ used_this_month: number; monthly_limit: number; tokens_added_manually: number } | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(DEFAULT_PAYMENT_METHODS);
 
   useEffect(() => {
     fetchData();
