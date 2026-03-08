@@ -141,6 +141,7 @@ export function AppSidebar() {
           </div>
           <span className="flex-1 truncate text-xs text-sidebar-foreground/70">{user?.email}</span>
         </motion.div>
+        <ThemeToggle />
         <Button
           variant="ghost"
           size="sm"
