@@ -38,6 +38,7 @@ const adminItems = [
   { title: "Auditoria", url: "/admin/auditoria", icon: ClipboardCheck },
   { title: "Templates", url: "/admin/templates", icon: MessageSquare },
   { title: "Firecrawl", url: "/admin/firecrawl", icon: Flame },
+  { title: "Segurança", url: "/admin/seguranca", icon: ShieldAlert },
 ];
 
 const itemVariants = {
