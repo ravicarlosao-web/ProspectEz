@@ -240,7 +240,7 @@ const Finance = () => {
       {/* Plans Grid */}
       <div>
         <h2 className="text-lg font-semibold mb-4">Planos Disponíveis</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {PLANS.map((plan) => (
             <Card
               key={plan.key}
