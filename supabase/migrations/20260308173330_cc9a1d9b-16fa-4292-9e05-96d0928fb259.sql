@@ -1,0 +1,1 @@
+ALTER TABLE public.leads ADD COLUMN next_contact_date date DEFAULT NULL;
