@@ -737,18 +737,21 @@ const Prospection = () => {
       </div>
 
       <Tabs defaultValue="search" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="search">
-            <Search className="mr-2 h-4 w-4" />
-            Websites
+        <TabsList className="w-full sm:w-auto flex">
+          <TabsTrigger value="search" className="flex-1 sm:flex-none text-xs sm:text-sm">
+            <Search className="mr-1.5 h-4 w-4" />
+            <span className="hidden sm:inline">Websites</span>
+            <span className="sm:hidden">Web</span>
           </TabsTrigger>
-          <TabsTrigger value="social">
-            <Instagram className="mr-2 h-4 w-4" />
-            Social Media
+          <TabsTrigger value="social" className="flex-1 sm:flex-none text-xs sm:text-sm">
+            <Instagram className="mr-1.5 h-4 w-4" />
+            <span className="hidden sm:inline">Social Media</span>
+            <span className="sm:hidden">Social</span>
           </TabsTrigger>
-          <TabsTrigger value="scrape">
-            <Globe className="mr-2 h-4 w-4" />
-            Analisar
+          <TabsTrigger value="scrape" className="flex-1 sm:flex-none text-xs sm:text-sm">
+            <Globe className="mr-1.5 h-4 w-4" />
+            <span className="hidden sm:inline">Analisar</span>
+            <span className="sm:hidden">Analisar</span>
           </TabsTrigger>
         </TabsList>
 
