@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { DashboardSkeleton } from "@/components/PageSkeleton";
 import { Users, UserCheck, Handshake, Trophy, AlertTriangle, TrendingUp, Clock, Target, Bell, CalendarDays, MapPin } from "lucide-react";
 import { LEAD_STATUS_LABELS, LEAD_STATUS_COLORS } from "@/lib/constants";
 import { motion } from "framer-motion";
@@ -171,6 +172,8 @@ const Dashboard = () => {
     new Date(dateStr).toLocaleDateString("pt-AO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
   const hasFollowUpAlerts = overdueLeads.length > 0 || todayLeads.length > 0 || upcomingLeads.length > 0;
+
+  if (loading) return <DashboardSkeleton />;
 
   return (
     <div className="space-y-6">
