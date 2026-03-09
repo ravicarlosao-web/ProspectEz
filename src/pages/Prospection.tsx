@@ -965,7 +965,7 @@ const Prospection = () => {
                   {isSearchingSocial ? (
                     <span className="flex items-center min-w-0">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
-                      <span className="truncate">{searchProgress || "A analisar..."}</span>
+                      <span className="truncate min-w-0">{searchProgress || "A analisar..."}</span>
                     </span>
                   ) : (
                     <>
