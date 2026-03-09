@@ -884,15 +884,15 @@ const Prospection = () => {
                         <p className="text-sm text-muted-foreground line-clamp-2">{result.description}</p>
                         <div className="flex flex-wrap gap-2 pt-1 min-w-0">
                           {result.contacts.emails.slice(0, 2).map((email) => (
-                            <Badge key={email} variant="outline" className="text-xs max-w-full">
+                            <Badge key={email} variant="outline" className="text-xs max-w-full min-w-0">
                               <Mail className="mr-1 h-3 w-3 shrink-0" />
-                              <span className="truncate">{email}</span>
+                              <span className="truncate min-w-0">{email}</span>
                             </Badge>
                           ))}
                           {result.contacts.phones.slice(0, 2).map((phone) => (
-                            <Badge key={phone} variant="outline" className="text-xs max-w-full">
+                            <Badge key={phone} variant="outline" className="text-xs max-w-full min-w-0">
                               <Phone className="mr-1 h-3 w-3 shrink-0" />
-                              <span className="truncate">{phone}</span>
+                              <span className="truncate min-w-0">{phone}</span>
                             </Badge>
                           ))}
                         </div>
