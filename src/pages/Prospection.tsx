@@ -794,11 +794,17 @@ const Prospection = () => {
                     </Select>
                   </div>
                 </div>
-                <Button type="submit" disabled={isSearching}>
+                <Button type="submit" disabled={isSearching} className="w-full sm:w-auto overflow-hidden">
                   {isSearching ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{searchProgress || "A pesquisar..."}</>
+                    <span className="flex items-center min-w-0">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
+                      <span className="truncate">{searchProgress || "A pesquisar..."}</span>
+                    </span>
                   ) : (
-                    <><Search className="mr-2 h-4 w-4" />Pesquisar em Todas as Fontes</>
+                    <>
+                      <Search className="mr-2 h-4 w-4" />
+                      Pesquisar em Todas as Fontes
+                    </>
                   )}
                 </Button>
               </form>
