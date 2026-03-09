@@ -794,11 +794,17 @@ const Prospection = () => {
                     </Select>
                   </div>
                 </div>
-                <Button type="submit" disabled={isSearching}>
+                <Button type="submit" disabled={isSearching} className="w-full sm:w-auto overflow-hidden">
                   {isSearching ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{searchProgress || "A pesquisar..."}</>
+                    <span className="flex items-center min-w-0">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
+                      <span className="truncate min-w-0">{searchProgress || "A pesquisar..."}</span>
+                    </span>
                   ) : (
-                    <><Search className="mr-2 h-4 w-4" />Pesquisar em Todas as Fontes</>
+                    <>
+                      <Search className="mr-2 h-4 w-4" />
+                      Pesquisar em Todas as Fontes
+                    </>
                   )}
                 </Button>
               </form>
@@ -839,7 +845,7 @@ const Prospection = () => {
                   }
                 >
                   <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                       <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="font-medium truncate">{result.businessName}</h4>
@@ -856,7 +862,13 @@ const Prospection = () => {
                               <CheckCircle2 className="h-3 w-3" />Tem Website
                             </Badge>
                           )}
-                          <a href={result.url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground shrink-0">
+                          <a
+                            href={result.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-foreground shrink-0"
+                            aria-label={`Abrir ${result.businessName} numa nova aba`}
+                          >
                             <ExternalLink className="h-3.5 w-3.5" />
                           </a>
                         </div>
@@ -870,22 +882,36 @@ const Prospection = () => {
                           ))}
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-2">{result.description}</p>
-                        <div className="flex flex-wrap gap-2 pt-1">
+                        <div className="flex flex-wrap gap-2 pt-1 min-w-0">
                           {result.contacts.emails.slice(0, 2).map((email) => (
-                            <Badge key={email} variant="outline" className="text-xs">
-                              <Mail className="mr-1 h-3 w-3" />{email}
+                            <Badge key={email} variant="outline" className="text-xs max-w-full min-w-0">
+                              <Mail className="mr-1 h-3 w-3 shrink-0" />
+                              <span className="truncate min-w-0">{email}</span>
                             </Badge>
                           ))}
                           {result.contacts.phones.slice(0, 2).map((phone) => (
-                            <Badge key={phone} variant="outline" className="text-xs">
-                              <Phone className="mr-1 h-3 w-3" />{phone}
+                            <Badge key={phone} variant="outline" className="text-xs max-w-full min-w-0">
+                              <Phone className="mr-1 h-3 w-3 shrink-0" />
+                              <span className="truncate min-w-0">{phone}</span>
                             </Badge>
                           ))}
                         </div>
                       </div>
                       {!result.alreadySaved && (
-                        <Button variant={!result.hasWebsite ? "default" : "outline"} size="sm" onClick={() => saveAsLead(result)} disabled={savingUrl === result.url} className="shrink-0">
-                          {savingUrl === result.url ? <Loader2 className="h-4 w-4 animate-spin" /> : <><UserPlus className="mr-1 h-4 w-4" />Guardar</>}
+                        <Button
+                          variant={!result.hasWebsite ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => saveAsLead(result)}
+                          disabled={savingUrl === result.url}
+                          className="w-full sm:w-auto"
+                        >
+                          {savingUrl === result.url ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <UserPlus className="mr-1 h-4 w-4" />Guardar
+                            </>
+                          )}
                         </Button>
                       )}
                     </div>
@@ -935,11 +961,17 @@ const Prospection = () => {
                     </Select>
                   </div>
                 </div>
-                <Button type="submit" disabled={isSearchingSocial}>
+                <Button type="submit" disabled={isSearchingSocial} className="w-full sm:w-auto overflow-hidden">
                   {isSearchingSocial ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{searchProgress || "A analisar..."}</>
+                    <span className="flex items-center min-w-0">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
+                      <span className="truncate min-w-0">{searchProgress || "A analisar..."}</span>
+                    </span>
                   ) : (
-                    <><TrendingUp className="mr-2 h-4 w-4" />Analisar em Todas as Fontes</>
+                    <>
+                      <TrendingUp className="mr-2 h-4 w-4" />
+                      Analisar em Todas as Fontes
+                    </>
                   )}
                 </Button>
               </form>
@@ -993,10 +1025,10 @@ const Prospection = () => {
                   }
                 >
                   <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                       <div className="flex-1 min-w-0 space-y-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-medium">{result.businessName}</h4>
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <h4 className="font-medium truncate max-w-full">{result.businessName}</h4>
                           {result.alreadySaved ? (
                             <Badge variant="outline" className="text-xs gap-1 text-muted-foreground">
                               ✅ Já guardado
@@ -1063,15 +1095,17 @@ const Prospection = () => {
 
                         <p className="text-sm text-muted-foreground line-clamp-2">{result.description}</p>
 
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2 min-w-0">
                           {result.contacts.emails.slice(0, 2).map((email) => (
-                            <Badge key={email} variant="outline" className="text-xs">
-                              <Mail className="mr-1 h-3 w-3" />{email}
+                            <Badge key={email} variant="outline" className="text-xs max-w-full min-w-0">
+                              <Mail className="mr-1 h-3 w-3 shrink-0" />
+                              <span className="truncate min-w-0">{email}</span>
                             </Badge>
                           ))}
                           {result.contacts.phones.slice(0, 2).map((phone) => (
-                            <Badge key={phone} variant="outline" className="text-xs">
-                              <Phone className="mr-1 h-3 w-3" />{phone}
+                            <Badge key={phone} variant="outline" className="text-xs max-w-full min-w-0">
+                              <Phone className="mr-1 h-3 w-3 shrink-0" />
+                              <span className="truncate min-w-0">{phone}</span>
                             </Badge>
                           ))}
                         </div>
@@ -1082,12 +1116,14 @@ const Prospection = () => {
                           size="sm"
                           onClick={() => saveAsSocialLead(result)}
                           disabled={savingUrl === result.url}
-                          className="shrink-0"
+                          className="w-full sm:w-auto"
                         >
                           {savingUrl === result.url ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            <><UserPlus className="mr-1 h-4 w-4" />Guardar</>
+                            <>
+                              <UserPlus className="mr-1 h-4 w-4" />Guardar
+                            </>
                           )}
                         </Button>
                       )}
