@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, RefreshCw, Edit, UserX, UserCheck, Plus, Trash2 } from "lucide-react";
+import { Search, RefreshCw, Edit, UserX, UserCheck, Plus, Minus, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const PLAN_LIMITS: Record<string, { daily: number; monthly: number }> = {
@@ -65,6 +65,7 @@ export const AdminUsers = () => {
     daily_limit: 0,
     monthly_limit: 0,
     tokens_bonus: 0,
+    tokens_remove: 0,
     is_suspended: false,
     suspension_reason: "",
   });
@@ -146,6 +147,7 @@ export const AdminUsers = () => {
       daily_limit: u.daily_limit,
       monthly_limit: u.monthly_limit,
       tokens_bonus: 0,
+      tokens_remove: 0,
       is_suspended: u.is_suspended,
       suspension_reason: u.suspension_reason,
     });
@@ -185,6 +187,11 @@ export const AdminUsers = () => {
       if (editForm.tokens_bonus > 0) {
         quotaUpdate.tokens_added_manually = (editUser.tokens_added_manually || 0) + editForm.tokens_bonus;
         await logAudit("add_tokens", editUser.user_id, { amount: editForm.tokens_bonus });
+      }
+      if (editForm.tokens_remove > 0) {
+        const currentTokens = quotaUpdate.tokens_added_manually ?? (editUser.tokens_added_manually || 0);
+        quotaUpdate.tokens_added_manually = Math.max(0, currentTokens - editForm.tokens_remove);
+        await logAudit("remove_tokens", editUser.user_id, { amount: editForm.tokens_remove });
       }
       if (editForm.plan_type !== editUser.plan_type) {
         await logAudit("change_plan", editUser.user_id, { from: editUser.plan_type, to: editForm.plan_type });
@@ -431,11 +438,22 @@ export const AdminUsers = () => {
 
                 {/* Bonus tokens */}
                 <div className="space-y-2">
-                  <Label>Adicionar Tokens Bónus</Label>
-                  <div className="flex gap-2">
-                    <Input type="number" min={0} value={editForm.tokens_bonus} onChange={e => setEditForm(f => ({ ...f, tokens_bonus: parseInt(e.target.value) || 0 }))} />
-                    <Plus className="h-4 w-4 mt-3 text-muted-foreground" />
-                    <span className="mt-2.5 text-sm text-muted-foreground">actual: {editUser.tokens_added_manually}</span>
+                  <Label>Tokens Bónus (actual: {editUser.tokens_added_manually})</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Adicionar</span>
+                      <div className="flex items-center gap-1">
+                        <Plus className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <Input type="number" min={0} value={editForm.tokens_bonus} onChange={e => setEditForm(f => ({ ...f, tokens_bonus: parseInt(e.target.value) || 0 }))} />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Revogar</span>
+                      <div className="flex items-center gap-1">
+                        <Minus className="h-4 w-4 text-destructive shrink-0" />
+                        <Input type="number" min={0} max={editUser.tokens_added_manually} value={editForm.tokens_remove} onChange={e => setEditForm(f => ({ ...f, tokens_remove: parseInt(e.target.value) || 0 }))} />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
