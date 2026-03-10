@@ -147,6 +147,7 @@ export const AdminUsers = () => {
       daily_limit: u.daily_limit,
       monthly_limit: u.monthly_limit,
       tokens_bonus: 0,
+      tokens_remove: 0,
       is_suspended: u.is_suspended,
       suspension_reason: u.suspension_reason,
     });
