@@ -437,11 +437,22 @@ export const AdminUsers = () => {
 
                 {/* Bonus tokens */}
                 <div className="space-y-2">
-                  <Label>Adicionar Tokens Bónus</Label>
-                  <div className="flex gap-2">
-                    <Input type="number" min={0} value={editForm.tokens_bonus} onChange={e => setEditForm(f => ({ ...f, tokens_bonus: parseInt(e.target.value) || 0 }))} />
-                    <Plus className="h-4 w-4 mt-3 text-muted-foreground" />
-                    <span className="mt-2.5 text-sm text-muted-foreground">actual: {editUser.tokens_added_manually}</span>
+                  <Label>Tokens Bónus (actual: {editUser.tokens_added_manually})</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Adicionar</span>
+                      <div className="flex items-center gap-1">
+                        <Plus className="h-4 w-4 text-emerald-500 shrink-0" />
+                        <Input type="number" min={0} value={editForm.tokens_bonus} onChange={e => setEditForm(f => ({ ...f, tokens_bonus: parseInt(e.target.value) || 0 }))} />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs text-muted-foreground">Revogar</span>
+                      <div className="flex items-center gap-1">
+                        <Minus className="h-4 w-4 text-destructive shrink-0" />
+                        <Input type="number" min={0} max={editUser.tokens_added_manually} value={editForm.tokens_remove} onChange={e => setEditForm(f => ({ ...f, tokens_remove: parseInt(e.target.value) || 0 }))} />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
