@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, RefreshCw, Edit, UserX, UserCheck, Plus, Trash2 } from "lucide-react";
+import { Search, RefreshCw, Edit, UserX, UserCheck, Plus, Minus, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const PLAN_LIMITS: Record<string, { daily: number; monthly: number }> = {
