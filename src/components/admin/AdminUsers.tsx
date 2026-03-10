@@ -187,6 +187,11 @@ export const AdminUsers = () => {
         quotaUpdate.tokens_added_manually = (editUser.tokens_added_manually || 0) + editForm.tokens_bonus;
         await logAudit("add_tokens", editUser.user_id, { amount: editForm.tokens_bonus });
       }
+      if (editForm.tokens_remove > 0) {
+        const currentTokens = quotaUpdate.tokens_added_manually ?? (editUser.tokens_added_manually || 0);
+        quotaUpdate.tokens_added_manually = Math.max(0, currentTokens - editForm.tokens_remove);
+        await logAudit("remove_tokens", editUser.user_id, { amount: editForm.tokens_remove });
+      }
       if (editForm.plan_type !== editUser.plan_type) {
         await logAudit("change_plan", editUser.user_id, { from: editUser.plan_type, to: editForm.plan_type });
       }
