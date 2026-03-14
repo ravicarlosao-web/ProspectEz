@@ -541,21 +541,22 @@ const Prospection = () => {
 
       setSearchProgress("A analisar redes sociais...");
 
+      const extraTerms = [regularityTerms, engagementTerms].filter(Boolean).join(" ");
       const queries = [
         // Instagram profiles
-        { q: `${q} ${locationPart} site:instagram.com`, source: "instagram" },
+        { q: `${q} ${locationPart} ${extraTerms} site:instagram.com`, source: "instagram" },
         // Facebook pages
-        { q: `${q} ${locationPart} site:facebook.com`, source: "facebook" },
+        { q: `${q} ${locationPart} ${extraTerms} site:facebook.com`, source: "facebook" },
         // LinkedIn companies
         { q: `${q} ${locationPart} site:linkedin.com/company`, source: "linkedin" },
         // TikTok
-        { q: `${q} ${locationPart} site:tiktok.com`, source: "tiktok" },
+        { q: `${q} ${locationPart} ${extraTerms} site:tiktok.com`, source: "tiktok" },
         // VerAngola business listings
         { q: `${q} ${locationPart} site:verangola.net`, source: "verangola" },
         // Google Maps / business
-        { q: `${q} ${locationPart} redes sociais empresa contacto`, source: "geral" },
+        { q: `${q} ${locationPart} redes sociais empresa contacto ${extraTerms}`, source: "geral" },
         // Combined social search
-        { q: `${q} ${locationPart} instagram facebook seguidores página`, source: "geral" },
+        { q: `${q} ${locationPart} instagram facebook seguidores página ${extraTerms}`, source: "geral" },
       ];
 
       const allResults: SearchResult[] = [];
