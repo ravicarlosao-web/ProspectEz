@@ -588,7 +588,24 @@ const Prospection = () => {
       setSearchProgress("");
 
       if (allResults.length > 0) {
-        const analyzed = analyzeSocialPresence(allResults, isAlreadySaved);
+        let analyzed = analyzeSocialPresence(allResults, isAlreadySaved);
+
+        // Filtro de regularidade de postagens
+        if (socialPostRegularity && socialPostRegularity !== "all") {
+          analyzed = analyzed.filter(r => r.socialIndicators.irregularPosts);
+        }
+
+        // Filtro de taxa de engajamento
+        if (socialEngagementRate && socialEngagementRate !== "all") {
+          if (socialEngagementRate === "low") {
+            analyzed = analyzed.filter(r => r.socialIndicators.lowFollowers || r.socialIndicators.irregularPosts);
+          } else if (socialEngagementRate === "medium") {
+            analyzed = analyzed.filter(r => !r.socialIndicators.lowFollowers && r.socialScore >= 30 && r.socialScore <= 60);
+          } else if (socialEngagementRate === "high") {
+            analyzed = analyzed.filter(r => !r.socialIndicators.lowFollowers && r.socialScore < 30);
+          }
+        }
+
         setSocialResults(analyzed);
 
         const highOpp = analyzed.filter(r => r.socialScore >= 70 && !r.alreadySaved).length;
