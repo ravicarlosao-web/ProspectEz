@@ -428,7 +428,11 @@ const Prospection = () => {
 
     try {
       const province = searchProvince && searchProvince !== "all" ? searchProvince : "";
-      const locationPart = province ? `${province} Angola` : "Angola";
+      const municipio = searchMunicipio && searchMunicipio !== "all" ? searchMunicipio : "";
+      const locationParts = [];
+      if (municipio) locationParts.push(municipio);
+      if (province) locationParts.push(province);
+      const locationPart = locationParts.length > 0 ? `${locationParts.join(" ")} Angola` : "Angola";
       const q = searchQuery.trim();
 
       setSearchProgress("A pesquisar em LinkedIn...");
