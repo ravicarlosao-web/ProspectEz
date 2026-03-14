@@ -284,6 +284,7 @@ const getScoreLabel = (score: number) => {
 const Prospection = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchProvince, setSearchProvince] = useState("");
+  const [searchMunicipio, setSearchMunicipio] = useState("");
   const [analyzedResults, setAnalyzedResults] = useState<AnalyzedResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
