@@ -289,6 +289,9 @@ const Prospection = () => {
 
   const [socialQuery, setSocialQuery] = useState("");
   const [socialProvince, setSocialProvince] = useState("");
+  const [socialMunicipio, setSocialMunicipio] = useState("");
+  const [socialPostRegularity, setSocialPostRegularity] = useState("");
+  const [socialEngagementRate, setSocialEngagementRate] = useState("");
   const [socialResults, setSocialResults] = useState<SocialAnalyzedResult[]>([]);
   const [isSearchingSocial, setIsSearchingSocial] = useState(false);
 
