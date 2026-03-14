@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { Search, Globe, Loader2, ExternalLink, Phone, Mail, UserPlus, AlertTriangle, CheckCircle2, Instagram, TrendingUp, BarChart3, Users, Filter, MapPin } from "lucide-react";
 import { firecrawlApi } from "@/lib/api/firecrawl";
 import { supabase } from "@/integrations/supabase/client";
-import { PROVINCES_ANGOLA } from "@/lib/constants";
+import { PROVINCES_ANGOLA, MUNICIPIOS_LUANDA } from "@/lib/constants";
 import { TokenExhaustedDialog } from "@/components/TokenExhaustedDialog";
 
 type SearchResult = {
@@ -289,6 +289,9 @@ const Prospection = () => {
 
   const [socialQuery, setSocialQuery] = useState("");
   const [socialProvince, setSocialProvince] = useState("");
+  const [socialMunicipio, setSocialMunicipio] = useState("");
+  const [socialPostRegularity, setSocialPostRegularity] = useState("");
+  const [socialEngagementRate, setSocialEngagementRate] = useState("");
   const [socialResults, setSocialResults] = useState<SocialAnalyzedResult[]>([]);
   const [isSearchingSocial, setIsSearchingSocial] = useState(false);
 
@@ -523,26 +526,37 @@ const Prospection = () => {
 
     try {
       const province = socialProvince && socialProvince !== "all" ? socialProvince : "";
-      const locationPart = province ? `${province} Angola` : "Angola";
+      const municipio = socialMunicipio && socialMunicipio !== "all" ? socialMunicipio : "";
+      const locationParts: string[] = [];
+      if (municipio) locationParts.push(municipio);
+      if (province) locationParts.push(province);
+      if (!province && !municipio) locationParts.push("Angola");
+      else locationParts.push("Angola");
+      const locationPart = locationParts.join(" ");
       const q = socialQuery.trim();
+      const regularityTerms = socialPostRegularity === "1_week" ? "sem postar última semana inativo" :
+                              socialPostRegularity === "2_weeks" ? "sem postar duas semanas inativo" : "";
+      const engagementTerms = socialEngagementRate === "low" ? "poucos likes baixo engajamento" :
+                              socialEngagementRate === "medium" ? "engajamento moderado" : "";
 
       setSearchProgress("A analisar redes sociais...");
 
+      const extraTerms = [regularityTerms, engagementTerms].filter(Boolean).join(" ");
       const queries = [
         // Instagram profiles
-        { q: `${q} ${locationPart} site:instagram.com`, source: "instagram" },
+        { q: `${q} ${locationPart} ${extraTerms} site:instagram.com`, source: "instagram" },
         // Facebook pages
-        { q: `${q} ${locationPart} site:facebook.com`, source: "facebook" },
+        { q: `${q} ${locationPart} ${extraTerms} site:facebook.com`, source: "facebook" },
         // LinkedIn companies
         { q: `${q} ${locationPart} site:linkedin.com/company`, source: "linkedin" },
         // TikTok
-        { q: `${q} ${locationPart} site:tiktok.com`, source: "tiktok" },
+        { q: `${q} ${locationPart} ${extraTerms} site:tiktok.com`, source: "tiktok" },
         // VerAngola business listings
         { q: `${q} ${locationPart} site:verangola.net`, source: "verangola" },
         // Google Maps / business
-        { q: `${q} ${locationPart} redes sociais empresa contacto`, source: "geral" },
+        { q: `${q} ${locationPart} redes sociais empresa contacto ${extraTerms}`, source: "geral" },
         // Combined social search
-        { q: `${q} ${locationPart} instagram facebook seguidores página`, source: "geral" },
+        { q: `${q} ${locationPart} instagram facebook seguidores página ${extraTerms}`, source: "geral" },
       ];
 
       const allResults: SearchResult[] = [];
@@ -579,7 +593,24 @@ const Prospection = () => {
       setSearchProgress("");
 
       if (allResults.length > 0) {
-        const analyzed = analyzeSocialPresence(allResults, isAlreadySaved);
+        let analyzed = analyzeSocialPresence(allResults, isAlreadySaved);
+
+        // Filtro de regularidade de postagens
+        if (socialPostRegularity && socialPostRegularity !== "all") {
+          analyzed = analyzed.filter(r => r.socialIndicators.irregularPosts);
+        }
+
+        // Filtro de taxa de engajamento
+        if (socialEngagementRate && socialEngagementRate !== "all") {
+          if (socialEngagementRate === "low") {
+            analyzed = analyzed.filter(r => r.socialIndicators.lowFollowers || r.socialIndicators.irregularPosts);
+          } else if (socialEngagementRate === "medium") {
+            analyzed = analyzed.filter(r => !r.socialIndicators.lowFollowers && r.socialScore >= 30 && r.socialScore <= 60);
+          } else if (socialEngagementRate === "high") {
+            analyzed = analyzed.filter(r => !r.socialIndicators.lowFollowers && r.socialScore < 30);
+          }
+        }
+
         setSocialResults(analyzed);
 
         const highOpp = analyzed.filter(r => r.socialScore >= 70 && !r.alreadySaved).length;
@@ -936,8 +967,8 @@ const Prospection = () => {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSocialSearch} className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="sm:col-span-2 space-y-2">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
                     <Label>Tipo de Negócio</Label>
                     <Input
                       value={socialQuery}
@@ -948,7 +979,7 @@ const Prospection = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Província</Label>
-                    <Select value={socialProvince} onValueChange={setSocialProvince}>
+                    <Select value={socialProvince} onValueChange={(v) => { setSocialProvince(v); if (v !== "Luanda") setSocialMunicipio(""); }}>
                       <SelectTrigger>
                         <SelectValue placeholder="Todas" />
                       </SelectTrigger>
@@ -961,8 +992,67 @@ const Prospection = () => {
                     </Select>
                   </div>
                 </div>
-                <Button type="submit" disabled={isSearchingSocial} className="w-full sm:w-auto overflow-hidden">
-                  {isSearchingSocial ? (
+
+                {/* Filtro de Município de Luanda */}
+                {socialProvince === "Luanda" && (
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5" />
+                      Município de Luanda
+                    </Label>
+                    <Select value={socialMunicipio} onValueChange={setSocialMunicipio}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos os municípios" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os municípios</SelectItem>
+                        {MUNICIPIOS_LUANDA.map((m) => (
+                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {/* Filtro de Regularidade de Postagens */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      📅 Regularidade de Postagens
+                    </Label>
+                    <Select value={socialPostRegularity} onValueChange={setSocialPostRegularity}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Qualquer" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Qualquer</SelectItem>
+                        <SelectItem value="1_week">+1 semana sem postar</SelectItem>
+                        <SelectItem value="2_weeks">+2 semanas sem postar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Filtro de Taxa de Engajamento */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1.5">
+                      <BarChart3 className="h-3.5 w-3.5" />
+                      Taxa de Engajamento
+                    </Label>
+                    <Select value={socialEngagementRate} onValueChange={setSocialEngagementRate}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Qualquer" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Qualquer</SelectItem>
+                        <SelectItem value="low">Baixa ({"<"}1% engajamento)</SelectItem>
+                        <SelectItem value="medium">Média (1-3% engajamento)</SelectItem>
+                        <SelectItem value="high">Alta ({">"}3% engajamento)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={isSearchingSocial} className="w-full sm:w-auto overflow-hidden">{isSearchingSocial ? (
                     <span className="flex items-center min-w-0">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
                       <span className="truncate min-w-0">{searchProgress || "A analisar..."}</span>

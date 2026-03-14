@@ -5,6 +5,12 @@ export const PROVINCES_ANGOLA = [
   "Namibe", "Uíge", "Zaire"
 ] as const;
 
+export const MUNICIPIOS_LUANDA = [
+  "Belas", "Cacuaco", "Cazenga", "Ícolo e Bengo", "Luanda",
+  "Quiçama", "Talatona", "Viana", "Kilamba Kiaxi", "Maianga",
+  "Rangel", "Samba", "Sambizanga", "Ingombota", "Maculusso"
+] as const;
+
 export const LEAD_STATUS_LABELS: Record<string, string> = {
   novo: "Novo",
   contactado: "Contactado",
