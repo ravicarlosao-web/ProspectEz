@@ -284,6 +284,7 @@ const getScoreLabel = (score: number) => {
 const Prospection = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchProvince, setSearchProvince] = useState("");
+  const [searchMunicipio, setSearchMunicipio] = useState("");
   const [analyzedResults, setAnalyzedResults] = useState<AnalyzedResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -427,7 +428,11 @@ const Prospection = () => {
 
     try {
       const province = searchProvince && searchProvince !== "all" ? searchProvince : "";
-      const locationPart = province ? `${province} Angola` : "Angola";
+      const municipio = searchMunicipio && searchMunicipio !== "all" ? searchMunicipio : "";
+      const locationParts = [];
+      if (municipio) locationParts.push(municipio);
+      if (province) locationParts.push(province);
+      const locationPart = locationParts.length > 0 ? `${locationParts.join(" ")} Angola` : "Angola";
       const q = searchQuery.trim();
 
       setSearchProgress("A pesquisar em LinkedIn...");
@@ -801,7 +806,7 @@ const Prospection = () => {
             <CardContent>
               <form onSubmit={handleSearch} className="space-y-4">
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <div className="sm:col-span-2 space-y-2">
+                  <div className={`space-y-2 ${searchProvince === "Luanda" ? "sm:col-span-1" : "sm:col-span-2"}`}>
                     <Label>Tipo de Negócio</Label>
                     <Input
                       value={searchQuery}
@@ -812,7 +817,7 @@ const Prospection = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Província</Label>
-                    <Select value={searchProvince} onValueChange={setSearchProvince}>
+                    <Select value={searchProvince} onValueChange={(v) => { setSearchProvince(v); if (v !== "Luanda") setSearchMunicipio(""); }}>
                       <SelectTrigger>
                         <SelectValue placeholder="Todas" />
                       </SelectTrigger>
@@ -824,6 +829,22 @@ const Prospection = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                  {searchProvince === "Luanda" && (
+                    <div className="space-y-2">
+                      <Label>Município</Label>
+                      <Select value={searchMunicipio} onValueChange={setSearchMunicipio}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Todos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          {MUNICIPIOS_LUANDA.map((m) => (
+                            <SelectItem key={m} value={m}>{m}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
                 <Button type="submit" disabled={isSearching} className="w-full sm:w-auto overflow-hidden">
                   {isSearching ? (
