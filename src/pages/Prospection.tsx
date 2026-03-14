@@ -526,7 +526,13 @@ const Prospection = () => {
 
     try {
       const province = socialProvince && socialProvince !== "all" ? socialProvince : "";
-      const locationPart = province ? `${province} Angola` : "Angola";
+      const municipio = socialMunicipio && socialMunicipio !== "all" ? socialMunicipio : "";
+      const locationParts: string[] = [];
+      if (municipio) locationParts.push(municipio);
+      if (province) locationParts.push(province);
+      if (!province && !municipio) locationParts.push("Angola");
+      else locationParts.push("Angola");
+      const locationPart = locationParts.join(" ");
       const q = socialQuery.trim();
 
       setSearchProgress("A analisar redes sociais...");
