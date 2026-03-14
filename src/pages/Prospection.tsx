@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { Search, Globe, Loader2, ExternalLink, Phone, Mail, UserPlus, AlertTriangle, CheckCircle2, Instagram, TrendingUp, BarChart3, Users, Filter, MapPin } from "lucide-react";
 import { firecrawlApi } from "@/lib/api/firecrawl";
 import { supabase } from "@/integrations/supabase/client";
-import { PROVINCES_ANGOLA } from "@/lib/constants";
+import { PROVINCES_ANGOLA, MUNICIPIOS_LUANDA } from "@/lib/constants";
 import { TokenExhaustedDialog } from "@/components/TokenExhaustedDialog";
 
 type SearchResult = {
