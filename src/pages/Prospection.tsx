@@ -534,6 +534,10 @@ const Prospection = () => {
       else locationParts.push("Angola");
       const locationPart = locationParts.join(" ");
       const q = socialQuery.trim();
+      const regularityTerms = socialPostRegularity === "1_week" ? "sem postar última semana inativo" :
+                              socialPostRegularity === "2_weeks" ? "sem postar duas semanas inativo" : "";
+      const engagementTerms = socialEngagementRate === "low" ? "poucos likes baixo engajamento" :
+                              socialEngagementRate === "medium" ? "engajamento moderado" : "";
 
       setSearchProgress("A analisar redes sociais...");
 
