@@ -436,22 +436,24 @@ const Prospection = () => {
       const q = searchQuery.trim();
 
       setSearchProgress("A pesquisar empresas...");
-      // Multi-source queries - focado em sites de empresas, NÃO publicações sociais
+      // Multi-source queries - focado em perfis/contas de empresas, NÃO publicações
       const queries = [
-        // LinkedIn - apenas páginas de empresa
+        // LinkedIn - apenas páginas de empresa (perfis)
         { q: `${q} ${locationPart} site:linkedin.com/company`, source: "linkedin" },
+        // Instagram - apenas perfis de empresa (conta/página)
+        { q: `${q} ${locationPart} site:instagram.com empresa conta perfil`, source: "instagram" },
+        // Facebook - apenas páginas de empresa
+        { q: `${q} ${locationPart} site:facebook.com página empresa sobre contacto`, source: "facebook" },
         // Google Maps - empresas com contacto
         { q: `${q} ${locationPart} google maps contacto endereço telefone`, source: "google_maps" },
         // Geral - empresas com website próprio
-        { q: `${q} ${locationPart} empresa website contacto telefone email -site:instagram.com -site:facebook.com -site:tiktok.com`, source: "geral" },
-        // Geral 2 - sites .co.ao e .ao
+        { q: `${q} ${locationPart} empresa website oficial contacto telefone email`, source: "geral" },
+        // Sites .co.ao e .ao
         { q: `${q} ${locationPart} site:*.co.ao OR site:*.ao empresa`, source: "geral" },
         // VerAngola - directório
         { q: `${q} ${locationPart} site:verangola.net empresa`, source: "verangola" },
         // Directórios angolanos
-        { q: `${q} Angola directório empresas lista negócio -site:instagram.com -site:facebook.com`, source: "directorio" },
-        // Páginas amarelas / guias comerciais
-        { q: `${q} ${locationPart} "páginas amarelas" OR guia comercial OR directório empresarial`, source: "directorio" },
+        { q: `${q} Angola directório empresas lista negócio`, source: "directorio" },
       ];
 
       const allResults: SearchResult[] = [];
