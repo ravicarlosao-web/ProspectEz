@@ -435,23 +435,23 @@ const Prospection = () => {
       const locationPart = locationParts.length > 0 ? `${locationParts.join(" ")} Angola` : "Angola";
       const q = searchQuery.trim();
 
-      setSearchProgress("A pesquisar em LinkedIn...");
-      // Multi-source queries - malha fina
+      setSearchProgress("A pesquisar empresas...");
+      // Multi-source queries - focado em sites de empresas, NÃO publicações sociais
       const queries = [
-        // LinkedIn
+        // LinkedIn - apenas páginas de empresa
         { q: `${q} ${locationPart} site:linkedin.com/company`, source: "linkedin" },
-        // Google Maps
+        // Google Maps - empresas com contacto
         { q: `${q} ${locationPart} google maps contacto endereço telefone`, source: "google_maps" },
-        // Facebook
-        { q: `${q} ${locationPart} site:facebook.com`, source: "facebook" },
-        // Instagram
-        { q: `${q} ${locationPart} site:instagram.com`, source: "instagram" },
-        // VerAngola
-        { q: `${q} ${locationPart} site:verangola.net`, source: "verangola" },
-        // Geral - empresas sem site
-        { q: `${q} ${locationPart} contacto telefone email empresa`, source: "geral" },
+        // Geral - empresas com website próprio
+        { q: `${q} ${locationPart} empresa website contacto telefone email -site:instagram.com -site:facebook.com -site:tiktok.com`, source: "geral" },
+        // Geral 2 - sites .co.ao e .ao
+        { q: `${q} ${locationPart} site:*.co.ao OR site:*.ao empresa`, source: "geral" },
+        // VerAngola - directório
+        { q: `${q} ${locationPart} site:verangola.net empresa`, source: "verangola" },
         // Directórios angolanos
-        { q: `${q} Angola directório empresas lista negócio`, source: "directorio" },
+        { q: `${q} Angola directório empresas lista negócio -site:instagram.com -site:facebook.com`, source: "directorio" },
+        // Páginas amarelas / guias comerciais
+        { q: `${q} ${locationPart} "páginas amarelas" OR guia comercial OR directório empresarial`, source: "directorio" },
       ];
 
       const allResults: SearchResult[] = [];
