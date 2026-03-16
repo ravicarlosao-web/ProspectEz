@@ -142,6 +142,22 @@
   animation-delay: var(--float-delay, 0s);
 }
 
+/* Landing page floating badges */
+@keyframes landing-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes landing-float-reverse {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(10px); }
+}
+.landing-float-badge {
+  animation: landing-float 4s ease-in-out infinite;
+}
+.landing-float-badge-reverse {
+  animation: landing-float-reverse 5s ease-in-out infinite;
+}
+
 /* Glass morphism for auth cards */
 .glass-card {
   background: hsl(220 22% 8% / 0.7);
