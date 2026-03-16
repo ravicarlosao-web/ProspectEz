@@ -29,6 +29,7 @@ import { AdminFinance } from "./components/admin/AdminFinance";
 import { AdminFirecrawl } from "./components/admin/AdminFirecrawl";
 import { AdminSecurityLogs } from "./components/admin/AdminSecurityLogs";
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/LandingPage";
 
 const queryClient = new QueryClient();
 
