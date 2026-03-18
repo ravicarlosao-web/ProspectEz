@@ -385,7 +385,13 @@ const Prospection = () => {
     for (const [, entry] of businessMap) {
       const mainResult = entry.results[0];
       const allMarkdown = entry.results.map(r => r.markdown || "").join(" ");
-      const noWebsite = entry.results.every(r => isDirectoryOrSocial(r.url));
+      
+      // BUG FIX: Only check the MAIN result to determine if it has a website
+      // Previously checked if ALL results were directory/social, which was incorrect
+      // Now check if the main result itself is directory/social
+      const mainResultIsDirectoryOrSocial = isDirectoryOrSocial(mainResult.url);
+      const noWebsite = mainResultIsDirectoryOrSocial;
+      
       const contacts = extractContactInfoStatic(allMarkdown + " " + entry.results.map(r => r.description || "").join(" "));
       const businessName = mainResult.title?.replace(/\s*[-|–].*$/, "").trim() || "Sem nome";
       const alreadySaved = isAlreadySaved(businessName, contacts, noWebsite ? undefined : mainResult.url);
