@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { CreditCard, AlertTriangle } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { useNavigate } from "react-router-dom";
+import { usePlanConfigs } from "@/hooks/usePlanConfigs";
 
 interface TokenExhaustedDialogProps {
   open: boolean;
@@ -11,11 +12,15 @@ interface TokenExhaustedDialogProps {
 
 export function TokenExhaustedDialog({ open, onOpenChange }: TokenExhaustedDialogProps) {
   const navigate = useNavigate();
+  const { plans } = usePlanConfigs();
 
   const handleUpgrade = () => {
     onOpenChange(false);
     navigate("/financeiro");
   };
+
+  // Show the two middle paid plans (skip free and business)
+  const paidPlans = plans.filter(p => p.key !== "free").slice(0, 2);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -44,15 +49,13 @@ export function TokenExhaustedDialog({ open, onOpenChange }: TokenExhaustedDialo
               </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-2 text-center text-sm">
-              <div className="p-2 rounded-lg bg-background border">
-                <p className="font-semibold text-primary">Starter</p>
-                <p className="text-muted-foreground">30 tokens/mês</p>
-              </div>
-              <div className="p-2 rounded-lg bg-background border">
-                <p className="font-semibold text-primary">Pro</p>
-                <p className="text-muted-foreground">100 tokens/mês</p>
-              </div>
+            <div className={`grid gap-2 text-center text-sm ${paidPlans.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+              {paidPlans.map(p => (
+                <div key={p.key} className="p-2 rounded-lg bg-background border">
+                  <p className="font-semibold text-primary">{p.name}</p>
+                  <p className="text-muted-foreground">{p.monthly} tokens/mês</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

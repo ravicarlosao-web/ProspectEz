@@ -7,47 +7,14 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Save, Zap, Plus, Trash2, CreditCard } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-
-type PlanConfig = {
-  name: string;
-  key: string;
-  daily: number;
-  weekly: number;
-  monthly: number;
-  priceKz: number;
-  priceUsd: number;
-};
-
-type TokenPackage = {
-  name: string;
-  quantity: number;
-  priceKz: number;
-  priceUsd: number;
-};
-
-type PaymentMethodConfig = {
-  value: string;
-  label: string;
-  details: string;
-};
-
-const DEFAULT_PLANS: PlanConfig[] = [
-  { name: "Free", key: "free", daily: 3, weekly: 0, monthly: 3, priceKz: 0, priceUsd: 0 },
-  { name: "Starter", key: "starter", daily: 5, weekly: 0, monthly: 30, priceKz: 5000, priceUsd: 5 },
-  { name: "Pro", key: "pro", daily: 15, weekly: 0, monthly: 100, priceKz: 15000, priceUsd: 15 },
-  { name: "Business", key: "business", daily: 30, weekly: 0, monthly: 300, priceKz: 40000, priceUsd: 40 },
-];
-
-const DEFAULT_PACKAGES: TokenPackage[] = [
-  { name: "Mini", quantity: 10, priceKz: 2000, priceUsd: 2 },
-  { name: "Médio", quantity: 50, priceKz: 8000, priceUsd: 8 },
-  { name: "Grande", quantity: 200, priceKz: 25000, priceUsd: 25 },
-];
-
-const DEFAULT_PAYMENT_METHODS: PaymentMethodConfig[] = [
-  { value: "transferencia", label: "Transferência Bancária", details: "IBAN: AO06 0040 0000 1234 5678 9012 3" },
-  { value: "multicaixa", label: "Multicaixa Express", details: "Referência: 12345 | Entidade: 12345" },
-];
+import {
+  type PlanConfig,
+  type TokenPackage,
+  type PaymentMethodConfig,
+  DEFAULT_PLANS,
+  DEFAULT_PACKAGES,
+  DEFAULT_PAYMENT_METHODS,
+} from "@/hooks/usePlanConfigs";
 
 export const AdminPlans = () => {
   const [plans, setPlans] = useState<PlanConfig[]>(DEFAULT_PLANS);

@@ -15,13 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { toast } from "sonner";
 import { Search, RefreshCw, Edit, UserX, UserCheck, Plus, Minus, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-
-const PLAN_LIMITS: Record<string, { daily: number; monthly: number }> = {
-  free: { daily: 3, monthly: 3 },
-  starter: { daily: 5, monthly: 30 },
-  pro: { daily: 15, monthly: 100 },
-  business: { daily: 30, monthly: 300 },
-};
+import { usePlanConfigs } from "@/hooks/usePlanConfigs";
 
 const PLAN_LABELS: Record<string, string> = {
   free: "Free",
@@ -50,6 +44,7 @@ type UserRow = {
 
 export const AdminUsers = () => {
   const { user: currentUser } = useAuth();
+  const { plans, getPlanByKey } = usePlanConfigs();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [filtered, setFiltered] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,8 +149,8 @@ export const AdminUsers = () => {
   };
 
   const handlePlanChange = (plan: string) => {
-    const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
-    setEditForm(f => ({ ...f, plan_type: plan, daily_limit: limits.daily, monthly_limit: limits.monthly }));
+    const config = getPlanByKey(plan) || getPlanByKey("free")!;
+    setEditForm(f => ({ ...f, plan_type: plan, daily_limit: config.daily, monthly_limit: config.monthly }));
   };
 
   const logAudit = async (action: string, targetUserId: string, details: any) => {
@@ -416,10 +411,11 @@ export const AdminUsers = () => {
                   <Select value={editForm.plan_type} onValueChange={handlePlanChange}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="free">Free (3/mês)</SelectItem>
-                      <SelectItem value="starter">Starter (30/mês)</SelectItem>
-                      <SelectItem value="pro">Pro (100/mês)</SelectItem>
-                      <SelectItem value="business">Business (300/mês)</SelectItem>
+                      {plans.map(p => (
+                        <SelectItem key={p.key} value={p.key}>
+                          {p.name} ({p.monthly}/mês)
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

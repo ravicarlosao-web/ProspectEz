@@ -13,15 +13,7 @@ import logoImg from "@/assets/logo.png";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
-
-type Plan = {
-  key: string;
-  name: string;
-  tokens: number;
-  priceKz: number;
-  priceUsd: number;
-  features: string[];
-};
+import { usePlanConfigs, type PlanConfig } from "@/hooks/usePlanConfigs";
 
 type Payment = {
   id: string;
@@ -35,27 +27,18 @@ type Payment = {
   admin_notes: string | null;
 };
 
-const PLANS: Plan[] = [
-  { key: "free", name: "Free", tokens: 3, priceKz: 0, priceUsd: 0, features: ["3 pesquisas/mês", "Acesso básico"] },
-  { key: "starter", name: "Starter", tokens: 30, priceKz: 5000, priceUsd: 5, features: ["30 pesquisas/mês", "Suporte por email"] },
-  { key: "pro", name: "Pro", tokens: 100, priceKz: 15000, priceUsd: 15, features: ["100 pesquisas/mês", "Suporte prioritário", "Templates ilimitados"] },
-  { key: "business", name: "Business", tokens: 300, priceKz: 35000, priceUsd: 35, features: ["300 pesquisas/mês", "Suporte dedicado", "API access", "Multi-utilizadores"] },
-];
-
-type PaymentMethod = {
-  value: string;
-  label: string;
-  details: string;
+// Extra feature bullets per plan (display-only, plan limits come from DB)
+const PLAN_EXTRA_FEATURES: Record<string, string[]> = {
+  free: ["Acesso básico"],
+  starter: ["Suporte por email"],
+  pro: ["Suporte prioritário", "Templates ilimitados"],
+  business: ["Suporte dedicado", "API access", "Multi-utilizadores"],
 };
 
-const DEFAULT_PAYMENT_METHODS: PaymentMethod[] = [
-  { value: "transferencia", label: "Transferência Bancária", details: "IBAN: AO06 0040 0000 1234 5678 9012 3" },
-  { value: "multicaixa", label: "Multicaixa Express", details: "Referência: 12345 | Entidade: 12345" },
-];
-
 const Finance = () => {
+  const { plans, paymentMethods } = usePlanConfigs();
   const [currentPlan, setCurrentPlan] = useState<string>("free");
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PlanConfig | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("transferencia");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -63,7 +46,6 @@ const Finance = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [quota, setQuota] = useState<{ used_this_month: number; monthly_limit: number; tokens_added_manually: number } | null>(null);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(DEFAULT_PAYMENT_METHODS);
 
   useEffect(() => {
     fetchData();
@@ -101,26 +83,10 @@ const Finance = () => {
       setPayments(paymentsData);
     }
 
-    // Fetch payment methods from settings
-    const { data: settingsData } = await supabase
-      .from("app_settings")
-      .select("value")
-      .eq("key", "payment_methods")
-      .single();
-
-    if (settingsData?.value) {
-      try {
-        const methods = JSON.parse(settingsData.value);
-        if (Array.isArray(methods) && methods.length > 0) {
-          setPaymentMethods(methods);
-        }
-      } catch { /* keep defaults */ }
-    }
-
     setIsLoading(false);
   };
 
-  const handleUpgrade = (plan: Plan) => {
+  const handleUpgrade = (plan: PlanConfig) => {
     setSelectedPlan(plan);
     setIsDialogOpen(true);
   };
@@ -224,7 +190,7 @@ const Finance = () => {
             <div>
               <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
                 <img src={logoImg} alt="ProspectEz" className="h-5 w-5" />
-                Plano Atual: {PLANS.find(p => p.key === currentPlan)?.name || "Free"}
+                Plano Atual: {plans.find(p => p.key === currentPlan)?.name || "Free"}
               </CardTitle>
               <CardDescription className="mt-1">
                 {tokensRemaining} tokens restantes este mês
@@ -242,48 +208,52 @@ const Finance = () => {
       <div>
         <h2 className="text-lg font-semibold mb-4">Planos Disponíveis</h2>
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          {PLANS.map((plan) => (
-            <Card
-              key={plan.key}
-              className={`relative transition-all ${
-                plan.key === currentPlan
-                  ? "border-primary bg-primary/5"
-                  : "hover:border-primary/50"
-              }`}
-            >
-              {plan.key === currentPlan && (
-                <Badge className="absolute -top-2 right-4 bg-primary text-primary-foreground">
-                  Atual
-                </Badge>
-              )}
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{plan.name}</CardTitle>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold">{plan.priceKz.toLocaleString()}</span>
-                  <span className="text-muted-foreground text-sm">Kz/mês</span>
-                </div>
-                <p className="text-xs text-muted-foreground">≈ ${plan.priceUsd} USD</p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <ul className="space-y-1.5">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm">
-                      <Check className="h-3.5 w-3.5 text-primary" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-                <Button
-                  className="w-full"
-                  variant={plan.key === currentPlan ? "outline" : "default"}
-                  disabled={plan.key === currentPlan || plan.key === "free"}
-                  onClick={() => handleUpgrade(plan)}
-                >
-                  {plan.key === currentPlan ? "Plano Atual" : plan.key === "free" ? "Grátis" : "Atualizar"}
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
+          {plans.map((plan) => {
+            const extraFeatures = PLAN_EXTRA_FEATURES[plan.key] || [];
+            const allFeatures = [`${plan.monthly} pesquisas/mês`, ...extraFeatures];
+            return (
+              <Card
+                key={plan.key}
+                className={`relative transition-all ${
+                  plan.key === currentPlan
+                    ? "border-primary bg-primary/5"
+                    : "hover:border-primary/50"
+                }`}
+              >
+                {plan.key === currentPlan && (
+                  <Badge className="absolute -top-2 right-4 bg-primary text-primary-foreground">
+                    Atual
+                  </Badge>
+                )}
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">{plan.name}</CardTitle>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-bold">{plan.priceKz.toLocaleString()}</span>
+                    <span className="text-muted-foreground text-sm">Kz/mês</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">≈ ${plan.priceUsd} USD</p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <ul className="space-y-1.5">
+                    {allFeatures.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-2 text-sm">
+                        <Check className="h-3.5 w-3.5 text-primary" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    className="w-full"
+                    variant={plan.key === currentPlan ? "outline" : "default"}
+                    disabled={plan.key === currentPlan || plan.key === "free"}
+                    onClick={() => handleUpgrade(plan)}
+                  >
+                    {plan.key === currentPlan ? "Plano Atual" : plan.key === "free" ? "Grátis" : "Atualizar"}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       </div>
 
@@ -306,7 +276,7 @@ const Finance = () => {
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium truncate">
-                        {payment.plan_key ? `Plano ${PLANS.find(p => p.key === payment.plan_key)?.name || payment.plan_key}` : "Pacote de Tokens"}
+                        {payment.plan_key ? `Plano ${plans.find(p => p.key === payment.plan_key)?.name || payment.plan_key}` : "Pacote de Tokens"}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {format(new Date(payment.created_at), "d 'de' MMMM, yyyy", { locale: pt })}
