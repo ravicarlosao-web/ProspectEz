@@ -13,11 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 type UserQuota = {
   user_id: string;
   plan_type: string;
-  used_today: number;
   used_this_week: number;
   used_this_month: number;
   monthly_limit: number;
-  daily_limit: number;
+  weekly_limit: number;
   tokens_added_manually: number;
   is_active: boolean;
   full_name: string;
@@ -82,16 +81,16 @@ export const AdminFirecrawl = () => {
     setUsers(merged);
 
     // Stats
-    const totalSearchesToday = quotas.reduce((s: number, q: any) => s + (q.used_today || 0), 0);
+    const totalSearchesWeek = quotas.reduce((s: number, q: any) => s + (q.used_this_week || 0), 0);
     const totalSearchesMonth = quotas.reduce((s: number, q: any) => s + (q.used_this_month || 0), 0);
     const totalTokensAvailable = quotas.reduce((s: number, q: any) => s + (q.monthly_limit || 0) + (q.tokens_added_manually || 0), 0);
-    const activeUsers = quotas.filter((q: any) => q.used_this_month > 0).length;
+    const activeUsers = quotas.filter((q: any) => (q.used_this_week || 0) > 0).length;
     const avgUsagePercent = totalTokensAvailable > 0
       ? Math.round((totalSearchesMonth / totalTokensAvailable) * 100)
       : 0;
 
     setStats({
-      totalSearchesToday,
+      totalSearchesToday: totalSearchesWeek,
       totalSearchesMonth,
       totalTokensAvailable,
       totalTokensUsed: totalSearchesMonth,
@@ -149,9 +148,9 @@ export const AdminFirecrawl = () => {
   };
 
   const exportCSV = () => {
-    const header = "Nome,Email,Plano,Usado Hoje,Usado Mês,Limite Mensal,Tokens Bónus,% Utilização\n";
+    const header = "Nome,Email,Plano,Usado Semana,Usado Mês,Limite Mensal,Tokens Bónus,% Utilização\n";
     const rows = filteredUsers.map(u =>
-      `"${u.full_name}","${u.email}","${u.plan_type}",${u.used_today},${u.used_this_month},${u.monthly_limit},${u.tokens_added_manually},${getUsagePercent(u)}%`
+      `"${u.full_name}","${u.email}","${u.plan_type}",${u.used_this_week},${u.used_this_month},${u.monthly_limit},${u.tokens_added_manually},${getUsagePercent(u)}%`
     ).join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -172,7 +171,7 @@ export const AdminFirecrawl = () => {
   }
 
   const statCards = [
-    { label: "Pesquisas Hoje", value: stats.totalSearchesToday, icon: Search, color: "text-primary" },
+    { label: "Pesquisas Esta Semana", value: stats.totalSearchesToday, icon: Search, color: "text-primary" },
     { label: "Pesquisas Este Mês", value: stats.totalSearchesMonth, icon: TrendingUp, color: "text-accent-foreground" },
     { label: "Tokens Disponíveis", value: stats.totalTokensAvailable, icon: Flame, color: "text-orange-500" },
     { label: "Utilizadores Activos", value: stats.activeUsers, icon: Users, color: "text-emerald-500" },
@@ -200,7 +199,7 @@ export const AdminFirecrawl = () => {
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-lg">Consumo Diário de Tokens (30 dias)</CardTitle>
+            <CardTitle className="text-lg">Pesquisas por Dia (Últimos 30 dias)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-64">
@@ -299,10 +298,9 @@ export const AdminFirecrawl = () => {
                 <TableRow>
                   <TableHead>Utilizador</TableHead>
                   <TableHead className="text-center">Plano</TableHead>
-                  <TableHead className="text-center">Hoje</TableHead>
                   <TableHead className="text-center">Semana</TableHead>
                   <TableHead className="text-center">Mês</TableHead>
-                  <TableHead className="text-center">Limite</TableHead>
+                  <TableHead className="text-center">Lim. Mensal</TableHead>
                   <TableHead className="text-center">Bónus</TableHead>
                   <TableHead className="text-center">Uso</TableHead>
                   <TableHead className="text-center">Estado</TableHead>
@@ -328,7 +326,6 @@ export const AdminFirecrawl = () => {
                         <TableCell className="text-center">
                           <Badge variant="outline" className="capitalize">{u.plan_type}</Badge>
                         </TableCell>
-                        <TableCell className="text-center font-mono text-sm">{u.used_today}</TableCell>
                         <TableCell className="text-center font-mono text-sm">{u.used_this_week}</TableCell>
                         <TableCell className="text-center font-mono text-sm font-semibold">{u.used_this_month}</TableCell>
                         <TableCell className="text-center font-mono text-sm">{u.monthly_limit}</TableCell>

@@ -35,7 +35,7 @@ export const AdminOverview = () => {
 
     const [profilesRes, quotasRes, leadsRes, logsRes] = await Promise.all([
       supabase.from("profiles").select("user_id, full_name, email, registered_at, is_suspended"),
-      supabase.from("search_quotas").select("user_id, used_today, used_this_month"),
+      supabase.from("search_quotas").select("user_id, used_this_week, used_this_month"),
       supabase.from("leads").select("id", { count: "exact", head: true }),
       supabase.from("prospection_logs").select("created_at, user_id").gte("created_at", monthAgo),
     ]);
@@ -46,7 +46,7 @@ export const AdminOverview = () => {
 
     // Stats
     const totalUsers = profiles.length;
-    const activeToday = quotas.filter((q: any) => q.used_today > 0).length;
+    const activeToday = quotas.filter((q: any) => (q.used_this_week || 0) > 0).length;
     const searchesMonth = quotas.reduce((s: number, q: any) => s + (q.used_this_month || 0), 0);
     const suspendedUsers = profiles.filter((p: any) => p.is_suspended).length;
     const newThisWeek = profiles.filter((p: any) => p.registered_at && p.registered_at >= weekAgo).length;
@@ -97,7 +97,7 @@ export const AdminOverview = () => {
 
   const statCards = [
     { label: "Total Utilizadores", value: stats.totalUsers, icon: Users, color: "text-primary" },
-    { label: "Activos Hoje", value: stats.activeToday, icon: TrendingUp, color: "text-secondary" },
+    { label: "Activos Esta Semana", value: stats.activeToday, icon: TrendingUp, color: "text-secondary" },
     { label: "Pesquisas Este Mês", value: stats.searchesMonth, icon: Search, color: "text-accent" },
     { label: "Suspensos", value: stats.suspendedUsers, icon: UserX, color: "text-destructive" },
     { label: "Novos Esta Semana", value: stats.newThisWeek, icon: UserPlus, color: "text-info" },
