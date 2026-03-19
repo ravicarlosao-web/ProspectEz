@@ -494,31 +494,45 @@ const Prospection = () => {
   const consumeResults = async (count: number): Promise<boolean> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
-    const { data: quota } = await supabase
+
+    const { data: quota, error: fetchError } = await supabase
       .from("search_quotas")
       .select("used_this_week, weekly_limit, used_this_month, monthly_limit, tokens_added_manually")
       .eq("user_id", user.id)
       .single();
-    if (!quota) return false;
-    const weeklyMax = quota.weekly_limit + (quota.tokens_added_manually || 0);
-    const monthlyMax = quota.monthly_limit + (quota.tokens_added_manually || 0);
-    if (quota.used_this_week + count > weeklyMax) {
+
+    if (fetchError || !quota) return false;
+
+    const weeklyMax = (quota.weekly_limit || 0) + (quota.tokens_added_manually || 0);
+    const monthlyMax = (quota.monthly_limit || 0) + (quota.tokens_added_manually || 0);
+
+    // Only enforce weekly limit when it's actually configured (> 0)
+    if (weeklyMax > 0 && quota.used_this_week + count > weeklyMax) {
       setexhaustedType("weekly");
       setShowTokenExhausted(true);
       return false;
     }
-    if (quota.used_this_month + count > monthlyMax) {
+
+    // Only enforce monthly limit when it's actually configured (> 0)
+    if (monthlyMax > 0 && quota.used_this_month + count > monthlyMax) {
       setexhaustedType("monthly");
       setShowTokenExhausted(true);
       return false;
     }
-    await supabase
+
+    const { error: updateError } = await supabase
       .from("search_quotas")
       .update({
         used_this_week: quota.used_this_week + count,
         used_this_month: quota.used_this_month + count,
-      } as any)
+      })
       .eq("user_id", user.id);
+
+    if (updateError) {
+      console.error("Quota update failed:", updateError.message);
+      return false;
+    }
+
     return true;
   };
 
@@ -879,8 +893,8 @@ const Prospection = () => {
     }
   };
 
-  const noWebsiteCount = allAnalyzedResults.filter(r => !r.hasWebsite && !r.alreadySaved).length;
-  const savedCount = allAnalyzedResults.filter(r => r.alreadySaved).length;
+  const noWebsiteCount = analyzedResults.filter(r => !r.hasWebsite && !r.alreadySaved).length;
+  const savedCount = analyzedResults.filter(r => r.alreadySaved).length;
   const hasMoreResults = visibleCount < allAnalyzedResults.length;
   const hasMoreSocial = socialVisibleCount < allSocialResults.length;
 
