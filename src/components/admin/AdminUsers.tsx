@@ -30,8 +30,8 @@ type UserRow = {
   email: string;
   role: string;
   plan_type: string;
-  daily_limit: number;
-  used_today: number;
+  weekly_limit: number;
+  used_this_week: number;
   monthly_limit: number;
   used_this_month: number;
   tokens_added_manually: number;
@@ -57,7 +57,7 @@ export const AdminUsers = () => {
   const [editForm, setEditForm] = useState({
     role: "",
     plan_type: "",
-    daily_limit: 0,
+    weekly_limit: 0,
     monthly_limit: 0,
     tokens_bonus: 0,
     tokens_remove: 0,
@@ -88,9 +88,9 @@ export const AdminUsers = () => {
         email: p.email || "",
         role: roleMap.get(p.user_id) || "vendedor",
         plan_type: q?.plan_type || "free",
-        daily_limit: q?.daily_limit ?? 3,
-        used_today: q?.used_today ?? 0,
-        monthly_limit: q?.monthly_limit ?? 3,
+        weekly_limit: q?.weekly_limit ?? 10,
+        used_this_week: q?.used_this_week ?? 0,
+        monthly_limit: q?.monthly_limit ?? 10,
         used_this_month: q?.used_this_month ?? 0,
         tokens_added_manually: q?.tokens_added_manually ?? 0,
         is_active: q?.is_active ?? true,
@@ -139,7 +139,7 @@ export const AdminUsers = () => {
     setEditForm({
       role: u.role,
       plan_type: u.plan_type,
-      daily_limit: u.daily_limit,
+      weekly_limit: u.weekly_limit,
       monthly_limit: u.monthly_limit,
       tokens_bonus: 0,
       tokens_remove: 0,
@@ -150,7 +150,7 @@ export const AdminUsers = () => {
 
   const handlePlanChange = (plan: string) => {
     const config = getPlanByKey(plan) || getPlanByKey("free")!;
-    setEditForm(f => ({ ...f, plan_type: plan, daily_limit: config.daily, monthly_limit: config.monthly, weekly_limit: config.weekly }));
+    setEditForm(f => ({ ...f, plan_type: plan, weekly_limit: config.weekly, monthly_limit: config.monthly }));
   };
 
   const logAudit = async (action: string, targetUserId: string, details: any) => {
@@ -174,12 +174,10 @@ export const AdminUsers = () => {
       }
 
       // Update quota
-      const planConfig = getPlanByKey(editForm.plan_type);
       const quotaUpdate: any = {
         plan_type: editForm.plan_type,
-        daily_limit: editForm.daily_limit,
+        weekly_limit: editForm.weekly_limit,
         monthly_limit: editForm.monthly_limit,
-        weekly_limit: planConfig?.weekly ?? editForm.daily_limit,
       };
       if (editForm.tokens_bonus > 0) {
         quotaUpdate.tokens_added_manually = (editUser.tokens_added_manually || 0) + editForm.tokens_bonus;
@@ -217,17 +215,10 @@ export const AdminUsers = () => {
     }
   };
 
-  const resetDailyTokens = async (userId: string) => {
-    await supabase.from("search_quotas").update({ used_today: 0, last_reset_date: new Date().toISOString().split("T")[0] } as any).eq("user_id", userId);
-    await logAudit("reset_tokens", userId, { type: "daily" });
-    toast.success("Tokens diários resetados!");
-    fetchUsers();
-  };
-
   const resetMonthlyTokens = async (userId: string) => {
-    await supabase.from("search_quotas").update({ used_this_month: 0, last_monthly_reset: new Date().toISOString().split("T")[0] } as any).eq("user_id", userId);
+    await supabase.from("search_quotas").update({ used_this_month: 0, used_this_week: 0, last_monthly_reset: new Date().toISOString().split("T")[0] } as any).eq("user_id", userId);
     await logAudit("reset_tokens", userId, { type: "monthly" });
-    toast.success("Tokens mensais resetados!");
+    toast.success("Tokens semanais e mensais resetados!");
     fetchUsers();
   };
 
@@ -321,7 +312,7 @@ export const AdminUsers = () => {
                     <TableHead>Nome / Email</TableHead>
                     <TableHead>Papel</TableHead>
                     <TableHead>Plano</TableHead>
-                    <TableHead className="text-center">Hoje</TableHead>
+                    <TableHead className="text-center">Semana</TableHead>
                     <TableHead className="text-center">Mês</TableHead>
                     <TableHead>Registo</TableHead>
                     <TableHead>Estado</TableHead>
@@ -330,7 +321,7 @@ export const AdminUsers = () => {
                 </TableHeader>
                 <TableBody>
                   {filtered.map(u => {
-                    const dailyPct = u.daily_limit > 0 ? (u.used_today / u.daily_limit) * 100 : 0;
+                    const weeklyPct = u.weekly_limit > 0 ? (u.used_this_week / u.weekly_limit) * 100 : 0;
                     const totalMonthly = u.monthly_limit + u.tokens_added_manually;
                     const monthlyPct = totalMonthly > 0 ? (u.used_this_month / totalMonthly) * 100 : 0;
 
@@ -344,8 +335,8 @@ export const AdminUsers = () => {
                         <TableCell>{planBadge(u.plan_type)}</TableCell>
                         <TableCell className="text-center">
                           <div className="space-y-1">
-                            <span className="text-sm font-medium">{u.used_today}/{u.daily_limit}</span>
-                            <Progress value={Math.min(dailyPct, 100)} className="h-1.5 w-16 mx-auto" />
+                            <span className="text-sm font-medium">{u.used_this_week}/{u.weekly_limit}</span>
+                            <Progress value={Math.min(weeklyPct, 100)} className="h-1.5 w-16 mx-auto" />
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
@@ -425,11 +416,11 @@ export const AdminUsers = () => {
                 {/* Limits */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Limite Diário</Label>
-                    <Input type="number" min={0} value={editForm.daily_limit} onChange={e => setEditForm(f => ({ ...f, daily_limit: parseInt(e.target.value) || 0 }))} />
+                    <Label>Limite Semanal (resultados)</Label>
+                    <Input type="number" min={0} value={editForm.weekly_limit} onChange={e => setEditForm(f => ({ ...f, weekly_limit: parseInt(e.target.value) || 0 }))} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Limite Mensal</Label>
+                    <Label>Limite Mensal (resultados)</Label>
                     <Input type="number" min={0} value={editForm.monthly_limit} onChange={e => setEditForm(f => ({ ...f, monthly_limit: parseInt(e.target.value) || 0 }))} />
                   </div>
                 </div>
@@ -471,11 +462,8 @@ export const AdminUsers = () => {
 
                 {/* Actions */}
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" onClick={() => resetDailyTokens(editUser.user_id)}>
-                    <RefreshCw className="mr-1 h-3 w-3" /> Resetar Hoje
-                  </Button>
                   <Button variant="outline" size="sm" onClick={() => resetMonthlyTokens(editUser.user_id)}>
-                    <RefreshCw className="mr-1 h-3 w-3" /> Resetar Mês
+                    <RefreshCw className="mr-1 h-3 w-3" /> Resetar Semana/Mês
                   </Button>
                 </div>
 

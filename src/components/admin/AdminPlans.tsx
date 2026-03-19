@@ -65,7 +65,6 @@ export const AdminPlans = () => {
         if (usersOnPlan && usersOnPlan.length > 0) {
           for (const u of usersOnPlan) {
             await supabase.from("search_quotas").update({
-              daily_limit: plan.daily,
               weekly_limit: plan.weekly,
               monthly_limit: plan.monthly,
             }).eq("user_id", u.user_id);
@@ -109,10 +108,9 @@ export const AdminPlans = () => {
     if (freeUsers && freeUsers.length > 0) {
       for (const u of freeUsers) {
         await supabase.from("search_quotas").update({
-          daily_limit: freePlan.daily,
           monthly_limit: freePlan.monthly,
           weekly_limit: freePlan.weekly,
-        } as any).eq("user_id", u.user_id);
+        }).eq("user_id", u.user_id);
       }
       toast.success(`${freeUsers.length} utilizadores free actualizados!`);
     }
@@ -142,9 +140,8 @@ export const AdminPlans = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Plano</TableHead>
-                <TableHead className="text-center">Diário</TableHead>
-                <TableHead className="text-center">Semanal</TableHead>
-                <TableHead className="text-center">Mensal</TableHead>
+                <TableHead className="text-center">Semanal (resultados)</TableHead>
+                <TableHead className="text-center">Mensal (resultados)</TableHead>
                 <TableHead className="text-center">Preço (Kz)</TableHead>
                 <TableHead className="text-center">Preço (USD)</TableHead>
               </TableRow>
@@ -153,9 +150,8 @@ export const AdminPlans = () => {
               {plans.map((p, i) => (
                 <TableRow key={p.key}>
                   <TableCell className="font-medium">{p.name}</TableCell>
-                  <TableCell><Input type="number" min={0} value={p.daily} onChange={e => updatePlan(i, "daily", e.target.value)} className="w-20 mx-auto text-center" /></TableCell>
-                  <TableCell><Input type="number" min={0} value={p.weekly} onChange={e => updatePlan(i, "weekly", e.target.value)} className="w-20 mx-auto text-center" /></TableCell>
-                  <TableCell><Input type="number" min={0} value={p.monthly} onChange={e => updatePlan(i, "monthly", e.target.value)} className="w-20 mx-auto text-center" /></TableCell>
+                  <TableCell><Input type="number" min={0} value={p.weekly} onChange={e => updatePlan(i, "weekly", e.target.value)} className="w-24 mx-auto text-center" /></TableCell>
+                  <TableCell><Input type="number" min={0} value={p.monthly} onChange={e => updatePlan(i, "monthly", e.target.value)} className="w-24 mx-auto text-center" /></TableCell>
                   <TableCell><Input type="number" min={0} value={p.priceKz} onChange={e => updatePlan(i, "priceKz", e.target.value)} className="w-24 mx-auto text-center" /></TableCell>
                   <TableCell><Input type="number" min={0} value={p.priceUsd} onChange={e => updatePlan(i, "priceUsd", e.target.value)} className="w-20 mx-auto text-center" /></TableCell>
                 </TableRow>
