@@ -54,7 +54,26 @@ export const AdminPlans = () => {
         { key: "payment_methods", value: JSON.stringify(paymentMethods) },
         { onConflict: "key" }
       );
-      toast.success("Configurações guardadas!");
+
+      // Propagate new limits to all existing users on each plan
+      for (const plan of plans) {
+        const { data: usersOnPlan } = await supabase
+          .from("search_quotas")
+          .select("user_id")
+          .eq("plan_type", plan.key);
+
+        if (usersOnPlan && usersOnPlan.length > 0) {
+          for (const u of usersOnPlan) {
+            await supabase.from("search_quotas").update({
+              daily_limit: plan.daily,
+              weekly_limit: plan.weekly,
+              monthly_limit: plan.monthly,
+            } as any).eq("user_id", u.user_id);
+          }
+        }
+      }
+
+      toast.success("Configurações guardadas e aplicadas a todos os utilizadores!");
     } catch {
       toast.error("Erro ao guardar");
     } finally {
