@@ -25,21 +25,21 @@ export type PaymentMethodConfig = {
 };
 
 export const DEFAULT_PLANS: PlanConfig[] = [
-  { name: "Free", key: "free", daily: 3, weekly: 0, monthly: 3, priceKz: 0, priceUsd: 0 },
-  { name: "Starter", key: "starter", daily: 5, weekly: 0, monthly: 30, priceKz: 5000, priceUsd: 5 },
-  { name: "Pro", key: "pro", daily: 15, weekly: 0, monthly: 100, priceKz: 15000, priceUsd: 15 },
-  { name: "Business", key: "business", daily: 30, weekly: 0, monthly: 300, priceKz: 40000, priceUsd: 40 },
+  { name: "Free",     key: "free",     daily: 10,  weekly: 10,  monthly: 10,   priceKz: 0,     priceUsd: 0  },
+  { name: "Starter",  key: "starter",  daily: 50,  weekly: 50,  monthly: 280,  priceKz: 10000, priceUsd: 10 },
+  { name: "Pro",      key: "pro",      daily: 70,  weekly: 210, monthly: 840,  priceKz: 20000, priceUsd: 20 },
+  { name: "Business", key: "business", daily: 100, weekly: 631, monthly: 2526, priceKz: 35000, priceUsd: 35 },
 ];
 
 export const DEFAULT_PACKAGES: TokenPackage[] = [
-  { name: "Mini", quantity: 10, priceKz: 2000, priceUsd: 2 },
-  { name: "Médio", quantity: 50, priceKz: 8000, priceUsd: 8 },
-  { name: "Grande", quantity: 200, priceKz: 25000, priceUsd: 25 },
+  { name: "Mini",   quantity: 50,  priceKz: 2000,  priceUsd: 2  },
+  { name: "Médio",  quantity: 150, priceKz: 6000,  priceUsd: 6  },
+  { name: "Grande", quantity: 300, priceKz: 10000, priceUsd: 10 },
 ];
 
 export const DEFAULT_PAYMENT_METHODS: PaymentMethodConfig[] = [
   { value: "transferencia", label: "Transferência Bancária", details: "IBAN: AO06 0040 0000 1234 5678 9012 3" },
-  { value: "multicaixa", label: "Multicaixa Express", details: "Referência: 12345 | Entidade: 12345" },
+  { value: "multicaixa",   label: "Multicaixa Express",     details: "Referência: 12345 | Entidade: 12345"   },
 ];
 
 export function usePlanConfigs() {
@@ -57,11 +57,11 @@ export function usePlanConfigs() {
 
       if (data) {
         const planRow = data.find((r: any) => r.key === "plan_configs");
-        const pkgRow = data.find((r: any) => r.key === "token_packages");
-        const pmRow = data.find((r: any) => r.key === "payment_methods");
-        if (planRow) try { setPlans(JSON.parse(planRow.value)); } catch {}
-        if (pkgRow) try { setPackages(JSON.parse(pkgRow.value)); } catch {}
-        if (pmRow) try { setPaymentMethods(JSON.parse(pmRow.value)); } catch {}
+        const pkgRow  = data.find((r: any) => r.key === "token_packages");
+        const pmRow   = data.find((r: any) => r.key === "payment_methods");
+        if (planRow) try { setPlans(JSON.parse(planRow.value)); }          catch {}
+        if (pkgRow)  try { setPackages(JSON.parse(pkgRow.value)); }        catch {}
+        if (pmRow)   try { setPaymentMethods(JSON.parse(pmRow.value)); }   catch {}
       }
       setLoading(false);
     };

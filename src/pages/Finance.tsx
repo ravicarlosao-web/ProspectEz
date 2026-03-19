@@ -45,7 +45,7 @@ const Finance = () => {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [quota, setQuota] = useState<{ used_this_month: number; monthly_limit: number; tokens_added_manually: number } | null>(null);
+  const [quota, setQuota] = useState<{ used_this_week: number; weekly_limit: number; used_this_month: number; monthly_limit: number; tokens_added_manually: number } | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -59,13 +59,15 @@ const Finance = () => {
     // Fetch current quota/plan
     const { data: quotaData } = await supabase
       .from("search_quotas")
-      .select("plan_type, used_this_month, monthly_limit, tokens_added_manually")
+      .select("plan_type, used_this_week, weekly_limit, used_this_month, monthly_limit, tokens_added_manually")
       .eq("user_id", user.id)
       .single();
 
     if (quotaData) {
       setCurrentPlan(quotaData.plan_type);
       setQuota({
+        used_this_week: (quotaData as any).used_this_week ?? 0,
+        weekly_limit: (quotaData as any).weekly_limit ?? 0,
         used_this_month: quotaData.used_this_month,
         monthly_limit: quotaData.monthly_limit,
         tokens_added_manually: quotaData.tokens_added_manually,
@@ -165,7 +167,10 @@ const Finance = () => {
     }
   };
 
-  const tokensRemaining = quota ? (quota.monthly_limit + quota.tokens_added_manually) - quota.used_this_month : 0;
+  const weeklyMax = quota ? quota.weekly_limit + quota.tokens_added_manually : 0;
+  const weeklyRemaining = quota ? Math.max(0, weeklyMax - quota.used_this_week) : 0;
+  const monthlyMax = quota ? quota.monthly_limit + quota.tokens_added_manually : 0;
+  const tokensRemaining = quota ? Math.max(0, monthlyMax - quota.used_this_month) : 0;
 
   if (isLoading) {
     return (
@@ -193,12 +198,15 @@ const Finance = () => {
                 Plano Atual: {plans.find(p => p.key === currentPlan)?.name || "Free"}
               </CardTitle>
               <CardDescription className="mt-1">
-                {tokensRemaining} tokens restantes este mês
+                {weeklyRemaining} resultados restantes esta semana · {tokensRemaining} este mês
               </CardDescription>
             </div>
-            <div className="text-left sm:text-right">
-              <div className="text-2xl font-bold text-primary">{quota?.used_this_month || 0}</div>
-              <div className="text-xs text-muted-foreground">de {(quota?.monthly_limit || 0) + (quota?.tokens_added_manually || 0)} usados</div>
+            <div className="text-left sm:text-right space-y-1">
+              <div>
+                <div className="text-2xl font-bold text-primary">{quota?.used_this_week || 0}</div>
+                <div className="text-xs text-muted-foreground">de {weeklyMax} resultados usados esta semana</div>
+              </div>
+              <div className="text-xs text-muted-foreground">{quota?.used_this_month || 0} / {monthlyMax} este mês</div>
             </div>
           </div>
         </CardHeader>
@@ -210,7 +218,8 @@ const Finance = () => {
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan) => {
             const extraFeatures = PLAN_EXTRA_FEATURES[plan.key] || [];
-            const allFeatures = [`${plan.monthly} pesquisas/mês`, ...extraFeatures];
+            const weeklyLabel = plan.weekly > 0 ? `${plan.weekly} resultados/semana` : `${plan.monthly} resultados total`;
+            const allFeatures = [weeklyLabel, `${plan.monthly} resultados/mês`, ...extraFeatures];
             return (
               <Card
                 key={plan.key}

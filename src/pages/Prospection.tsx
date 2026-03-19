@@ -320,26 +320,32 @@ const getScoreLabel = (score: number) => {
   return "Baixa Oportunidade";
 };
 
+const RESULTS_PER_PAGE = 10;
+
 const Prospection = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchProvince, setSearchProvince] = useState("");
   const [searchMunicipio, setSearchMunicipio] = useState("");
-  const [analyzedResults, setAnalyzedResults] = useState<AnalyzedResult[]>([]);
+  // All fetched results (raw pool), visible results limited by page
+  const [allAnalyzedResults, setAllAnalyzedResults] = useState<AnalyzedResult[]>([]);
+  const [visibleCount, setVisibleCount] = useState(RESULTS_PER_PAGE);
   const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const [socialQuery, setSocialQuery] = useState("");
   const [socialProvince, setSocialProvince] = useState("");
   const [socialMunicipio, setSocialMunicipio] = useState("");
   const [socialPostRegularity, setSocialPostRegularity] = useState("");
   const [socialEngagementRate, setSocialEngagementRate] = useState("");
-  const [socialResults, setSocialResults] = useState<SocialAnalyzedResult[]>([]);
+  const [allSocialResults, setAllSocialResults] = useState<SocialAnalyzedResult[]>([]);
+  const [socialVisibleCount, setSocialVisibleCount] = useState(RESULTS_PER_PAGE);
   const [isSearchingSocial, setIsSearchingSocial] = useState(false);
+  const [isLoadingMoreSocial, setIsLoadingMoreSocial] = useState(false);
 
   const [scrapeUrl, setScrapeUrl] = useState("");
   const [scrapeResult, setScrapeResult] = useState<ScrapeResult | null>(null);
   const [isScraping, setIsScraping] = useState(false);
 
-  // CORRECÇÃO: usar Set<string> em vez de string | null para suportar múltiplos saves simultâneos
   const [savingUrls, setSavingUrls] = useState<Set<string>>(new Set());
   const [existingLeads, setExistingLeads] = useState<ExistingLeadData>({
     names: new Set(),
@@ -350,6 +356,11 @@ const Prospection = () => {
   });
   const [searchProgress, setSearchProgress] = useState("");
   const [showTokenExhausted, setShowTokenExhausted] = useState(false);
+  const [exhaustedType, setexhaustedType] = useState<"weekly" | "monthly">("weekly");
+
+  // Derived slices for rendering
+  const analyzedResults = allAnalyzedResults.slice(0, visibleCount);
+  const socialResults = allSocialResults.slice(0, socialVisibleCount);
 
   const loadExistingLeads = useCallback(async () => {
     const { data } = await supabase
@@ -479,22 +490,50 @@ const Prospection = () => {
     [isAlreadySaved]
   );
 
+  // ==================== QUOTA HELPERS ====================
+  const consumeResults = async (count: number): Promise<boolean> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+    const { data: quota } = await supabase
+      .from("search_quotas")
+      .select("used_this_week, weekly_limit, used_this_month, monthly_limit, tokens_added_manually")
+      .eq("user_id", user.id)
+      .single();
+    if (!quota) return false;
+    const weeklyMax = quota.weekly_limit + (quota.tokens_added_manually || 0);
+    const monthlyMax = quota.monthly_limit + (quota.tokens_added_manually || 0);
+    if (quota.used_this_week + count > weeklyMax) {
+      setexhaustedType("weekly");
+      setShowTokenExhausted(true);
+      return false;
+    }
+    if (quota.used_this_month + count > monthlyMax) {
+      setexhaustedType("monthly");
+      setShowTokenExhausted(true);
+      return false;
+    }
+    await supabase
+      .from("search_quotas")
+      .update({
+        used_this_week: quota.used_this_week + count,
+        used_this_month: quota.used_this_month + count,
+      } as any)
+      .eq("user_id", user.id);
+    return true;
+  };
+
   // ==================== WEBSITE SEARCH ====================
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: allowed } = await supabase.rpc("consume_search_token", { p_user_id: user.id });
-      if (!allowed) {
-        setShowTokenExhausted(true);
-        return;
-      }
-    }
+    // Consume 10 results for this search
+    const ok = await consumeResults(RESULTS_PER_PAGE);
+    if (!ok) return;
 
     setIsSearching(true);
-    setAnalyzedResults([]);
+    setAllAnalyzedResults([]);
+    setVisibleCount(RESULTS_PER_PAGE);
 
     try {
       const province = searchProvince && searchProvince !== "all" ? searchProvince : "";
@@ -547,19 +586,21 @@ const Prospection = () => {
 
       if (allResults.length > 0) {
         const analyzed = analyzeResults(allResults);
-        setAnalyzedResults(analyzed);
+        setAllAnalyzedResults(analyzed);
+        setVisibleCount(RESULTS_PER_PAGE);
 
         const withoutSite = analyzed.filter(r => !r.hasWebsite && !r.alreadySaved).length;
         const alreadySaved = analyzed.filter(r => r.alreadySaved).length;
+        const { data: { user: u2 } } = await supabase.auth.getUser();
         toast.success(
-          `${analyzed.length} empresas encontradas — ${withoutSite} sem website${alreadySaved > 0 ? ` (${alreadySaved} já guardadas)` : ""}`
+          `${analyzed.length} empresas encontradas — a mostrar ${Math.min(RESULTS_PER_PAGE, analyzed.length)}${withoutSite > 0 ? ` (${withoutSite} sem website)` : ""}${alreadySaved > 0 ? `, ${alreadySaved} já guardadas` : ""}`
         );
 
         await supabase.from("prospection_logs").insert({
           query: `[MULTI] ${q} ${locationPart}`,
           results_count: analyzed.length,
           status: "completed",
-          user_id: user?.id,
+          user_id: u2?.id,
         });
       } else {
         toast.error("Nenhum resultado encontrado. Tente outros termos.");
@@ -573,22 +614,27 @@ const Prospection = () => {
     }
   };
 
+  // "Ver Mais" for website results — consumes 10 more results from weekly quota
+  const handleLoadMoreResults = async () => {
+    setIsLoadingMore(true);
+    const ok = await consumeResults(RESULTS_PER_PAGE);
+    if (ok) {
+      setVisibleCount(prev => prev + RESULTS_PER_PAGE);
+    }
+    setIsLoadingMore(false);
+  };
+
   // ==================== SOCIAL MEDIA SEARCH ====================
   const handleSocialSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!socialQuery.trim()) return;
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: allowed } = await supabase.rpc("consume_search_token", { p_user_id: user.id });
-      if (!allowed) {
-        setShowTokenExhausted(true);
-        return;
-      }
-    }
+    const ok = await consumeResults(RESULTS_PER_PAGE);
+    if (!ok) return;
 
     setIsSearchingSocial(true);
-    setSocialResults([]);
+    setAllSocialResults([]);
+    setSocialVisibleCount(RESULTS_PER_PAGE);
 
     try {
       const province = socialProvince && socialProvince !== "all" ? socialProvince : "";
@@ -668,19 +714,21 @@ const Prospection = () => {
           }
         }
 
-        setSocialResults(analyzed);
+        setAllSocialResults(analyzed);
+        setSocialVisibleCount(RESULTS_PER_PAGE);
 
         const highOpp = analyzed.filter(r => r.socialScore >= 70 && !r.alreadySaved).length;
         const alreadySaved = analyzed.filter(r => r.alreadySaved).length;
+        const { data: { user: u3 } } = await supabase.auth.getUser();
         toast.success(
-          `${analyzed.length} empresas analisadas — ${highOpp} com alta oportunidade${alreadySaved > 0 ? ` (${alreadySaved} já guardadas)` : ""}`
+          `${analyzed.length} empresas analisadas — a mostrar ${Math.min(RESULTS_PER_PAGE, analyzed.length)}, ${highOpp} alta oportunidade${alreadySaved > 0 ? ` (${alreadySaved} já guardadas)` : ""}`
         );
 
         await supabase.from("prospection_logs").insert({
           query: `[SOCIAL-MULTI] ${q} ${locationPart}`,
           results_count: analyzed.length,
           status: "completed",
-          user_id: user?.id,
+          user_id: u3?.id,
         });
       } else {
         toast.error("Nenhum resultado encontrado. Tente outros termos.");
@@ -692,6 +740,16 @@ const Prospection = () => {
       setIsSearchingSocial(false);
       setSearchProgress("");
     }
+  };
+
+  // "Ver Mais" for social results — consumes 10 more results from weekly quota
+  const handleLoadMoreSocial = async () => {
+    setIsLoadingMoreSocial(true);
+    const ok = await consumeResults(RESULTS_PER_PAGE);
+    if (ok) {
+      setSocialVisibleCount(prev => prev + RESULTS_PER_PAGE);
+    }
+    setIsLoadingMoreSocial(false);
   };
 
   const handleScrape = async (e: React.FormEvent) => {
@@ -752,7 +810,7 @@ const Prospection = () => {
       } else {
         toast.success("Lead guardado!");
         await loadExistingLeads();
-        setAnalyzedResults(prev =>
+        setAllAnalyzedResults(prev =>
           prev.map(r => r.url === result.url ? { ...r, alreadySaved: true } : r)
         );
       }
@@ -806,7 +864,7 @@ const Prospection = () => {
       } else {
         toast.success("Lead guardado como potencial cliente de Social Media!");
         await loadExistingLeads();
-        setSocialResults(prev =>
+        setAllSocialResults(prev =>
           prev.map(r => r.url === result.url ? { ...r, alreadySaved: true } : r)
         );
       }
@@ -821,8 +879,10 @@ const Prospection = () => {
     }
   };
 
-  const noWebsiteCount = analyzedResults.filter(r => !r.hasWebsite && !r.alreadySaved).length;
-  const savedCount = analyzedResults.filter(r => r.alreadySaved).length;
+  const noWebsiteCount = allAnalyzedResults.filter(r => !r.hasWebsite && !r.alreadySaved).length;
+  const savedCount = allAnalyzedResults.filter(r => r.alreadySaved).length;
+  const hasMoreResults = visibleCount < allAnalyzedResults.length;
+  const hasMoreSocial = socialVisibleCount < allSocialResults.length;
 
   return (
     <div className="space-y-6">
@@ -951,7 +1011,7 @@ const Prospection = () => {
 
           {analyzedResults.length > 0 && (
             <div className="space-y-3">
-              {analyzedResults.map((result) => (
+              {analyzedResults.map((result, _idx) => (
                 <Card
                   key={result.url}
                   className={
@@ -1035,6 +1095,23 @@ const Prospection = () => {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          )}
+
+          {hasMoreResults && (
+            <div className="flex justify-center pt-2">
+              <Button
+                variant="outline"
+                onClick={handleLoadMoreResults}
+                disabled={isLoadingMore}
+                data-testid="button-ver-mais-websites"
+              >
+                {isLoadingMore ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />A carregar...</>
+                ) : (
+                  <>Ver mais 10 resultados (desconta da quota semanal)</>
+                )}
+              </Button>
             </div>
           )}
         </TabsContent>
@@ -1316,6 +1393,23 @@ const Prospection = () => {
               ))}
             </div>
           )}
+
+          {hasMoreSocial && (
+            <div className="flex justify-center pt-2">
+              <Button
+                variant="outline"
+                onClick={handleLoadMoreSocial}
+                disabled={isLoadingMoreSocial}
+                data-testid="button-ver-mais-social"
+              >
+                {isLoadingMoreSocial ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" />A carregar...</>
+                ) : (
+                  <>Ver mais 10 resultados (desconta da quota semanal)</>
+                )}
+              </Button>
+            </div>
+          )}
         </TabsContent>
 
         {/* ==================== SCRAPE TAB ==================== */}
@@ -1422,7 +1516,7 @@ const Prospection = () => {
           )}
         </TabsContent>
       </Tabs>
-      <TokenExhaustedDialog open={showTokenExhausted} onOpenChange={setShowTokenExhausted} />
+      <TokenExhaustedDialog open={showTokenExhausted} onOpenChange={setShowTokenExhausted} type={exhaustedType} />
     </div>
   );
 };

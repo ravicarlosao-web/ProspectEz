@@ -1,26 +1,31 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CreditCard, AlertTriangle } from "lucide-react";
-import logoImg from "@/assets/logo.png";
+import { Badge } from "@/components/ui/badge";
+import { CreditCard, AlertTriangle, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePlanConfigs } from "@/hooks/usePlanConfigs";
 
 interface TokenExhaustedDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  type?: "weekly" | "monthly";
 }
 
-export function TokenExhaustedDialog({ open, onOpenChange }: TokenExhaustedDialogProps) {
+export function TokenExhaustedDialog({ open, onOpenChange, type = "weekly" }: TokenExhaustedDialogProps) {
   const navigate = useNavigate();
-  const { plans } = usePlanConfigs();
+  const { packages } = usePlanConfigs();
+
+  const handleBuyTokens = () => {
+    onOpenChange(false);
+    navigate("/financeiro");
+  };
 
   const handleUpgrade = () => {
     onOpenChange(false);
     navigate("/financeiro");
   };
 
-  // Show the two middle paid plans (skip free and business)
-  const paidPlans = plans.filter(p => p.key !== "free").slice(0, 2);
+  const isWeekly = type === "weekly";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -29,42 +34,56 @@ export function TokenExhaustedDialog({ open, onOpenChange }: TokenExhaustedDialo
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10">
             <AlertTriangle className="h-8 w-8 text-amber-500" />
           </div>
-          <DialogTitle className="text-xl">Tokens Esgotados</DialogTitle>
+          <DialogTitle className="text-xl">
+            {isWeekly ? "Limite Semanal Atingido" : "Limite Mensal Atingido"}
+          </DialogTitle>
           <DialogDescription className="text-center">
-            O seu limite de pesquisas deste mês foi atingido. Atualize o seu plano para continuar a prospectar.
+            {isWeekly
+              ? "Esgotou os seus resultados desta semana. Compre resultados avulsos para continuar a prospectar agora."
+              : "Esgotou os seus resultados deste mês. Atualize o plano ou compre resultados avulsos."}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
-          <div className="rounded-xl bg-muted/50 border p-4 space-y-3">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <img src={logoImg} alt="ProspectEz" className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="font-medium">Precisa de mais pesquisas?</p>
-                <p className="text-sm text-muted-foreground">
-                  Atualize para um plano com mais tokens mensais
-                </p>
-              </div>
+        <div className="py-2 space-y-3">
+          <p className="text-xs text-muted-foreground text-center font-medium uppercase tracking-wide">
+            Resultados Avulsos
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {packages.map(pkg => (
+              <button
+                key={pkg.name}
+                onClick={handleBuyTokens}
+                className="p-3 rounded-xl border bg-muted/30 hover:border-primary hover:bg-primary/5 transition-all text-center space-y-1 cursor-pointer"
+              >
+                <Package className="h-4 w-4 mx-auto text-primary" />
+                <p className="font-semibold text-sm">{pkg.name}</p>
+                <p className="text-xs text-muted-foreground">{pkg.quantity} resultados</p>
+                <Badge variant="outline" className="text-xs px-1.5">
+                  {pkg.priceKz.toLocaleString()} Kz
+                </Badge>
+              </button>
+            ))}
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
             </div>
-            
-            <div className={`grid gap-2 text-center text-sm ${paidPlans.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-              {paidPlans.map(p => (
-                <div key={p.key} className="p-2 rounded-lg bg-background border">
-                  <p className="font-semibold text-primary">{p.name}</p>
-                  <p className="text-muted-foreground">{p.monthly} tokens/mês</p>
-                </div>
-              ))}
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">ou</span>
             </div>
           </div>
+
+          <button
+            onClick={handleUpgrade}
+            className="w-full p-3 rounded-xl border hover:border-primary hover:bg-primary/5 transition-all text-center"
+          >
+            <p className="font-medium text-sm">Atualizar Plano</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Mais resultados semanais e mensais</p>
+          </button>
         </div>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-col">
-          <Button className="w-full" onClick={handleUpgrade}>
-            <CreditCard className="h-4 w-4 mr-2" />
-            Atualizar Plano
-          </Button>
+        <DialogFooter>
           <Button variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
             Agora não
           </Button>

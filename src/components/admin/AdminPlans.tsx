@@ -68,7 +68,7 @@ export const AdminPlans = () => {
               daily_limit: plan.daily,
               weekly_limit: plan.weekly,
               monthly_limit: plan.monthly,
-            } as any).eq("user_id", u.user_id);
+            }).eq("user_id", u.user_id);
           }
         }
       }

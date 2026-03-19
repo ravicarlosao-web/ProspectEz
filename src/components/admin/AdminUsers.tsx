@@ -150,7 +150,7 @@ export const AdminUsers = () => {
 
   const handlePlanChange = (plan: string) => {
     const config = getPlanByKey(plan) || getPlanByKey("free")!;
-    setEditForm(f => ({ ...f, plan_type: plan, daily_limit: config.daily, monthly_limit: config.monthly }));
+    setEditForm(f => ({ ...f, plan_type: plan, daily_limit: config.daily, monthly_limit: config.monthly, weekly_limit: config.weekly }));
   };
 
   const logAudit = async (action: string, targetUserId: string, details: any) => {
@@ -174,10 +174,12 @@ export const AdminUsers = () => {
       }
 
       // Update quota
+      const planConfig = getPlanByKey(editForm.plan_type);
       const quotaUpdate: any = {
         plan_type: editForm.plan_type,
         daily_limit: editForm.daily_limit,
         monthly_limit: editForm.monthly_limit,
+        weekly_limit: planConfig?.weekly ?? editForm.daily_limit,
       };
       if (editForm.tokens_bonus > 0) {
         quotaUpdate.tokens_added_manually = (editUser.tokens_added_manually || 0) + editForm.tokens_bonus;
