@@ -156,7 +156,24 @@ export function AdminFinance() {
         },
       });
 
-      toast.success("Pagamento aprovado com sucesso!");
+      // Send approval email notification
+      if (selectedPayment.user_email) {
+        try {
+          await supabase.functions.invoke("send-payment-email", {
+            body: {
+              user_id: selectedPayment.user_id,
+              user_email: selectedPayment.user_email,
+              user_name: selectedPayment.user_name || "",
+              plan_key: selectedPayment.plan_key,
+              amount_kz: selectedPayment.amount_kz,
+            },
+          });
+        } catch (emailErr) {
+          console.warn("Email notification failed (non-critical):", emailErr);
+        }
+      }
+
+      toast.success("Pagamento aprovado e email enviado ao utilizador!");
       setIsDetailsOpen(false);
       fetchPayments();
     } catch (error) {
