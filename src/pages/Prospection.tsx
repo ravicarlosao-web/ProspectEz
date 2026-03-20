@@ -1009,7 +1009,7 @@ const Prospection = () => {
           </Card>
 
           {analyzedResults.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap text-sm">
+            <div className="flex items-center gap-2 flex-wrap text-sm px-1 py-3 border-y border-border/40">
               <span className="text-muted-foreground font-medium">{analyzedResults.length} empresas</span>
               {noWebsiteCount > 0 && (
                 <Badge variant="destructive" className="gap-1">
