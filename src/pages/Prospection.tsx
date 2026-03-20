@@ -177,11 +177,6 @@ const extractContactInfoStatic = (text: string | undefined) => {
   };
 };
 
-// ============================================================
-// CORRECÇÃO PRINCIPAL: detectar se empresa tem website próprio
-// Verifica TODOS os resultados agrupados e o texto/markdown,
-// não apenas o URL do resultado principal.
-// ============================================================
 const detectHasOwnWebsite = (
   results: SearchResult[]
 ): { hasWebsite: boolean; websiteUrl: string | null } => {
@@ -451,18 +446,12 @@ const Prospection = () => {
           .map(r => `${r.markdown || ""} ${r.description || ""}`)
           .join(" ");
 
-        // ============================================================
-        // CORRECÇÃO APLICADA: usar detectHasOwnWebsite que verifica
-        // TODOS os resultados agrupados + texto/markdown, não apenas
-        // o URL do resultado principal.
-        // ============================================================
         const { hasWebsite, websiteUrl } = detectHasOwnWebsite(entry.results);
 
         const contacts = extractContactInfoStatic(allText);
         const businessName =
           mainResult.title?.replace(/\s*[-|–].*$/, "").trim() || "Sem nome";
 
-        // Para dedup de domínio, usar o websiteUrl próprio se existir
         const alreadySaved = isAlreadySaved(
           businessName,
           contacts,
@@ -803,14 +792,12 @@ const Prospection = () => {
   };
 
   const saveAsLead = async (result: AnalyzedResult) => {
-    // CORRECÇÃO: usar Set para suportar múltiplos saves simultâneos
     setSavingUrls(prev => new Set(prev).add(result.url));
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       const insertData: any = {
         name: result.businessName,
         company: result.businessName,
-        // Usar websiteUrl próprio se existir, caso contrário null
         website: result.websiteUrl ?? null,
         notes: result.hasWebsite
           ? result.description
