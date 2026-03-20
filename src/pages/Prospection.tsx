@@ -13,6 +13,14 @@ import { firecrawlApi } from "@/lib/api/firecrawl";
 import { supabase } from "@/integrations/supabase/client";
 import { PROVINCES_ANGOLA, MUNICIPIOS_LUANDA } from "@/lib/constants";
 import { TokenExhaustedDialog } from "@/components/TokenExhaustedDialog";
+import {
+  remainingWeeksInMonth,
+  currentWeekStart,
+  currentMonthStart,
+  carryOverThisWeek,
+  computeNewCarryOver,
+  type QuotaRow,
+} from "@/lib/quotaUtils";
 
 type SearchResult = {
   url: string;
@@ -484,27 +492,72 @@ const Prospection = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
 
-    const { data: quota, error: fetchError } = await supabase
+    const { data: raw, error: fetchError } = await supabase
       .from("search_quotas")
-      .select("used_this_week, weekly_limit, used_this_month, monthly_limit, tokens_added_manually, plan_type")
+      .select("used_this_week, weekly_limit, used_this_month, monthly_limit, tokens_added_manually, plan_type, last_weekly_reset, last_monthly_reset, weekly_carry_over")
       .eq("user_id", user.id)
       .single();
 
-    if (fetchError || !quota) return false;
+    if (fetchError || !raw) return false;
 
-    const isFree = quota.plan_type === "free";
-    const weeklyMax = (quota.weekly_limit || 0) + (quota.tokens_added_manually || 0);
-    const monthlyMax = (quota.monthly_limit || 0) + (quota.tokens_added_manually || 0);
+    const now = new Date();
+    let q: QuotaRow = {
+      plan_type:            (raw as any).plan_type,
+      weekly_limit:         (raw as any).weekly_limit ?? 0,
+      monthly_limit:        (raw as any).monthly_limit ?? 0,
+      used_this_week:       (raw as any).used_this_week ?? 0,
+      used_this_month:      (raw as any).used_this_month ?? 0,
+      tokens_added_manually:(raw as any).tokens_added_manually ?? 0,
+      weekly_carry_over:    (raw as any).weekly_carry_over ?? 0,
+      last_weekly_reset:    (raw as any).last_weekly_reset ?? null,
+      last_monthly_reset:   (raw as any).last_monthly_reset ?? null,
+    };
 
-    // Only enforce weekly limit when it's actually configured (> 0)
-    if (weeklyMax > 0 && quota.used_this_week + count > weeklyMax) {
+    const isFree = q.plan_type === "free";
+
+    if (!isFree) {
+      const monthStart = currentMonthStart(now);
+      const lastMonthly = q.last_monthly_reset ? new Date(q.last_monthly_reset) : null;
+
+      if (!lastMonthly || lastMonthly < monthStart) {
+        // New month — reset everything
+        await supabase.from("search_quotas").update({
+          used_this_month:   0,
+          used_this_week:    0,
+          weekly_carry_over: 0,
+          last_monthly_reset: now.toISOString().split("T")[0],
+          last_weekly_reset:  now.toISOString().split("T")[0],
+        } as any).eq("user_id", user.id);
+        q = { ...q, used_this_month: 0, used_this_week: 0, weekly_carry_over: 0 };
+      } else {
+        // Check for weekly reset
+        const weekStart = currentWeekStart(now);
+        const lastWeekly = q.last_weekly_reset ? new Date(q.last_weekly_reset) : null;
+
+        if (!lastWeekly || lastWeekly < weekStart) {
+          const newCarryOver = computeNewCarryOver(q);
+          await supabase.from("search_quotas").update({
+            used_this_week:    0,
+            weekly_carry_over: newCarryOver,
+            last_weekly_reset: now.toISOString().split("T")[0],
+          } as any).eq("user_id", user.id);
+          q = { ...q, used_this_week: 0, weekly_carry_over: newCarryOver };
+        }
+      }
+    }
+
+    // Effective weekly limit: base + carry-over share this week + bonus
+    const carryExtra = isFree ? 0 : carryOverThisWeek(q, now);
+    const effectiveWeekly = q.weekly_limit + carryExtra + (isFree ? 0 : q.tokens_added_manually);
+    const monthlyMax = (q.monthly_limit || 0) + q.tokens_added_manually;
+
+    if (effectiveWeekly > 0 && q.used_this_week + count > effectiveWeekly) {
       setexhaustedType(isFree ? "free_plan" : "weekly");
       setShowTokenExhausted(true);
       return false;
     }
 
-    // Only enforce monthly limit when it's actually configured (> 0)
-    if (monthlyMax > 0 && quota.used_this_month + count > monthlyMax) {
+    if (monthlyMax > 0 && q.used_this_month + count > monthlyMax) {
       setexhaustedType(isFree ? "free_plan" : "monthly");
       setShowTokenExhausted(true);
       return false;
@@ -513,8 +566,8 @@ const Prospection = () => {
     const { error: updateError } = await supabase
       .from("search_quotas")
       .update({
-        used_this_week: quota.used_this_week + count,
-        used_this_month: quota.used_this_month + count,
+        used_this_week:  q.used_this_week + count,
+        used_this_month: q.used_this_month + count,
       })
       .eq("user_id", user.id);
 

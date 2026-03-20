@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
 import { usePlanConfigs, type PlanConfig } from "@/hooks/usePlanConfigs";
+import { effectiveWeeklyLimit, weeklyRemaining, monthlyRemaining, carryOverThisWeek, type QuotaRow } from "@/lib/quotaUtils";
 
 type Payment = {
   id: string;
@@ -45,7 +46,7 @@ const Finance = () => {
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [quota, setQuota] = useState<{ used_this_week: number; weekly_limit: number; used_this_month: number; monthly_limit: number; tokens_added_manually: number } | null>(null);
+  const [quota, setQuota] = useState<QuotaRow | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -59,18 +60,22 @@ const Finance = () => {
     // Fetch current quota/plan
     const { data: quotaData } = await supabase
       .from("search_quotas")
-      .select("plan_type, used_this_week, weekly_limit, used_this_month, monthly_limit, tokens_added_manually")
+      .select("plan_type, used_this_week, weekly_limit, used_this_month, monthly_limit, tokens_added_manually, weekly_carry_over, last_weekly_reset, last_monthly_reset")
       .eq("user_id", user.id)
       .single();
 
     if (quotaData) {
-      setCurrentPlan(quotaData.plan_type);
+      setCurrentPlan((quotaData as any).plan_type);
       setQuota({
-        used_this_week: (quotaData as any).used_this_week ?? 0,
-        weekly_limit: (quotaData as any).weekly_limit ?? 0,
-        used_this_month: quotaData.used_this_month,
-        monthly_limit: quotaData.monthly_limit,
-        tokens_added_manually: quotaData.tokens_added_manually,
+        plan_type:             (quotaData as any).plan_type ?? "free",
+        used_this_week:        (quotaData as any).used_this_week ?? 0,
+        weekly_limit:          (quotaData as any).weekly_limit ?? 0,
+        used_this_month:       (quotaData as any).used_this_month ?? 0,
+        monthly_limit:         (quotaData as any).monthly_limit ?? 0,
+        tokens_added_manually: (quotaData as any).tokens_added_manually ?? 0,
+        weekly_carry_over:     (quotaData as any).weekly_carry_over ?? 0,
+        last_weekly_reset:     (quotaData as any).last_weekly_reset ?? null,
+        last_monthly_reset:    (quotaData as any).last_monthly_reset ?? null,
       });
     }
 
@@ -167,10 +172,12 @@ const Finance = () => {
     }
   };
 
-  const weeklyMax = quota ? quota.weekly_limit + quota.tokens_added_manually : 0;
-  const weeklyRemaining = quota ? Math.max(0, weeklyMax - quota.used_this_week) : 0;
-  const monthlyMax = quota ? quota.monthly_limit + quota.tokens_added_manually : 0;
-  const tokensRemaining = quota ? Math.max(0, monthlyMax - quota.used_this_month) : 0;
+  const now = new Date();
+  const weeklyMax   = quota ? effectiveWeeklyLimit(quota, now) : 0;
+  const weeklyLeft  = quota ? weeklyRemaining(quota, now) : 0;
+  const monthlyMax  = quota ? (quota.monthly_limit || 0) + quota.tokens_added_manually : 0;
+  const tokensLeft  = quota ? monthlyRemaining(quota) : 0;
+  const carryExtra  = quota ? carryOverThisWeek(quota, now) : 0;
 
   if (isLoading) {
     return (
@@ -198,7 +205,9 @@ const Finance = () => {
                 Plano Atual: {plans.find(p => p.key === currentPlan)?.name || "Free"}
               </CardTitle>
               <CardDescription className="mt-1">
-                {weeklyRemaining} tokens restantes esta semana · {tokensRemaining} este mês
+                {weeklyLeft} tokens restantes esta semana
+                {carryExtra > 0 && <span className="text-primary/80"> (+{carryExtra} de carry-over)</span>}
+                {quota?.monthly_limit ? ` · ${tokensLeft} este mês` : ""}
               </CardDescription>
             </div>
             <div className="text-left sm:text-right space-y-1">
@@ -206,7 +215,9 @@ const Finance = () => {
                 <div className="text-2xl font-bold text-primary">{quota?.used_this_week || 0}</div>
                 <div className="text-xs text-muted-foreground">de {weeklyMax} tokens usados esta semana</div>
               </div>
-              <div className="text-xs text-muted-foreground">{quota?.used_this_month || 0} / {monthlyMax} tokens este mês</div>
+              {quota?.monthly_limit ? (
+                <div className="text-xs text-muted-foreground">{quota?.used_this_month || 0} / {monthlyMax} tokens este mês</div>
+              ) : null}
             </div>
           </div>
         </CardHeader>

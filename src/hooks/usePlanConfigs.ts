@@ -24,10 +24,10 @@ export type PaymentMethodConfig = {
 };
 
 export const DEFAULT_PLANS: PlanConfig[] = [
-  { name: "Free",     key: "free",     weekly: 10,  monthly: 10,   priceKz: 0,     priceUsd: 0  },
-  { name: "Starter",  key: "starter",  weekly: 50,  monthly: 280,  priceKz: 10000, priceUsd: 10 },
-  { name: "Pro",      key: "pro",      weekly: 210, monthly: 840,  priceKz: 20000, priceUsd: 20 },
-  { name: "Business", key: "business", weekly: 631, monthly: 2526, priceKz: 35000, priceUsd: 35 },
+  { name: "Free",     key: "free",     weekly: 1,  monthly: 0,   priceKz: 0,     priceUsd: 0  },
+  { name: "Starter",  key: "starter",  weekly: 5,  monthly: 28,  priceKz: 10000, priceUsd: 10 },
+  { name: "Pro",      key: "pro",      weekly: 21, monthly: 84,  priceKz: 20000, priceUsd: 20 },
+  { name: "Business", key: "business", weekly: 64, monthly: 253, priceKz: 35000, priceUsd: 35 },
 ];
 
 export const DEFAULT_PACKAGES: TokenPackage[] = [
