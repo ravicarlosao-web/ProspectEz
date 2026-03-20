@@ -356,7 +356,7 @@ const Prospection = () => {
   });
   const [searchProgress, setSearchProgress] = useState("");
   const [showTokenExhausted, setShowTokenExhausted] = useState(false);
-  const [exhaustedType, setexhaustedType] = useState<"weekly" | "monthly">("weekly");
+  const [exhaustedType, setexhaustedType] = useState<"weekly" | "monthly" | "free_plan">("weekly");
 
   // Derived slices for rendering
   const analyzedResults = allAnalyzedResults.slice(0, visibleCount);
@@ -497,25 +497,26 @@ const Prospection = () => {
 
     const { data: quota, error: fetchError } = await supabase
       .from("search_quotas")
-      .select("used_this_week, weekly_limit, used_this_month, monthly_limit, tokens_added_manually")
+      .select("used_this_week, weekly_limit, used_this_month, monthly_limit, tokens_added_manually, plan_type")
       .eq("user_id", user.id)
       .single();
 
     if (fetchError || !quota) return false;
 
+    const isFree = quota.plan_type === "free";
     const weeklyMax = (quota.weekly_limit || 0) + (quota.tokens_added_manually || 0);
     const monthlyMax = (quota.monthly_limit || 0) + (quota.tokens_added_manually || 0);
 
     // Only enforce weekly limit when it's actually configured (> 0)
     if (weeklyMax > 0 && quota.used_this_week + count > weeklyMax) {
-      setexhaustedType("weekly");
+      setexhaustedType(isFree ? "free_plan" : "weekly");
       setShowTokenExhausted(true);
       return false;
     }
 
     // Only enforce monthly limit when it's actually configured (> 0)
     if (monthlyMax > 0 && quota.used_this_month + count > monthlyMax) {
-      setexhaustedType("monthly");
+      setexhaustedType(isFree ? "free_plan" : "monthly");
       setShowTokenExhausted(true);
       return false;
     }

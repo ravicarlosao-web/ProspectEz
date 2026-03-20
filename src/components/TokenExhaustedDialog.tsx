@@ -1,14 +1,14 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, AlertTriangle, Package } from "lucide-react";
+import { AlertTriangle, Package, ArrowUpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { usePlanConfigs } from "@/hooks/usePlanConfigs";
 
 interface TokenExhaustedDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type?: "weekly" | "monthly";
+  type?: "weekly" | "monthly" | "free_plan";
 }
 
 export function TokenExhaustedDialog({ open, onOpenChange, type = "weekly" }: TokenExhaustedDialogProps) {
@@ -26,7 +26,48 @@ export function TokenExhaustedDialog({ open, onOpenChange, type = "weekly" }: To
   };
 
   const isWeekly = type === "weekly";
+  const isFree = type === "free_plan";
 
+  // ── FREE PLAN: upgrade-only dialog ──────────────────────────────────────────
+  if (isFree) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+              <ArrowUpCircle className="h-8 w-8 text-primary" />
+            </div>
+            <DialogTitle className="text-xl">
+              Pesquisa Gratuita Utilizada
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              O plano gratuito inclui apenas <strong>1 pesquisa</strong>. Já utilizou a sua pesquisa de avaliação.
+              Para continuar a prospectar, atualize para um plano pago.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2 space-y-3">
+            <button
+              onClick={handleUpgrade}
+              className="w-full p-4 rounded-xl border-2 border-primary bg-primary/5 hover:bg-primary/10 transition-all text-center"
+            >
+              <ArrowUpCircle className="h-5 w-5 mx-auto text-primary mb-1" />
+              <p className="font-semibold text-sm">Atualizar Plano Agora</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Aceda a pesquisas ilimitadas e muito mais</p>
+            </button>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>
+              Agora não
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // ── PAID PLAN: weekly / monthly token dialog ─────────────────────────────────
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
