@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, useInView, useMotionValue, useSpring, useTransform } from "framer-motion";
 import {
@@ -8,7 +8,6 @@ import {
   Send, Phone, Mail, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { StarfieldBackground } from "@/components/StarfieldBackground";
 import logoImg from "@/assets/logo.png";
 
@@ -158,17 +157,12 @@ const navItems = [
   { label: "Funcionalidades", href: "#funcionalidades" },
   { label: "Sectores", href: "#sectores" },
   { label: "Preços", href: "#precos" },
-  { label: "Contacto", href: "#contacto" },
 ];
 
 /* ═══════════════════════════════════════ */
 /* ░░░  LANDING PAGE  ░░░ */
 /* ═══════════════════════════════════════ */
 const LandingPage = () => {
-  const [contactName, setContactName] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [contactDetails, setContactDetails] = useState("");
-
   return (
     <div className="relative min-h-screen bg-background overflow-x-hidden">
       <StarfieldBackground count={120} />
@@ -556,63 +550,6 @@ const LandingPage = () => {
                 </Link>
               </motion.div>
             ))}
-          </div>
-        </div>
-      </Section>
-
-      {/* ─── CONTACT / CTA ─── */}
-      <Section id="contacto" className="relative z-10 px-6 md:px-12 lg:px-20 py-20 md:py-28">
-        <div className="max-w-5xl mx-auto">
-          <div className="relative rounded-3xl border border-border/50 overflow-hidden">
-            {/* gradient overlay */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,hsl(var(--primary)/0.08),transparent_60%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,hsl(var(--primary)/0.05),transparent_60%)]" />
-
-            <div className="relative z-10 grid md:grid-cols-2 gap-10 p-8 md:p-14">
-              <div className="flex flex-col justify-center">
-                <motion.h2
-                  variants={fadeUp}
-                  className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-tight"
-                  style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-                >
-                  Vamos Conectar e <span className="inline-flex items-center gap-2">Conversar <MessageSquare className="h-7 w-7 text-primary" /></span>
-                </motion.h2>
-              </div>
-
-              <motion.div variants={fadeUp} className="space-y-5">
-                <div>
-                  <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Nome</label>
-                  <Input
-                    value={contactName}
-                    onChange={(e) => setContactName(e.target.value)}
-                    placeholder="O seu nome"
-                    className="h-11 bg-muted/30 border-border/50 focus:border-primary"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Telefone / WhatsApp</label>
-                  <Input
-                    value={contactPhone}
-                    onChange={(e) => setContactPhone(e.target.value)}
-                    placeholder="+244 9XX XXX XXX"
-                    className="h-11 bg-muted/30 border-border/50 focus:border-primary"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground uppercase tracking-wider mb-1.5 block">Detalhes</label>
-                  <textarea
-                    value={contactDetails}
-                    onChange={(e) => setContactDetails(e.target.value)}
-                    placeholder="Conte-nos sobre o seu negócio..."
-                    rows={3}
-                    className="flex w-full rounded-md border border-border/50 bg-muted/30 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus:border-primary resize-none"
-                  />
-                </div>
-                <Button className="w-full rounded-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base glow-primary">
-                  Enviar Mensagem
-                </Button>
-              </motion.div>
-            </div>
           </div>
         </div>
       </Section>
