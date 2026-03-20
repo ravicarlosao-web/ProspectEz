@@ -14,6 +14,7 @@ import { DollarSign, Clock, Check, XCircle, FileText, Loader2, ExternalLink, Dow
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { pt } from "date-fns/locale";
+import emailjs from "@emailjs/browser";
 
 type Payment = {
   id: string;
@@ -156,18 +157,43 @@ export function AdminFinance() {
         },
       });
 
-      // Send approval email notification
+      // Send approval email via EmailJS (browser-side, no backend needed)
       if (selectedPayment.user_email) {
         try {
-          await supabase.functions.invoke("send-payment-email", {
-            body: {
-              user_id: selectedPayment.user_id,
-              user_email: selectedPayment.user_email,
-              user_name: selectedPayment.user_name || "",
-              plan_key: selectedPayment.plan_key,
-              amount_kz: selectedPayment.amount_kz,
-            },
-          });
+          const serviceId  = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+          const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+          const publicKey  = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+          const PLAN_LABELS: Record<string, string> = {
+            starter: "Starter", pro: "Pro", business: "Business",
+          };
+          const PLAN_WEEKLY: Record<string, number> = {
+            starter: 5, pro: 21, business: 64,
+          };
+          const PLAN_MONTHLY: Record<string, number> = {
+            starter: 28, pro: 84, business: 253,
+          };
+          const planKey   = selectedPayment.plan_key ?? "";
+          const planLabel = PLAN_LABELS[planKey] ?? planKey;
+          const firstName = (selectedPayment.user_name || "Utilizador").split(" ")[0];
+
+          if (serviceId && templateId && publicKey) {
+            await emailjs.send(
+              serviceId,
+              templateId,
+              {
+                to_email:       selectedPayment.user_email,
+                to_name:        firstName,
+                plan_label:     planLabel,
+                weekly_tokens:  PLAN_WEEKLY[planKey] ?? 0,
+                monthly_tokens: PLAN_MONTHLY[planKey] ?? 0,
+                amount_kz:      selectedPayment.amount_kz.toLocaleString("pt-PT"),
+              },
+              { publicKey }
+            );
+          } else {
+            console.warn("EmailJS not configured — skipping email notification");
+          }
         } catch (emailErr) {
           console.warn("Email notification failed (non-critical):", emailErr);
         }
