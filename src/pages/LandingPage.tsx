@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { motion, useInView, useMotionValue, useSpring, useTransform } from "framer-motion";
 import {
   Search, Users, MessageSquare, BarChart3, Globe,
   ArrowRight, CheckCircle2, Zap, Shield, Target, TrendingUp,
@@ -47,11 +46,33 @@ function Section({ children, className = "", id = "" }: { children: React.ReactN
   );
 }
 
+/* ───── count-up component ───── */
+function CountUpStat({
+  end, suffix, format,
+}: { end: number; suffix: string; format: "plain" | "pt" }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: true, margin: "-60px" });
+  const raw = useMotionValue(0);
+  const spring = useSpring(raw, { stiffness: 60, damping: 20, restDelta: 0.5 });
+  const display = useTransform(spring, (v) => {
+    const n = Math.round(v);
+    return format === "pt"
+      ? `${n.toLocaleString("pt-PT")}${suffix}`
+      : `${n}${suffix}`;
+  });
+
+  useEffect(() => {
+    if (isInView) raw.set(end);
+  }, [isInView, end, raw]);
+
+  return <motion.span ref={ref}>{display}</motion.span>;
+}
+
 /* ───── data ───── */
 const stats = [
-  { icon: Search, value: "50K+", label: "Pesquisas Realizadas" },
-  { icon: Users, value: "2.500+", label: "Leads Capturados" },
-  { icon: TrendingUp, value: "98%", label: "Taxa de Precisão" },
+  { icon: Search, end: 50, suffix: "K+", label: "Pesquisas Realizadas", format: "plain" as const },
+  { icon: Users, end: 2500, suffix: "+", label: "Leads Capturados", format: "pt" as const },
+  { icon: TrendingUp, end: 98, suffix: "%", label: "Taxa de Precisão", format: "plain" as const },
 ];
 
 const features = [
@@ -250,19 +271,30 @@ const LandingPage = () => {
                 key={stat.label}
                 variants={scaleIn}
                 transition={{ delay: i * 0.1 }}
-                className="relative group rounded-2xl border border-border/50 bg-card/60 backdrop-blur-sm p-8 overflow-hidden hover:border-primary/30 transition-all duration-500"
+                whileHover={{ y: -6, scale: 1.02 }}
+                className="relative group rounded-2xl border border-border/50 bg-card/60 backdrop-blur-sm p-8 overflow-hidden hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10 transition-colors duration-300"
+                style={{ willChange: "transform" }}
               >
                 {/* subtle arc background */}
                 <div className="absolute inset-0 opacity-[0.03]">
                   <div className="absolute inset-0 rounded-full border border-foreground/20 scale-150 translate-y-1/2" />
                   <div className="absolute inset-0 rounded-full border border-foreground/10 scale-[2] translate-y-1/2" />
                 </div>
+                {/* glow on hover */}
+                <motion.div
+                  className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                  style={{ background: "radial-gradient(circle at 30% 30%, hsl(var(--primary)/0.06), transparent 70%)" }}
+                />
                 <div className="relative z-10">
-                  <div className="bg-primary/10 rounded-xl p-2.5 w-fit mb-6">
+                  <motion.div
+                    className="bg-primary/10 rounded-xl p-2.5 w-fit mb-6"
+                    whileHover={{ scale: 1.15, rotate: 8 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                  >
                     <stat.icon className="h-5 w-5 text-primary" />
-                  </div>
+                  </motion.div>
                   <div className="text-4xl md:text-5xl font-bold text-foreground mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                    {stat.value}
+                    <CountUpStat end={stat.end} suffix={stat.suffix} format={stat.format} />
                   </div>
                   <div className="text-sm text-muted-foreground">{stat.label}</div>
                 </div>
