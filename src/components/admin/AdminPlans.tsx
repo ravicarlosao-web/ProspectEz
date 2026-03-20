@@ -140,8 +140,8 @@ export const AdminPlans = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Plano</TableHead>
-                <TableHead className="text-center">Semanal (resultados)</TableHead>
-                <TableHead className="text-center">Mensal (resultados)</TableHead>
+                <TableHead className="text-center">Semanal (tokens)</TableHead>
+                <TableHead className="text-center">Mensal (tokens)</TableHead>
                 <TableHead className="text-center">Preço (Kz)</TableHead>
                 <TableHead className="text-center">Preço (USD)</TableHead>
               </TableRow>

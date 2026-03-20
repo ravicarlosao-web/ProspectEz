@@ -198,15 +198,15 @@ const Finance = () => {
                 Plano Atual: {plans.find(p => p.key === currentPlan)?.name || "Free"}
               </CardTitle>
               <CardDescription className="mt-1">
-                {weeklyRemaining} resultados restantes esta semana · {tokensRemaining} este mês
+                {weeklyRemaining} tokens restantes esta semana · {tokensRemaining} este mês
               </CardDescription>
             </div>
             <div className="text-left sm:text-right space-y-1">
               <div>
                 <div className="text-2xl font-bold text-primary">{quota?.used_this_week || 0}</div>
-                <div className="text-xs text-muted-foreground">de {weeklyMax} resultados usados esta semana</div>
+                <div className="text-xs text-muted-foreground">de {weeklyMax} tokens usados esta semana</div>
               </div>
-              <div className="text-xs text-muted-foreground">{quota?.used_this_month || 0} / {monthlyMax} este mês</div>
+              <div className="text-xs text-muted-foreground">{quota?.used_this_month || 0} / {monthlyMax} tokens este mês</div>
             </div>
           </div>
         </CardHeader>
@@ -218,8 +218,8 @@ const Finance = () => {
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {plans.map((plan) => {
             const extraFeatures = PLAN_EXTRA_FEATURES[plan.key] || [];
-            const weeklyLabel = plan.weekly > 0 ? `${plan.weekly} resultados/semana` : `${plan.monthly} resultados total`;
-            const allFeatures = [weeklyLabel, `${plan.monthly} resultados/mês`, ...extraFeatures];
+            const weeklyLabel = plan.weekly > 0 ? `${plan.weekly} tokens/semana` : `${plan.monthly} tokens total`;
+            const allFeatures = [weeklyLabel, `${plan.monthly} tokens/mês`, ...extraFeatures];
             return (
               <Card
                 key={plan.key}

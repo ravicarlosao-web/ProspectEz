@@ -35,18 +35,18 @@ export function TokenExhaustedDialog({ open, onOpenChange, type = "weekly" }: To
             <AlertTriangle className="h-8 w-8 text-amber-500" />
           </div>
           <DialogTitle className="text-xl">
-            {isWeekly ? "Limite Semanal Atingido" : "Limite Mensal Atingido"}
+            {isWeekly ? "Tokens Semanais Esgotados" : "Tokens Mensais Esgotados"}
           </DialogTitle>
           <DialogDescription className="text-center">
             {isWeekly
-              ? "Esgotou os seus resultados desta semana. Compre resultados avulsos para continuar a prospectar agora."
-              : "Esgotou os seus resultados deste mês. Atualize o plano ou compre resultados avulsos."}
+              ? "Esgotou os seus tokens desta semana. Cada pesquisa ou 'Ver Mais' consome 1 token. Compre tokens avulsos para continuar agora."
+              : "Esgotou os seus tokens deste mês. Atualize o plano ou compre tokens avulsos para continuar a prospectar."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-2 space-y-3">
           <p className="text-xs text-muted-foreground text-center font-medium uppercase tracking-wide">
-            Resultados Avulsos
+            Tokens Avulsos
           </p>
           <div className="grid grid-cols-3 gap-2">
             {packages.map(pkg => (
@@ -57,7 +57,7 @@ export function TokenExhaustedDialog({ open, onOpenChange, type = "weekly" }: To
               >
                 <Package className="h-4 w-4 mx-auto text-primary" />
                 <p className="font-semibold text-sm">{pkg.name}</p>
-                <p className="text-xs text-muted-foreground">{pkg.quantity} resultados</p>
+                <p className="text-xs text-muted-foreground">{pkg.quantity} tokens</p>
                 <Badge variant="outline" className="text-xs px-1.5">
                   {pkg.priceKz.toLocaleString()} Kz
                 </Badge>
@@ -79,7 +79,7 @@ export function TokenExhaustedDialog({ open, onOpenChange, type = "weekly" }: To
             className="w-full p-3 rounded-xl border hover:border-primary hover:bg-primary/5 transition-all text-center"
           >
             <p className="font-medium text-sm">Atualizar Plano</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Mais resultados semanais e mensais</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Mais tokens semanais e mensais incluídos</p>
           </button>
         </div>
 

@@ -541,8 +541,8 @@ const Prospection = () => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
-    // Consume 10 results for this search
-    const ok = await consumeResults(RESULTS_PER_PAGE);
+    // Consume 1 token for this search (1 token = 1 pesquisa = 10 resultados)
+    const ok = await consumeResults(1);
     if (!ok) return;
 
     setIsSearching(true);
@@ -599,16 +599,16 @@ const Prospection = () => {
       setSearchProgress("");
 
       if (allResults.length > 0) {
-        // Hard cap: deliver exactly RESULTS_PER_PAGE (10) results, no more
-        const analyzed = analyzeResults(allResults).slice(0, RESULTS_PER_PAGE);
+        const analyzed = analyzeResults(allResults);
         setAllAnalyzedResults(analyzed);
         setVisibleCount(RESULTS_PER_PAGE);
 
-        const withoutSite = analyzed.filter(r => !r.hasWebsite && !r.alreadySaved).length;
-        const alreadySaved = analyzed.filter(r => r.alreadySaved).length;
+        const visible = analyzed.slice(0, RESULTS_PER_PAGE);
+        const withoutSite = visible.filter(r => !r.hasWebsite && !r.alreadySaved).length;
+        const alreadySaved = visible.filter(r => r.alreadySaved).length;
         const { data: { user: u2 } } = await supabase.auth.getUser();
         toast.success(
-          `${analyzed.length} empresas encontradas${withoutSite > 0 ? ` — ${withoutSite} sem website` : ""}${alreadySaved > 0 ? `, ${alreadySaved} já guardadas` : ""}`
+          `${analyzed.length} empresas encontradas — a mostrar ${Math.min(RESULTS_PER_PAGE, analyzed.length)}${withoutSite > 0 ? ` (${withoutSite} sem website)` : ""}${alreadySaved > 0 ? `, ${alreadySaved} já guardadas` : ""}`
         );
 
         await supabase.from("prospection_logs").insert({
@@ -629,10 +629,10 @@ const Prospection = () => {
     }
   };
 
-  // "Ver Mais" for website results — consumes 10 more results from weekly quota
+  // "Ver Mais" for website results — consumes 1 token (= 10 more results)
   const handleLoadMoreResults = async () => {
     setIsLoadingMore(true);
-    const ok = await consumeResults(RESULTS_PER_PAGE);
+    const ok = await consumeResults(1);
     if (ok) {
       setVisibleCount(prev => prev + RESULTS_PER_PAGE);
     }
@@ -644,7 +644,8 @@ const Prospection = () => {
     e.preventDefault();
     if (!socialQuery.trim()) return;
 
-    const ok = await consumeResults(RESULTS_PER_PAGE);
+    // Consume 1 token for this search (1 token = 1 pesquisa = 10 resultados)
+    const ok = await consumeResults(1);
     if (!ok) return;
 
     setIsSearchingSocial(true);
@@ -729,21 +730,20 @@ const Prospection = () => {
           }
         }
 
-        // Hard cap: deliver exactly RESULTS_PER_PAGE (10) results, no more
-        const capped = analyzed.slice(0, RESULTS_PER_PAGE);
-        setAllSocialResults(capped);
+        setAllSocialResults(analyzed);
         setSocialVisibleCount(RESULTS_PER_PAGE);
 
-        const highOpp = capped.filter(r => r.socialScore >= 70 && !r.alreadySaved).length;
-        const alreadySaved = capped.filter(r => r.alreadySaved).length;
+        const visibleSocial = analyzed.slice(0, RESULTS_PER_PAGE);
+        const highOpp = visibleSocial.filter(r => r.socialScore >= 70 && !r.alreadySaved).length;
+        const alreadySaved = visibleSocial.filter(r => r.alreadySaved).length;
         const { data: { user: u3 } } = await supabase.auth.getUser();
         toast.success(
-          `${capped.length} empresas encontradas${highOpp > 0 ? ` — ${highOpp} alta oportunidade` : ""}${alreadySaved > 0 ? `, ${alreadySaved} já guardadas` : ""}`
+          `${analyzed.length} empresas encontradas — a mostrar ${Math.min(RESULTS_PER_PAGE, analyzed.length)}${highOpp > 0 ? ` (${highOpp} alta oportunidade)` : ""}${alreadySaved > 0 ? `, ${alreadySaved} já guardadas` : ""}`
         );
 
         await supabase.from("prospection_logs").insert({
           query: `[SOCIAL-MULTI] ${q} ${locationPart}`,
-          results_count: capped.length,
+          results_count: analyzed.length,
           status: "completed",
           user_id: u3?.id,
         });
@@ -759,10 +759,10 @@ const Prospection = () => {
     }
   };
 
-  // "Ver Mais" for social results — consumes 10 more results from weekly quota
+  // "Ver Mais" for social results — consumes 1 token (= 10 more results)
   const handleLoadMoreSocial = async () => {
     setIsLoadingMoreSocial(true);
-    const ok = await consumeResults(RESULTS_PER_PAGE);
+    const ok = await consumeResults(1);
     if (ok) {
       setSocialVisibleCount(prev => prev + RESULTS_PER_PAGE);
     }
