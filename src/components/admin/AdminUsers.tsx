@@ -512,17 +512,17 @@ export const AdminUsers = () => {
             <Button variant="destructive" onClick={async () => {
               if (!deleteUser) return;
               try {
-                await Promise.all([
-                  supabase.from("search_quotas").delete().eq("user_id", deleteUser.user_id),
-                  supabase.from("user_roles").delete().eq("user_id", deleteUser.user_id),
-                ]);
-                await supabase.from("profiles").delete().eq("user_id", deleteUser.user_id);
+                const { error } = await supabase.rpc("admin_delete_user" as any, {
+                  p_user_id: deleteUser.user_id,
+                });
+                if (error) throw error;
                 await logAudit("delete_user", deleteUser.user_id, { email: deleteUser.email, name: deleteUser.full_name });
-                toast.success(`Utilizador ${deleteUser.full_name} removido!`);
+                toast.success(`Utilizador ${deleteUser.full_name} removido permanentemente!`);
                 setDeleteUser(null);
                 fetchUsers();
-              } catch {
-                toast.error("Erro ao remover utilizador");
+              } catch (err: any) {
+                console.error("Delete user error:", err);
+                toast.error("Erro ao remover utilizador: " + (err?.message || "tente novamente"));
               }
             }}>Confirmar Remoção</Button>
           </DialogFooter>
