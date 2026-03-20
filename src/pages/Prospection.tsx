@@ -599,7 +599,8 @@ const Prospection = () => {
       setSearchProgress("");
 
       if (allResults.length > 0) {
-        const analyzed = analyzeResults(allResults);
+        // Hard cap: deliver exactly RESULTS_PER_PAGE (10) results, no more
+        const analyzed = analyzeResults(allResults).slice(0, RESULTS_PER_PAGE);
         setAllAnalyzedResults(analyzed);
         setVisibleCount(RESULTS_PER_PAGE);
 
@@ -607,7 +608,7 @@ const Prospection = () => {
         const alreadySaved = analyzed.filter(r => r.alreadySaved).length;
         const { data: { user: u2 } } = await supabase.auth.getUser();
         toast.success(
-          `${analyzed.length} empresas encontradas — a mostrar ${Math.min(RESULTS_PER_PAGE, analyzed.length)}${withoutSite > 0 ? ` (${withoutSite} sem website)` : ""}${alreadySaved > 0 ? `, ${alreadySaved} já guardadas` : ""}`
+          `${analyzed.length} empresas encontradas${withoutSite > 0 ? ` — ${withoutSite} sem website` : ""}${alreadySaved > 0 ? `, ${alreadySaved} já guardadas` : ""}`
         );
 
         await supabase.from("prospection_logs").insert({
@@ -728,19 +729,21 @@ const Prospection = () => {
           }
         }
 
-        setAllSocialResults(analyzed);
+        // Hard cap: deliver exactly RESULTS_PER_PAGE (10) results, no more
+        const capped = analyzed.slice(0, RESULTS_PER_PAGE);
+        setAllSocialResults(capped);
         setSocialVisibleCount(RESULTS_PER_PAGE);
 
-        const highOpp = analyzed.filter(r => r.socialScore >= 70 && !r.alreadySaved).length;
-        const alreadySaved = analyzed.filter(r => r.alreadySaved).length;
+        const highOpp = capped.filter(r => r.socialScore >= 70 && !r.alreadySaved).length;
+        const alreadySaved = capped.filter(r => r.alreadySaved).length;
         const { data: { user: u3 } } = await supabase.auth.getUser();
         toast.success(
-          `${analyzed.length} empresas analisadas — a mostrar ${Math.min(RESULTS_PER_PAGE, analyzed.length)}, ${highOpp} alta oportunidade${alreadySaved > 0 ? ` (${alreadySaved} já guardadas)` : ""}`
+          `${capped.length} empresas encontradas${highOpp > 0 ? ` — ${highOpp} alta oportunidade` : ""}${alreadySaved > 0 ? `, ${alreadySaved} já guardadas` : ""}`
         );
 
         await supabase.from("prospection_logs").insert({
           query: `[SOCIAL-MULTI] ${q} ${locationPart}`,
-          results_count: analyzed.length,
+          results_count: capped.length,
           status: "completed",
           user_id: u3?.id,
         });
