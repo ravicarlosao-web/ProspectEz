@@ -223,9 +223,16 @@ export const AdminUsers = () => {
   };
 
   const resetAllMonthly = async () => {
-    await supabase.rpc("admin_reset_monthly_tokens" as any);
+    const { error } = await supabase
+      .from("search_quotas")
+      .update({ used_this_month: 0, used_this_week: 0, last_monthly_reset: new Date().toISOString().split("T")[0] } as any);
+    if (error) {
+      toast.error("Erro ao resetar tokens. Tente novamente.");
+      console.error("resetAllMonthly error:", error.message);
+      return;
+    }
     await logAudit("reset_all_monthly", "all", {});
-    toast.success("Todos os tokens mensais foram resetados!");
+    toast.success("Todos os tokens mensais e semanais foram resetados!");
     setResetAllOpen(false);
     fetchUsers();
   };
