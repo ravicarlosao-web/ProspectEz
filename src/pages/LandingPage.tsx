@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 import {
-  Search, Users, MessageSquare, BarChart3, Globe, Instagram,
+  Search, Users, MessageSquare, BarChart3, Globe,
   ArrowRight, CheckCircle2, Zap, Shield, Target, TrendingUp,
   Building2, ShoppingBag, Briefcase, Truck, Laptop, Home,
   Send, Phone, Mail, ChevronRight
@@ -209,25 +209,6 @@ const LandingPage = () => {
               Começar Gratuitamente <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
-        </motion.div>
-
-        {/* floating badges */}
-        <motion.div variants={fadeIn} transition={{ delay: 0.6 }} className="hidden md:block">
-          <div className="absolute left-[10%] top-[45%] landing-float-badge">
-            <div className="flex items-center gap-2 bg-card/80 backdrop-blur-sm border border-border/50 rounded-full px-4 py-2 text-sm shadow-lg">
-              <Instagram className="h-4 w-4 text-primary" /> Social Media
-            </div>
-          </div>
-          <div className="absolute right-[10%] top-[40%] landing-float-badge-reverse">
-            <div className="flex items-center gap-2 bg-card/80 backdrop-blur-sm border border-border/50 rounded-full px-4 py-2 text-sm shadow-lg">
-              <Globe className="h-4 w-4 text-primary" /> Websites
-            </div>
-          </div>
-          <div className="absolute right-[18%] bottom-[25%] landing-float-badge">
-            <div className="flex items-center gap-2 bg-card/80 backdrop-blur-sm border border-border/50 rounded-full px-4 py-2 text-sm shadow-lg">
-              <BarChart3 className="h-4 w-4 text-primary" /> Analytics
-            </div>
-          </div>
         </motion.div>
 
         {/* client logos / trust badges */}
