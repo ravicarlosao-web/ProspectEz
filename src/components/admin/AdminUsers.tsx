@@ -28,6 +28,7 @@ type UserRow = {
   user_id: string;
   full_name: string;
   email: string;
+  phone: string;
   role: string;
   plan_type: string;
   weekly_limit: number;
@@ -71,7 +72,7 @@ export const AdminUsers = () => {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     const [profilesRes, rolesRes, quotasRes] = await Promise.all([
-      supabase.from("profiles").select("user_id, full_name, email, registered_at, last_login_at, is_suspended, suspension_reason"),
+      supabase.from("profiles").select("user_id, full_name, email, phone, registered_at, last_login_at, is_suspended, suspension_reason"),
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("search_quotas").select("*"),
     ]);
@@ -86,6 +87,7 @@ export const AdminUsers = () => {
         user_id: p.user_id,
         full_name: p.full_name || "Sem nome",
         email: p.email || "",
+        phone: (p as any).phone || "",
         role: roleMap.get(p.user_id) || "vendedor",
         plan_type: q?.plan_type || "free",
         weekly_limit: q?.weekly_limit ?? 10,
@@ -337,6 +339,7 @@ export const AdminUsers = () => {
                         <TableCell>
                           <p className="font-medium">{u.full_name}</p>
                           <p className="text-xs text-muted-foreground">{u.email || u.user_id.slice(0, 8) + "…"}</p>
+                          {u.phone && <p className="text-xs text-muted-foreground/70">{u.phone}</p>}
                         </TableCell>
                         <TableCell>{roleBadge(u.role)}</TableCell>
                         <TableCell>{planBadge(u.plan_type)}</TableCell>

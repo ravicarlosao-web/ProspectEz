@@ -18,6 +18,7 @@ import {
 const Register = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [fingerprint, setFingerprint] = useState<string | null>(null);
@@ -134,7 +135,18 @@ const Register = () => {
       return;
     }
 
-    // 5. Create persistent token and register device
+    // 5. Save phone to profile if provided
+    const trimmedPhone = phone.trim();
+    if (trimmedPhone && signUpData.user?.id) {
+      try {
+        await supabase
+          .from("profiles")
+          .update({ phone: trimmedPhone })
+          .eq("user_id", signUpData.user.id);
+      } catch {}
+    }
+
+    // 6. Create persistent token and register device
     const newToken = await createPersistentDeviceToken();
 
     if (fingerprint) {
@@ -202,6 +214,19 @@ const Register = () => {
             <div className="space-y-2">
               <Label htmlFor="email" className="text-xs text-muted-foreground uppercase tracking-wider">Email</Label>
               <Input id="email" type="email" placeholder="email@exemplo.co.ao" value={email} onChange={(e) => setEmail(e.target.value)} required className="h-11 bg-muted/50 border-border/50 focus:border-primary" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-xs text-muted-foreground uppercase tracking-wider">
+                Telefone / WhatsApp <span className="normal-case text-muted-foreground/60">(opcional)</span>
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="+244 9XX XXX XXX"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="h-11 bg-muted/50 border-border/50 focus:border-primary"
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password" className="text-xs text-muted-foreground uppercase tracking-wider">Senha</Label>
