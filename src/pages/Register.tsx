@@ -72,6 +72,16 @@ const Register = () => {
       return;
     }
 
+    const trimmedPhone = phone.trim();
+    if (!trimmedPhone) {
+      toast.error("O número de telefone é obrigatório");
+      return;
+    }
+    if (!/^[+\d\s\-().]{7,20}$/.test(trimmedPhone)) {
+      toast.error("Número de telefone inválido");
+      return;
+    }
+
     if (password.length < 8) {
       toast.error("A senha deve ter pelo menos 8 caracteres");
       return;
@@ -135,8 +145,7 @@ const Register = () => {
       return;
     }
 
-    // 5. Save phone to profile if provided
-    const trimmedPhone = phone.trim();
+    // 5. Save phone to profile (already validated as required above)
     if (trimmedPhone && signUpData.user?.id) {
       try {
         await supabase
@@ -217,7 +226,7 @@ const Register = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone" className="text-xs text-muted-foreground uppercase tracking-wider">
-                Telefone / WhatsApp <span className="normal-case text-muted-foreground/60">(opcional)</span>
+                Telefone / WhatsApp
               </Label>
               <Input
                 id="phone"
@@ -225,6 +234,7 @@ const Register = () => {
                 placeholder="+244 9XX XXX XXX"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
+                required
                 className="h-11 bg-muted/50 border-border/50 focus:border-primary"
               />
             </div>
