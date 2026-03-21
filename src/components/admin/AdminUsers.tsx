@@ -72,33 +72,74 @@ export const AdminUsers = () => {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
 
-    // Use SECURITY DEFINER RPC to bypass RLS — admins always see all users
-    const { data, error } = await supabase.rpc("admin_get_all_users");
+    // Try SECURITY DEFINER RPC first (bypasses RLS completely)
+    const { data: rpcData, error: rpcError } = await supabase.rpc("admin_get_all_users");
 
-    if (error) {
-      console.error("[AdminUsers] RPC error:", error);
+    if (!rpcError && rpcData) {
+      // RPC succeeded — use it
+      const merged: UserRow[] = rpcData.map((row: any) => ({
+        user_id:               row.user_id,
+        full_name:             row.full_name || "Sem nome",
+        email:                 row.email || "",
+        phone:                 row.phone || "",
+        role:                  row.role || "vendedor",
+        plan_type:             row.plan_type || "free",
+        weekly_limit:          row.weekly_limit ?? 1,
+        used_this_week:        row.used_this_week ?? 0,
+        monthly_limit:         row.monthly_limit ?? 0,
+        used_this_month:       row.used_this_month ?? 0,
+        tokens_added_manually: row.tokens_added_manually ?? 0,
+        is_active:             row.is_active ?? true,
+        is_suspended:          row.is_suspended ?? false,
+        suspension_reason:     row.suspension_reason || "",
+        registered_at:         row.registered_at || "",
+        last_login_at:         row.last_login_at || "",
+      }));
+      setUsers(merged);
       setLoading(false);
       return;
     }
 
-    const merged: UserRow[] = (data || []).map((row: any) => ({
-      user_id:               row.user_id,
-      full_name:             row.full_name || "Sem nome",
-      email:                 row.email || "",
-      phone:                 row.phone || "",
-      role:                  row.role || "vendedor",
-      plan_type:             row.plan_type || "free",
-      weekly_limit:          row.weekly_limit ?? 1,
-      used_this_week:        row.used_this_week ?? 0,
-      monthly_limit:         row.monthly_limit ?? 0,
-      used_this_month:       row.used_this_month ?? 0,
-      tokens_added_manually: row.tokens_added_manually ?? 0,
-      is_active:             row.is_active ?? true,
-      is_suspended:          row.is_suspended ?? false,
-      suspension_reason:     row.suspension_reason || "",
-      registered_at:         row.registered_at || "",
-      last_login_at:         row.last_login_at || "",
-    }));
+    // Fallback: direct table queries (limited by RLS if function not yet created)
+    console.warn("[AdminUsers] RPC not available, falling back to direct queries:", rpcError?.message);
+    const [profilesRes, rolesRes, quotasRes] = await Promise.all([
+      supabase.from("profiles").select("user_id, full_name, email, phone, registered_at, last_login_at, is_suspended, suspension_reason"),
+      supabase.from("user_roles").select("user_id, role"),
+      supabase.from("search_quotas").select("*"),
+    ]);
+
+    const profiles = profilesRes.data || [];
+    const roleMap  = new Map((rolesRes.data  || []).map((r: any) => [r.user_id, r.role]));
+    const quotaMap = new Map((quotasRes.data || []).map((q: any) => [q.user_id, q]));
+
+    // Build user list: start from quotas (wider RLS) merged with profiles
+    const allUserIds = new Set([
+      ...profiles.map((p: any) => p.user_id),
+      ...(quotasRes.data || []).map((q: any) => q.user_id),
+    ]);
+
+    const merged: UserRow[] = Array.from(allUserIds).map((uid) => {
+      const p = profiles.find((x: any) => x.user_id === uid) as any;
+      const q = quotaMap.get(uid) as any;
+      return {
+        user_id:               uid,
+        full_name:             p?.full_name || "Sem nome",
+        email:                 p?.email || q?.email || "",
+        phone:                 p?.phone || "",
+        role:                  roleMap.get(uid) || "vendedor",
+        plan_type:             q?.plan_type || "free",
+        weekly_limit:          q?.weekly_limit ?? 1,
+        used_this_week:        q?.used_this_week ?? 0,
+        monthly_limit:         q?.monthly_limit ?? 0,
+        used_this_month:       q?.used_this_month ?? 0,
+        tokens_added_manually: q?.tokens_added_manually ?? 0,
+        is_active:             q?.is_active ?? true,
+        is_suspended:          p?.is_suspended ?? false,
+        suspension_reason:     p?.suspension_reason || "",
+        registered_at:         p?.registered_at || "",
+        last_login_at:         p?.last_login_at || "",
+      };
+    });
 
     setUsers(merged);
     setLoading(false);
