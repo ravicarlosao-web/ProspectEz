@@ -8,7 +8,7 @@ import { AnimatedTabsContent as TabsContent } from "@/components/ui/animated-tab
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Search, Globe, Loader2, ExternalLink, Phone, Mail, UserPlus, AlertTriangle, CheckCircle2, Instagram, TrendingUp, BarChart3, Users, Filter, MapPin } from "lucide-react";
+import { Search, Globe, Loader2, ExternalLink, Phone, Mail, UserPlus, AlertTriangle, CheckCircle2, Instagram, TrendingUp, BarChart3, Users, Filter, MapPin, Building2 } from "lucide-react";
 import { firecrawlApi } from "@/lib/api/firecrawl";
 import { supabase } from "@/integrations/supabase/client";
 import { PROVINCES_ANGOLA, MUNICIPIOS_LUANDA } from "@/lib/constants";
@@ -65,6 +65,19 @@ type ScrapeResult = {
     description?: string;
     sourceURL?: string;
   };
+};
+
+type EmpresaResult = {
+  businessName: string;
+  sector: string;
+  phones: string[];
+  emails: string[];
+  website: string | null;
+  address: string;
+  description: string;
+  sourceUrl: string;
+  source: string;
+  alreadySaved: boolean;
 };
 
 const DIRECTORY_DOMAINS = [
@@ -349,6 +362,15 @@ const Prospection = () => {
   const [scrapeResult, setScrapeResult] = useState<ScrapeResult | null>(null);
   const [isScraping, setIsScraping] = useState(false);
 
+  const [empresaQuery, setEmpresaQuery] = useState("");
+  const [empresaProvince, setEmpresaProvince] = useState("");
+  const [empresaMunicipio, setEmpresaMunicipio] = useState("");
+  const [empresaSector, setEmpresaSector] = useState("");
+  const [allEmpresaResults, setAllEmpresaResults] = useState<EmpresaResult[]>([]);
+  const [empresaVisibleCount, setEmpresaVisibleCount] = useState(RESULTS_PER_PAGE);
+  const [isSearchingEmpresa, setIsSearchingEmpresa] = useState(false);
+  const [isLoadingMoreEmpresa, setIsLoadingMoreEmpresa] = useState(false);
+
   const [savingUrls, setSavingUrls] = useState<Set<string>>(new Set());
   const [existingLeads, setExistingLeads] = useState<ExistingLeadData>({
     names: new Set(),
@@ -364,6 +386,7 @@ const Prospection = () => {
   // Derived slices for rendering
   const analyzedResults = allAnalyzedResults.slice(0, visibleCount);
   const socialResults = allSocialResults.slice(0, socialVisibleCount);
+  const empresaResults = allEmpresaResults.slice(0, empresaVisibleCount);
 
   const loadExistingLeads = useCallback(async () => {
     const { data } = await supabase
@@ -577,6 +600,172 @@ const Prospection = () => {
     }
 
     return true;
+  };
+
+  // ==================== EMPRESAS SEARCH ====================
+  const parseEmpresaFromResult = (r: SearchResult, sector: string): EmpresaResult => {
+    const text = `${r.title || ""} ${r.description || ""} ${r.markdown || ""}`;
+    const phones = extractContactInfoStatic(text).phones;
+    const emails = extractContactInfoStatic(text).emails;
+    const businessName = r.title?.replace(/\s*[-|–|·].*$/, "").replace(/\(.*?\)/g, "").trim() || "Sem nome";
+    const addressMatch = text.match(/(?:Rua|Av\.|Avenida|Bairro|Travessa|Largo|Estrada)\s+[^,.\n]{3,60}/i);
+    const address = addressMatch ? addressMatch[0].trim() : "";
+    const ownWebsite = !isDirectoryOrSocial(r.url) ? r.url : null;
+
+    return {
+      businessName,
+      sector,
+      phones,
+      emails,
+      website: ownWebsite,
+      address,
+      description: r.description?.slice(0, 200) || "",
+      sourceUrl: r.url,
+      source: detectSource(r.url),
+      alreadySaved: isAlreadySaved(businessName, { emails, phones }),
+    };
+  };
+
+  const handleEmpresaSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!empresaQuery.trim()) return;
+
+    const ok = await consumeResults(1);
+    if (!ok) return;
+
+    setIsSearchingEmpresa(true);
+    setAllEmpresaResults([]);
+    setEmpresaVisibleCount(RESULTS_PER_PAGE);
+
+    try {
+      const province = empresaProvince && empresaProvince !== "all" ? empresaProvince : "";
+      const municipio = empresaMunicipio && empresaMunicipio !== "all" ? empresaMunicipio : "";
+      const sector = empresaSector && empresaSector !== "all" ? empresaSector : empresaQuery.trim();
+      const locationParts: string[] = [];
+      if (municipio) locationParts.push(municipio);
+      if (province) locationParts.push(province);
+      const loc = locationParts.length > 0 ? `${locationParts.join(" ")} Angola` : "Angola";
+      const q = empresaQuery.trim();
+
+      setSearchProgress("A pesquisar empresas em directórios...");
+
+      const queries = [
+        `${q} ${sector} empresa ${loc} site:yellow.co.ao`,
+        `${q} ${sector} empresa ${loc} site:angolist.com`,
+        `${q} ${sector} empresa ${loc} site:verangola.net`,
+        `${q} ${sector} empresa ${loc} telefone email endereço contacto`,
+        `${q} ${sector} empresa ${loc} site:*.ao NIF CNPJ razão social`,
+        `${q} ${sector} empresa ${loc} Google Maps contacto`,
+        `${q} ${sector} empresa ${loc} site:facebook.com/pages`,
+        `${q} ${sector} empresa ${loc} lista directório empresas angolanas`,
+      ];
+
+      const allRaw: SearchResult[] = [];
+      const seenUrls = new Set<string>();
+
+      for (let i = 0; i < queries.length; i += 3) {
+        const batch = queries.slice(i, i + 3);
+        setSearchProgress(`A pesquisar directórios (${i + 1}/${queries.length})...`);
+        const settled = await Promise.allSettled(
+          batch.map(bq => firecrawlApi.search(bq, { limit: 15, lang: "pt", country: "ao" }))
+        );
+        for (const res of settled) {
+          if (res.status === "fulfilled" && res.value.success && res.value.data) {
+            for (const item of res.value.data) {
+              const norm = item.url?.toLowerCase().replace(/\/$/, "");
+              if (norm && !seenUrls.has(norm)) {
+                seenUrls.add(norm);
+                allRaw.push(item);
+              }
+            }
+          }
+        }
+      }
+
+      setSearchProgress("");
+
+      if (allRaw.length === 0) {
+        toast.error("Nenhuma empresa encontrada. Tente outros termos.");
+        return;
+      }
+
+      // Deduplicate by company name
+      const seen = new Map<string, EmpresaResult>();
+      for (const r of allRaw) {
+        const parsed = parseEmpresaFromResult(r, sector);
+        const key = normalizeName(parsed.businessName);
+        if (!key || key.length < 2) continue;
+        if (!seen.has(key)) {
+          seen.set(key, parsed);
+        } else {
+          // Merge phones/emails from duplicate entries
+          const existing = seen.get(key)!;
+          existing.phones = [...new Set([...existing.phones, ...parsed.phones])];
+          existing.emails = [...new Set([...existing.emails, ...parsed.emails])];
+          if (!existing.address && parsed.address) existing.address = parsed.address;
+          if (!existing.website && parsed.website) existing.website = parsed.website;
+        }
+      }
+
+      const results = Array.from(seen.values());
+      setAllEmpresaResults(results);
+      setEmpresaVisibleCount(RESULTS_PER_PAGE);
+
+      const newOnes = results.filter(r => !r.alreadySaved).length;
+      const savedOnes = results.filter(r => r.alreadySaved).length;
+      toast.success(
+        `${results.length} empresas encontradas — ${newOnes} novas${savedOnes > 0 ? `, ${savedOnes} já guardadas` : ""}`
+      );
+
+      const { data: { user: u2 } } = await supabase.auth.getUser();
+      await supabase.from("prospection_logs").insert({
+        query: `[EMPRESAS] ${q} ${loc}`,
+        results_count: results.length,
+        status: "completed",
+        user_id: u2?.id,
+      });
+    } catch (err) {
+      console.error("Empresa search error:", err);
+      toast.error("Erro ao pesquisar. Verifique a ligação.");
+    } finally {
+      setIsSearchingEmpresa(false);
+      setSearchProgress("");
+    }
+  };
+
+  const handleLoadMoreEmpresa = async () => {
+    setIsLoadingMoreEmpresa(true);
+    const ok = await consumeResults(1);
+    if (ok) setEmpresaVisibleCount(prev => prev + RESULTS_PER_PAGE);
+    setIsLoadingMoreEmpresa(false);
+  };
+
+  const saveAsEmpresaLead = async (r: EmpresaResult) => {
+    const key = r.sourceUrl;
+    setSavingUrls(prev => new Set(prev).add(key));
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from("leads").insert({
+        user_id: user.id,
+        name: r.businessName,
+        company: r.businessName,
+        email: r.emails[0] || null,
+        phone: r.phones[0] || null,
+        website: r.website || null,
+        notes: `Sector: ${r.sector}\nEndereço: ${r.address || "N/D"}\nFonte: ${r.sourceUrl}\n\n${r.description}`,
+        source: "empresas",
+        status: "novo",
+      });
+      setAllEmpresaResults(prev =>
+        prev.map(x => normalizeName(x.businessName) === normalizeName(r.businessName) ? { ...x, alreadySaved: true } : x)
+      );
+      toast.success(`${r.businessName} guardado como lead!`);
+    } catch {
+      toast.error("Erro ao guardar lead.");
+    } finally {
+      setSavingUrls(prev => { const s = new Set(prev); s.delete(key); return s; });
+    }
   };
 
   // ==================== WEBSITE SEARCH ====================
@@ -951,8 +1140,13 @@ const Prospection = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="search" className="space-y-4">
+      <Tabs defaultValue="empresas" className="space-y-4">
         <TabsList className="w-full sm:w-auto flex">
+          <TabsTrigger value="empresas" className="flex-1 sm:flex-none text-xs sm:text-sm">
+            <Building2 className="mr-1.5 h-4 w-4" />
+            <span className="hidden sm:inline">Empresas</span>
+            <span className="sm:hidden">Emp.</span>
+          </TabsTrigger>
           <TabsTrigger value="search" className="flex-1 sm:flex-none text-xs sm:text-sm">
             <Search className="mr-1.5 h-4 w-4" />
             <span className="hidden sm:inline">Websites</span>
@@ -969,6 +1163,232 @@ const Prospection = () => {
             <span className="sm:hidden">Analisar</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* ==================== EMPRESAS TAB ==================== */}
+        <TabsContent value="empresas" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                Pesquisa de Empresas
+              </CardTitle>
+              <CardDescription>
+                Pesquisa directa em directórios angolanos (Yellow Pages, AngoList, VerAngola, Google Maps). Obtém nome, telefone, email, endereço e sector das empresas.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleEmpresaSearch} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Tipo de Negócio / Sector</Label>
+                    <Input
+                      placeholder="ex: restaurante, construtora, clínica..."
+                      value={empresaQuery}
+                      onChange={e => setEmpresaQuery(e.target.value)}
+                      data-testid="input-empresa-query"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Sector (opcional)</Label>
+                    <Select value={empresaSector} onValueChange={setEmpresaSector}>
+                      <SelectTrigger data-testid="select-empresa-sector">
+                        <SelectValue placeholder="Todos os sectores" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="alimentação">Alimentação & Restauração</SelectItem>
+                        <SelectItem value="construção">Construção & Imobiliário</SelectItem>
+                        <SelectItem value="saúde">Saúde & Farmácia</SelectItem>
+                        <SelectItem value="tecnologia">Tecnologia & Informática</SelectItem>
+                        <SelectItem value="educação">Educação & Formação</SelectItem>
+                        <SelectItem value="transporte">Transporte & Logística</SelectItem>
+                        <SelectItem value="comércio">Comércio & Retalho</SelectItem>
+                        <SelectItem value="serviços">Serviços Profissionais</SelectItem>
+                        <SelectItem value="hotelaria">Hotelaria & Turismo</SelectItem>
+                        <SelectItem value="indústria">Indústria & Manufactura</SelectItem>
+                        <SelectItem value="finanças">Finanças & Seguros</SelectItem>
+                        <SelectItem value="beleza">Beleza & Estética</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className={`grid gap-4 ${empresaProvince === "Luanda" ? "sm:grid-cols-2" : "sm:grid-cols-1"}`}>
+                  <div className="space-y-2">
+                    <Label>Província</Label>
+                    <Select value={empresaProvince} onValueChange={v => { setEmpresaProvince(v); setEmpresaMunicipio(""); }}>
+                      <SelectTrigger data-testid="select-empresa-province">
+                        <SelectValue placeholder="Todas as províncias" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        {PROVINCES_ANGOLA.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {empresaProvince === "Luanda" && (
+                    <div className="space-y-2">
+                      <Label>Município</Label>
+                      <Select value={empresaMunicipio} onValueChange={setEmpresaMunicipio}>
+                        <SelectTrigger data-testid="select-empresa-municipio">
+                          <SelectValue placeholder="Todos os municípios" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todos</SelectItem>
+                          {MUNICIPIOS_LUANDA.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+                <Button type="submit" disabled={isSearchingEmpresa || !empresaQuery.trim()} className="w-full" data-testid="button-empresa-search">
+                  {isSearchingEmpresa ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{searchProgress || "A pesquisar..."}</>
+                  ) : (
+                    <><Building2 className="mr-2 h-4 w-4" />Pesquisar Empresas</>
+                  )}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Results */}
+          {empresaResults.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">
+                  A mostrar <span className="font-medium text-foreground">{empresaResults.length}</span> de{" "}
+                  <span className="font-medium text-foreground">{allEmpresaResults.length}</span> empresas
+                </p>
+                <div className="flex gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    {allEmpresaResults.filter(r => !r.alreadySaved).length} novas
+                  </Badge>
+                  {allEmpresaResults.filter(r => r.alreadySaved).length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {allEmpresaResults.filter(r => r.alreadySaved).length} já guardadas
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {empresaResults.map((r, idx) => (
+                <Card key={idx} className={`transition-all ${r.alreadySaved ? "opacity-60 border-muted" : "hover:border-primary/30"}`} data-testid={`card-empresa-${idx}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0 space-y-2">
+                        {/* Header row */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-semibold text-sm truncate">{r.businessName}</h3>
+                          {r.alreadySaved && (
+                            <Badge variant="secondary" className="text-xs shrink-0">
+                              <CheckCircle2 className="mr-1 h-3 w-3" /> Guardado
+                            </Badge>
+                          )}
+                          {r.sector && r.sector !== empresaQuery && (
+                            <Badge variant="outline" className="text-xs shrink-0">{r.sector}</Badge>
+                          )}
+                        </div>
+
+                        {/* Contact info */}
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                          {r.phones.length > 0 && (
+                            <span className="flex items-center gap-1">
+                              <Phone className="h-3 w-3 shrink-0" />
+                              {r.phones.slice(0, 2).join(" · ")}
+                            </span>
+                          )}
+                          {r.emails.length > 0 && (
+                            <span className="flex items-center gap-1 truncate">
+                              <Mail className="h-3 w-3 shrink-0" />
+                              {r.emails[0]}
+                            </span>
+                          )}
+                          {r.address && (
+                            <span className="flex items-center gap-1 truncate">
+                              <MapPin className="h-3 w-3 shrink-0" />
+                              {r.address}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Description */}
+                        {r.description && (
+                          <p className="text-xs text-muted-foreground line-clamp-2">{r.description}</p>
+                        )}
+
+                        {/* Source + website */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <Badge variant="secondary" className="text-xs capitalize">{r.source}</Badge>
+                          {r.website && (
+                            <a href={r.website} target="_blank" rel="noopener noreferrer"
+                               className="text-xs text-primary hover:underline flex items-center gap-1 truncate">
+                              <Globe className="h-3 w-3 shrink-0" />
+                              {r.website.replace(/^https?:\/\//, "").slice(0, 40)}
+                            </a>
+                          )}
+                          <a href={r.sourceUrl} target="_blank" rel="noopener noreferrer"
+                             className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+                            <ExternalLink className="h-3 w-3" /> Ver fonte
+                          </a>
+                        </div>
+                      </div>
+
+                      {/* Save button */}
+                      <Button
+                        size="sm"
+                        variant={r.alreadySaved ? "ghost" : "default"}
+                        className="shrink-0"
+                        disabled={r.alreadySaved || savingUrls.has(r.sourceUrl)}
+                        onClick={() => saveAsEmpresaLead(r)}
+                        data-testid={`button-save-empresa-${idx}`}
+                      >
+                        {savingUrls.has(r.sourceUrl) ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : r.alreadySaved ? (
+                          <CheckCircle2 className="h-4 w-4" />
+                        ) : (
+                          <><UserPlus className="mr-1 h-4 w-4" />Guardar</>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* Load more */}
+              {empresaVisibleCount < allEmpresaResults.length && (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleLoadMoreEmpresa}
+                  disabled={isLoadingMoreEmpresa}
+                  data-testid="button-load-more-empresas"
+                >
+                  {isLoadingMoreEmpresa ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />A carregar...</>
+                  ) : (
+                    <>Ver Mais ({allEmpresaResults.length - empresaVisibleCount} restantes) — 1 token</>
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!isSearchingEmpresa && allEmpresaResults.length === 0 && (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center gap-3">
+                <Building2 className="h-10 w-10 text-muted-foreground/40" />
+                <div>
+                  <p className="font-medium text-sm">Pesquisa de Empresas</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Introduz um tipo de negócio e a localização para encontrar empresas em Angola com os seus dados de contacto.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
         {/* ==================== WEBSITE TAB ==================== */}
         <TabsContent value="search" className="space-y-4">
