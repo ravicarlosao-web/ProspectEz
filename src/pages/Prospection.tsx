@@ -1176,22 +1176,24 @@ const Prospection = () => {
                 Pesquisa directa em directórios angolanos (Yellow Pages, AngoList, VerAngola, Google Maps). Obtém nome, telefone, email, endereço e sector das empresas.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleEmpresaSearch} className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
+            <CardContent className="pt-2">
+              <form onSubmit={handleEmpresaSearch} className="space-y-5">
+                {/* Row 1: query + sector */}
+                <div className="grid gap-5 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Tipo de Negócio / Sector</Label>
+                    <Label className="text-sm font-medium">Tipo de Negócio</Label>
                     <Input
                       placeholder="ex: restaurante, construtora, clínica..."
                       value={empresaQuery}
                       onChange={e => setEmpresaQuery(e.target.value)}
                       data-testid="input-empresa-query"
+                      className="h-10"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Sector (opcional)</Label>
+                    <Label className="text-sm font-medium">Sector <span className="text-muted-foreground font-normal">(opcional)</span></Label>
                     <Select value={empresaSector} onValueChange={setEmpresaSector}>
-                      <SelectTrigger data-testid="select-empresa-sector">
+                      <SelectTrigger data-testid="select-empresa-sector" className="h-10">
                         <SelectValue placeholder="Todos os sectores" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1212,11 +1214,13 @@ const Prospection = () => {
                     </Select>
                   </div>
                 </div>
-                <div className={`grid gap-4 ${empresaProvince === "Luanda" ? "sm:grid-cols-2" : "sm:grid-cols-1"}`}>
+
+                {/* Row 2: province + municipio (municipio only shown for Luanda) */}
+                <div className="grid gap-5 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Província</Label>
+                    <Label className="text-sm font-medium">Província <span className="text-muted-foreground font-normal">(opcional)</span></Label>
                     <Select value={empresaProvince} onValueChange={v => { setEmpresaProvince(v); setEmpresaMunicipio(""); }}>
-                      <SelectTrigger data-testid="select-empresa-province">
+                      <SelectTrigger data-testid="select-empresa-province" className="h-10">
                         <SelectValue placeholder="Todas as províncias" />
                       </SelectTrigger>
                       <SelectContent>
@@ -1225,11 +1229,11 @@ const Prospection = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  {empresaProvince === "Luanda" && (
+                  {empresaProvince === "Luanda" ? (
                     <div className="space-y-2">
-                      <Label>Município</Label>
+                      <Label className="text-sm font-medium">Município</Label>
                       <Select value={empresaMunicipio} onValueChange={setEmpresaMunicipio}>
-                        <SelectTrigger data-testid="select-empresa-municipio">
+                        <SelectTrigger data-testid="select-empresa-municipio" className="h-10">
                           <SelectValue placeholder="Todos os municípios" />
                         </SelectTrigger>
                         <SelectContent>
@@ -1238,9 +1242,18 @@ const Prospection = () => {
                         </SelectContent>
                       </Select>
                     </div>
+                  ) : (
+                    <div /> /* keeps grid balanced */
                   )}
                 </div>
-                <Button type="submit" disabled={isSearchingEmpresa || !empresaQuery.trim()} className="w-full" data-testid="button-empresa-search">
+
+                {/* Search button */}
+                <Button
+                  type="submit"
+                  disabled={isSearchingEmpresa || !empresaQuery.trim()}
+                  className="w-full h-11 text-sm font-semibold mt-1"
+                  data-testid="button-empresa-search"
+                >
                   {isSearchingEmpresa ? (
                     <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{searchProgress || "A pesquisar..."}</>
                   ) : (
@@ -1253,7 +1266,7 @@ const Prospection = () => {
 
           {/* Results */}
           {empresaResults.length > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
                   A mostrar <span className="font-medium text-foreground">{empresaResults.length}</span> de{" "}
@@ -1376,17 +1389,15 @@ const Prospection = () => {
 
           {/* Empty state */}
           {!isSearchingEmpresa && allEmpresaResults.length === 0 && (
-            <Card className="border-dashed">
-              <CardContent className="flex flex-col items-center justify-center py-12 text-center gap-3">
-                <Building2 className="h-10 w-10 text-muted-foreground/40" />
-                <div>
-                  <p className="font-medium text-sm">Pesquisa de Empresas</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Introduz um tipo de negócio e a localização para encontrar empresas em Angola com os seus dados de contacto.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-10 text-center gap-3 text-muted-foreground">
+              <Building2 className="h-9 w-9 opacity-25" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground/60">Nenhuma empresa pesquisada ainda</p>
+                <p className="text-xs max-w-xs">
+                  Preenche o tipo de negócio e clica em "Pesquisar Empresas" para ver resultados com telefone, email e endereço.
+                </p>
+              </div>
+            </div>
           )}
         </TabsContent>
 
