@@ -28,6 +28,7 @@ import { AdminTemplates } from "./components/admin/AdminTemplates";
 import { AdminFinance } from "./components/admin/AdminFinance";
 import { AdminFirecrawl } from "./components/admin/AdminFirecrawl";
 import { AdminSecurityLogs } from "./components/admin/AdminSecurityLogs";
+import { AdminSearchSources } from "./components/admin/AdminSearchSources";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 
@@ -61,6 +62,7 @@ function AnimatedRoutes() {
             <Route path="financeiro" element={<AdminFinance />} />
             <Route path="firecrawl" element={<AdminFirecrawl />} />
             <Route path="seguranca" element={<AdminSecurityLogs />} />
+            <Route path="fontes" element={<AdminSearchSources />} />
           </Route>
         </Route>
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />

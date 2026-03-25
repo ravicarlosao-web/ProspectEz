@@ -13,6 +13,7 @@ import { firecrawlApi } from "@/lib/api/firecrawl";
 import { supabase } from "@/integrations/supabase/client";
 import { PROVINCES_ANGOLA, MUNICIPIOS_LUANDA } from "@/lib/constants";
 import { TokenExhaustedDialog } from "@/components/TokenExhaustedDialog";
+import { useSearchSources } from "@/hooks/useSearchSources";
 
 type SearchResult = {
   url: string;
@@ -331,6 +332,7 @@ const getScoreLabel = (score: number) => {
 const RESULTS_PER_PAGE = 10;
 
 const Prospection = () => {
+  const { enabledKeys } = useSearchSources();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchProvince, setSearchProvince] = useState("");
   const [searchMunicipio, setSearchMunicipio] = useState("");
@@ -579,16 +581,17 @@ const Prospection = () => {
 
       setSearchProgress("A pesquisar empresas em directórios...");
 
-      const queries = [
-        `${q} ${sector} empresa ${loc} site:yellow.co.ao`,
-        `${q} ${sector} empresa ${loc} site:angolist.com`,
-        `${q} ${sector} empresa ${loc} site:verangola.net`,
-        `${q} ${sector} empresa ${loc} telefone email endereço contacto`,
-        `${q} ${sector} empresa ${loc} site:*.ao NIF CNPJ razão social`,
-        `${q} ${sector} empresa ${loc} Google Maps contacto`,
-        `${q} ${sector} empresa ${loc} site:facebook.com/pages`,
-        `${q} ${sector} empresa ${loc} lista directório empresas angolanas`,
+      const allEmpresaQueries: { key: string; q: string }[] = [
+        { key: "yellow_ao",   q: `${q} ${sector} empresa ${loc} site:yellow.co.ao` },
+        { key: "angolist",    q: `${q} ${sector} empresa ${loc} site:angolist.com` },
+        { key: "verangola",   q: `${q} ${sector} empresa ${loc} site:verangola.net` },
+        { key: "geral",       q: `${q} ${sector} empresa ${loc} telefone email endereço contacto` },
+        { key: "ao_domain",   q: `${q} ${sector} empresa ${loc} site:*.ao NIF CNPJ razão social` },
+        { key: "google_maps", q: `${q} ${sector} empresa ${loc} Google Maps contacto` },
+        { key: "facebook",    q: `${q} ${sector} empresa ${loc} site:facebook.com/pages` },
+        { key: "directorio",  q: `${q} ${sector} empresa ${loc} lista directório empresas angolanas` },
       ];
+      const queries = allEmpresaQueries.filter(e => enabledKeys.size === 0 || enabledKeys.has(e.key)).map(e => e.q);
 
       const allRaw: SearchResult[] = [];
       const seenUrls = new Set<string>();
@@ -727,10 +730,10 @@ const Prospection = () => {
         { q: `${q} ${locationPart} site:facebook.com página empresa sobre contacto`, source: "facebook" },
         { q: `${q} ${locationPart} google maps contacto endereço telefone`, source: "google_maps" },
         { q: `${q} ${locationPart} empresa website oficial contacto telefone email`, source: "geral" },
-        { q: `${q} ${locationPart} site:*.co.ao OR site:*.ao empresa`, source: "geral" },
+        { q: `${q} ${locationPart} site:*.co.ao OR site:*.ao empresa`, source: "ao_domain" },
         { q: `${q} ${locationPart} site:verangola.net empresa`, source: "verangola" },
         { q: `${q} Angola directório empresas lista negócio`, source: "directorio" },
-      ];
+      ].filter(e => enabledKeys.size === 0 || enabledKeys.has(e.source));
 
       const allResults: SearchResult[] = [];
       const seenUrls = new Set<string>();
@@ -840,7 +843,7 @@ const Prospection = () => {
         { q: `${q} ${locationPart} site:verangola.net`, source: "verangola" },
         { q: `${q} ${locationPart} redes sociais empresa contacto ${extraTerms}`, source: "geral" },
         { q: `${q} ${locationPart} instagram facebook seguidores página ${extraTerms}`, source: "geral" },
-      ];
+      ].filter(e => enabledKeys.size === 0 || enabledKeys.has(e.source));
 
       const allResults: SearchResult[] = [];
       const seenUrls = new Set<string>();

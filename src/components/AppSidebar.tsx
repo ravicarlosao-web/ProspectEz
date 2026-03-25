@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Search, MessageSquare, Settings, LogOut, Shield,
-  BarChart3, UserCog, CreditCard, FileText, ClipboardCheck, Wallet, Flame, ShieldAlert
+  BarChart3, UserCog, CreditCard, FileText, ClipboardCheck, Wallet, Flame, ShieldAlert, Radio
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { NavLink } from "@/components/NavLink";
@@ -39,6 +39,7 @@ const adminItems = [
   { title: "Logs", url: "/admin/logs", icon: FileText },
   { title: "Auditoria", url: "/admin/auditoria", icon: ClipboardCheck },
   { title: "Templates", url: "/admin/templates", icon: MessageSquare },
+  { title: "Fontes de Pesquisa", url: "/admin/fontes", icon: Radio },
   { title: "Firecrawl", url: "/admin/firecrawl", icon: Flame },
   { title: "Segurança", url: "/admin/seguranca", icon: ShieldAlert },
 ];
