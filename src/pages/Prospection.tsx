@@ -13,14 +13,6 @@ import { firecrawlApi } from "@/lib/api/firecrawl";
 import { supabase } from "@/integrations/supabase/client";
 import { PROVINCES_ANGOLA, MUNICIPIOS_LUANDA } from "@/lib/constants";
 import { TokenExhaustedDialog } from "@/components/TokenExhaustedDialog";
-import {
-  remainingWeeksInMonth,
-  currentWeekStart,
-  currentMonthStart,
-  carryOverThisWeek,
-  computeNewCarryOver,
-  type QuotaRow,
-} from "@/lib/quotaUtils";
 
 type SearchResult = {
   url: string;
@@ -511,91 +503,26 @@ const Prospection = () => {
   );
 
   // ==================== QUOTA HELPERS ====================
-  const consumeResults = async (count: number): Promise<boolean> => {
+  const consumeResults = async (_count: number): Promise<boolean> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
 
-    const { data: raw, error: fetchError } = await supabase
-      .from("search_quotas")
-      .select("used_this_week, weekly_limit, used_this_month, monthly_limit, tokens_added_manually, plan_type, last_weekly_reset, last_monthly_reset, weekly_carry_over")
-      .eq("user_id", user.id)
-      .single();
+    const { data, error } = await supabase.rpc("consume_search_token", {
+      p_user_id: user.id,
+    });
 
-    if (fetchError || !raw) return false;
-
-    const now = new Date();
-    let q: QuotaRow = {
-      plan_type:            (raw as any).plan_type,
-      weekly_limit:         (raw as any).weekly_limit ?? 0,
-      monthly_limit:        (raw as any).monthly_limit ?? 0,
-      used_this_week:       (raw as any).used_this_week ?? 0,
-      used_this_month:      (raw as any).used_this_month ?? 0,
-      tokens_added_manually:(raw as any).tokens_added_manually ?? 0,
-      weekly_carry_over:    (raw as any).weekly_carry_over ?? 0,
-      last_weekly_reset:    (raw as any).last_weekly_reset ?? null,
-      last_monthly_reset:   (raw as any).last_monthly_reset ?? null,
-    };
-
-    const isFree = q.plan_type === "free";
-
-    if (!isFree) {
-      const monthStart = currentMonthStart(now);
-      const lastMonthly = q.last_monthly_reset ? new Date(q.last_monthly_reset) : null;
-
-      if (!lastMonthly || lastMonthly < monthStart) {
-        // New month — reset everything
-        await supabase.from("search_quotas").update({
-          used_this_month:   0,
-          used_this_week:    0,
-          weekly_carry_over: 0,
-          last_monthly_reset: now.toISOString().split("T")[0],
-          last_weekly_reset:  now.toISOString().split("T")[0],
-        } as any).eq("user_id", user.id);
-        q = { ...q, used_this_month: 0, used_this_week: 0, weekly_carry_over: 0 };
-      } else {
-        // Check for weekly reset
-        const weekStart = currentWeekStart(now);
-        const lastWeekly = q.last_weekly_reset ? new Date(q.last_weekly_reset) : null;
-
-        if (!lastWeekly || lastWeekly < weekStart) {
-          const newCarryOver = computeNewCarryOver(q);
-          await supabase.from("search_quotas").update({
-            used_this_week:    0,
-            weekly_carry_over: newCarryOver,
-            last_weekly_reset: now.toISOString().split("T")[0],
-          } as any).eq("user_id", user.id);
-          q = { ...q, used_this_week: 0, weekly_carry_over: newCarryOver };
-        }
-      }
-    }
-
-    // Effective weekly limit: base + carry-over share this week + bonus
-    const carryExtra = isFree ? 0 : carryOverThisWeek(q, now);
-    const effectiveWeekly = q.weekly_limit + carryExtra + (isFree ? 0 : q.tokens_added_manually);
-    const monthlyMax = (q.monthly_limit || 0) + q.tokens_added_manually;
-
-    if (effectiveWeekly > 0 && q.used_this_week + count > effectiveWeekly) {
-      setexhaustedType(isFree ? "free_plan" : "weekly");
-      setShowTokenExhausted(true);
+    if (error) {
+      console.error("consume_search_token error:", error.message);
       return false;
     }
 
-    if (monthlyMax > 0 && q.used_this_month + count > monthlyMax) {
-      setexhaustedType(isFree ? "free_plan" : "monthly");
+    const result = data as { allowed: boolean; reason?: string };
+
+    if (!result.allowed) {
+      const isFree = result.reason === "free_plan_exhausted";
+      const isWeekly = result.reason === "weekly_limit_reached";
+      setexhaustedType(isFree ? "free_plan" : isWeekly ? "weekly" : "monthly");
       setShowTokenExhausted(true);
-      return false;
-    }
-
-    const { error: updateError } = await supabase
-      .from("search_quotas")
-      .update({
-        used_this_week:  q.used_this_week + count,
-        used_this_month: q.used_this_month + count,
-      })
-      .eq("user_id", user.id);
-
-    if (updateError) {
-      console.error("Quota update failed:", updateError.message);
       return false;
     }
 
@@ -626,6 +553,9 @@ const Prospection = () => {
     };
   };
 
+  const sanitizeInput = (input: string, maxLen = 100): string =>
+    input.replace(/<[^>]*>/g, "").replace(/[<>"'`]/g, "").trim().slice(0, maxLen);
+
   const handleEmpresaSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!empresaQuery.trim()) return;
@@ -640,12 +570,12 @@ const Prospection = () => {
     try {
       const province = empresaProvince && empresaProvince !== "all" ? empresaProvince : "";
       const municipio = empresaMunicipio && empresaMunicipio !== "all" ? empresaMunicipio : "";
-      const sector = empresaSector && empresaSector !== "all" ? empresaSector : empresaQuery.trim();
+      const sector = empresaSector && empresaSector !== "all" ? sanitizeInput(empresaSector) : sanitizeInput(empresaQuery);
       const locationParts: string[] = [];
       if (municipio) locationParts.push(municipio);
       if (province) locationParts.push(province);
       const loc = locationParts.length > 0 ? `${locationParts.join(" ")} Angola` : "Angola";
-      const q = empresaQuery.trim();
+      const q = sanitizeInput(empresaQuery);
 
       setSearchProgress("A pesquisar empresas em directórios...");
 
@@ -788,7 +718,7 @@ const Prospection = () => {
       if (municipio) locationParts.push(municipio);
       if (province) locationParts.push(province);
       const locationPart = locationParts.length > 0 ? `${locationParts.join(" ")} Angola` : "Angola";
-      const q = searchQuery.trim();
+      const q = sanitizeInput(searchQuery);
 
       setSearchProgress("A pesquisar empresas...");
       const queries = [
@@ -1188,6 +1118,7 @@ const Prospection = () => {
                       onChange={e => setEmpresaQuery(e.target.value)}
                       data-testid="input-empresa-query"
                       className="h-10"
+                      maxLength={100}
                     />
                   </div>
                   <div className="space-y-2">
@@ -1423,6 +1354,7 @@ const Prospection = () => {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Ex: restaurante, clínica, salão de beleza, hotel..."
                       required
+                      maxLength={100}
                     />
                   </div>
                   <div className="space-y-2">
