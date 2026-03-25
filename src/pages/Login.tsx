@@ -26,6 +26,10 @@ function setRateLimit(attempts: number, lockedUntil: number | null) {
 }
 
 const Login = () => {
+  useEffect(() => {
+    document.title = "Entrar na conta | ProspectEz";
+  }, []);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

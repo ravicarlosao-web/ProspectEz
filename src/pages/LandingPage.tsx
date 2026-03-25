@@ -163,6 +163,10 @@ const navItems = [
 /* ░░░  LANDING PAGE  ░░░ */
 /* ═══════════════════════════════════════ */
 const LandingPage = () => {
+  useEffect(() => {
+    document.title = "ProspectEz — Prospecção Inteligente de Clientes em Angola";
+  }, []);
+
   return (
     <div className="relative min-h-screen bg-background overflow-x-hidden">
       <StarfieldBackground count={120} />

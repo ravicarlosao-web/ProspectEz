@@ -16,6 +16,10 @@ import {
 } from "@/lib/fingerprint";
 
 const Register = () => {
+  useEffect(() => {
+    document.title = "Criar conta gratuita | ProspectEz";
+  }, []);
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");

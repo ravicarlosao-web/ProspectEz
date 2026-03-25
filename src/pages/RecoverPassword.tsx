@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,10 @@ import logoImg from "@/assets/logo.png";
 import { StarfieldBackground } from "@/components/StarfieldBackground";
 
 const RecoverPassword = () => {
+  useEffect(() => {
+    document.title = "Recuperar senha | ProspectEz";
+  }, []);
+
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
 

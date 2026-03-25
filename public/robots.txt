@@ -1,8 +1,22 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /dashboard
+Disallow: /clientes
+Disallow: /mensagens
+Disallow: /prospeccao
+Disallow: /configuracoes
+Disallow: /financeiro
+Disallow: /admin
 
 User-agent: Bingbot
 Allow: /
+Disallow: /dashboard
+Disallow: /clientes
+Disallow: /mensagens
+Disallow: /prospeccao
+Disallow: /configuracoes
+Disallow: /financeiro
+Disallow: /admin
 
 User-agent: Twitterbot
 Allow: /
@@ -12,3 +26,12 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /clientes
+Disallow: /mensagens
+Disallow: /prospeccao
+Disallow: /configuracoes
+Disallow: /financeiro
+Disallow: /admin
+
+Sitemap: https://prospectez.ao/sitemap.xml
