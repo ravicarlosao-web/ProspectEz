@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import {
-  Globe, Instagram, Facebook, Linkedin, Map, Search, BookOpen,
+  Globe, Instagram, Facebook, Linkedin, MapPin, Search, BookOpen,
   TrendingUp, Network, LayoutGrid, Music2
 } from "lucide-react";
 
@@ -19,7 +19,7 @@ const SOURCE_ICONS: Record<string, React.ReactNode> = {
   instagram:   <Instagram className="h-5 w-5 text-pink-500" />,
   linkedin:    <Linkedin className="h-5 w-5 text-blue-700" />,
   tiktok:      <Music2 className="h-5 w-5 text-black dark:text-white" />,
-  google_maps: <Map className="h-5 w-5 text-red-500" />,
+  google_maps: <MapPin className="h-5 w-5 text-red-500" />,
   directorio:  <Search className="h-5 w-5 text-orange-500" />,
   geral:       <TrendingUp className="h-5 w-5 text-gray-500" />,
 };
