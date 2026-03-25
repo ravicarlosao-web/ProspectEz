@@ -168,6 +168,75 @@ const detectSource = (url: string): string => {
   return "geral";
 };
 
+// ── NEWS ARTICLE FILTER ──────────────────────────────────────────────────────
+// URLs that belong to news/article sections (not business listings)
+const NEWS_URL_PATTERNS = [
+  "/va/pt/",          // VerAngola news: /va/pt/YYYYMM/Category/ID/Slug.htm
+  "/noticias/", "/noticia/",
+  "/news/", "/artigo/", "/article/",
+  "/blog/", "/post/", "/posts/",
+  "/reportagem/", "/actualidade/", "/opiniao/",
+  "/economia/", "/industria/", "/politica/", "/sociedade/",
+];
+
+// Verbs that strongly signal a news headline (not a company name)
+const NEWS_VERB_RE = /\b(investiu|prevê|terá|ficará|distingui|integra|anuncia|anunciou|revela|revelou|lança|lançou|recebe|recebeu|abre|abriu|fecha|fechou|cresce|cresceu|sobe|subiu|desce|desceu|propõe|propôs|aprova|aprovou|rejeita|rejeitou|conquista|ganha|ganhou|perde|perdeu|atinge|atingiu|ultrapassa|ultrapassou|celebra|assina|assinou|venceu|adjudica|lidera|contrata|contratou|promove|promoveu|implementa|vai gerir|será|previsto|projectado)\b/i;
+
+// Generic sector/category words that are never a company name on their own
+const GENERIC_NAMES = new Set([
+  "construção", "saúde", "educação", "tecnologia", "alimentação", "petróleo",
+  "mineração", "energia", "angola", "luanda", "notícias", "noticias", "empresas",
+  "economia", "indústria", "industria", "serviços", "comercio", "comércio",
+  "banca", "seguros", "transportes", "imobiliário", "imobiliaria", "turismo",
+  "agricultura", "pecuária", "telecomunicações", "media", "comunicação",
+]);
+
+/**
+ * Returns true if a SearchResult looks like a news article / category page
+ * rather than a concrete business listing.
+ */
+const isNewsArticle = (r: SearchResult): boolean => {
+  const url   = (r.url   || "").toLowerCase();
+  const title = (r.title || "").trim();
+  const words = title.split(/\s+/);
+
+  // 1. URL path belongs to a news section
+  if (NEWS_URL_PATTERNS.some(p => url.includes(p))) return true;
+
+  // 2. Title is a long sentence (> 8 words) → almost certainly a headline
+  if (words.length > 8) return true;
+
+  // 3. Title is truncated (ends with "...") AND has > 5 words
+  if (title.endsWith("...") && words.length > 5) return true;
+
+  // 4. Title contains news-specific past/future tense verbs
+  if (NEWS_VERB_RE.test(title)) return true;
+
+  return false;
+};
+
+/**
+ * Returns true if the parsed empresa result is a quality lead
+ * (has at least one concrete contact signal).
+ */
+const isQualityLead = (r: { businessName: string; phones: string[]; emails: string[]; address: string }): boolean => {
+  const nameLower = r.businessName.trim().toLowerCase();
+
+  // Reject generic sector/category words as "company names"
+  if (GENERIC_NAMES.has(nameLower)) return false;
+
+  // Reject extremely short (1 char) or clearly truncated names
+  if (r.businessName.trim().length < 2) return false;
+
+  // Require at least one contact signal: phone, email, or address
+  const hasContact = r.phones.length > 0 || r.emails.length > 0 || r.address.length > 0;
+  // Allow results without contact IF name is a short proper noun (likely a known company)
+  const isShortProperNoun = r.businessName.trim().split(/\s+/).length <= 4;
+
+  return hasContact || isShortProperNoun;
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Enhanced contact extraction with broader patterns
 const extractContactInfoStatic = (text: string | undefined) => {
   if (!text) return { emails: [], phones: [] };
@@ -628,16 +697,19 @@ const Prospection = () => {
         }
       }
 
-      setSearchProgress("");
+      setSearchProgress("A filtrar resultados...");
 
-      if (allRaw.length === 0) {
-        toast.error("Nenhuma empresa encontrada. Tente outros termos.");
+      // ── STEP 1: Remove news articles / category pages ──────────────────────
+      const cleanedRaw = allRaw.filter(r => !isNewsArticle(r));
+
+      if (cleanedRaw.length === 0) {
+        toast.error("Nenhuma empresa encontrada. Tente outros termos ou active mais fontes.");
         return;
       }
 
-      // Deduplicate by company name
+      // ── STEP 2: Deduplicate by company name, merging contact info ───────────
       const seen = new Map<string, EmpresaResult>();
-      for (const r of allRaw) {
+      for (const r of cleanedRaw) {
         const parsed = parseEmpresaFromResult(r, sector);
         const key = normalizeName(parsed.businessName);
         if (!key || key.length < 2) continue;
@@ -653,14 +725,16 @@ const Prospection = () => {
         }
       }
 
-      const results = Array.from(seen.values());
+      // ── STEP 3: Quality filter — remove generic names / empty leads ─────────
+      const results = Array.from(seen.values()).filter(isQualityLead);
       setAllEmpresaResults(results);
       setEmpresaVisibleCount(RESULTS_PER_PAGE);
 
       const newOnes = results.filter(r => !r.alreadySaved).length;
       const savedOnes = results.filter(r => r.alreadySaved).length;
+      const filteredOut = allRaw.length - cleanedRaw.length;
       toast.success(
-        `${results.length} empresas encontradas — ${newOnes} novas${savedOnes > 0 ? `, ${savedOnes} já guardadas` : ""}`
+        `${results.length} empresas encontradas — ${newOnes} novas${savedOnes > 0 ? `, ${savedOnes} já guardadas` : ""}${filteredOut > 0 ? ` (${filteredOut} notícias/artigos removidos)` : ""}`
       );
 
       const { data: { user: u2 } } = await supabase.auth.getUser();
