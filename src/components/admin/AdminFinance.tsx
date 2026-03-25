@@ -34,11 +34,11 @@ type Payment = {
   user_name?: string;
 };
 
-const PLAN_TOKENS: Record<string, number> = {
-  free: 3,
-  starter: 30,
-  pro: 100,
-  business: 300,
+const PLAN_QUOTAS: Record<string, { weekly_limit: number; monthly_limit: number }> = {
+  free:     { weekly_limit: 1,  monthly_limit: 0   },
+  starter:  { weekly_limit: 5,  monthly_limit: 28  },
+  pro:      { weekly_limit: 21, monthly_limit: 84  },
+  business: { weekly_limit: 64, monthly_limit: 253 },
 };
 
 export function AdminFinance() {
@@ -130,14 +130,17 @@ export function AdminFinance() {
 
       // Update user quota if it's a plan upgrade
       if (selectedPayment.plan_key) {
-        const newLimit = PLAN_TOKENS[selectedPayment.plan_key] || 3;
+        const quotas = PLAN_QUOTAS[selectedPayment.plan_key] ?? PLAN_QUOTAS.free;
         
         const { error: quotaError } = await supabase
           .from("search_quotas")
           .update({
             plan_type: selectedPayment.plan_key,
-            monthly_limit: newLimit,
+            weekly_limit: quotas.weekly_limit,
+            monthly_limit: quotas.monthly_limit,
+            used_this_week: 0,
             used_this_month: 0,
+            last_weekly_reset: new Date().toISOString().split("T")[0],
             last_monthly_reset: new Date().toISOString().split("T")[0],
           })
           .eq("user_id", selectedPayment.user_id);
