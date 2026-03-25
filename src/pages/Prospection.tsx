@@ -332,7 +332,7 @@ const getScoreLabel = (score: number) => {
 const RESULTS_PER_PAGE = 10;
 
 const Prospection = () => {
-  const { enabledKeys } = useSearchSources();
+  const { effectiveEnabledKeys: enabledKeys } = useSearchSources();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchProvince, setSearchProvince] = useState("");
   const [searchMunicipio, setSearchMunicipio] = useState("");
