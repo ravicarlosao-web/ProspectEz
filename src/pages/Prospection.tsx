@@ -591,7 +591,13 @@ const Prospection = () => {
         { key: "facebook",    q: `${q} ${sector} empresa ${loc} site:facebook.com/pages` },
         { key: "directorio",  q: `${q} ${sector} empresa ${loc} lista directório empresas angolanas` },
       ];
-      const queries = allEmpresaQueries.filter(e => enabledKeys.size === 0 || enabledKeys.has(e.key)).map(e => e.q);
+      const queries = allEmpresaQueries.filter(e => enabledKeys.has(e.key)).map(e => e.q);
+
+      if (queries.length === 0) {
+        setIsSearchingEmpresa(false);
+        toast.error("Todas as fontes de pesquisa estão desactivadas. Activa pelo menos uma em Admin → Fontes de Pesquisa.");
+        return;
+      }
 
       const allRaw: SearchResult[] = [];
       const seenUrls = new Set<string>();
@@ -733,7 +739,13 @@ const Prospection = () => {
         { q: `${q} ${locationPart} site:*.co.ao OR site:*.ao empresa`, source: "ao_domain" },
         { q: `${q} ${locationPart} site:verangola.net empresa`, source: "verangola" },
         { q: `${q} Angola directório empresas lista negócio`, source: "directorio" },
-      ].filter(e => enabledKeys.size === 0 || enabledKeys.has(e.source));
+      ].filter(e => enabledKeys.has(e.source));
+
+      if (queries.length === 0) {
+        setIsSearching(false);
+        toast.error("Todas as fontes de pesquisa estão desactivadas. Activa pelo menos uma em Admin → Fontes de Pesquisa.");
+        return;
+      }
 
       const allResults: SearchResult[] = [];
       const seenUrls = new Set<string>();
@@ -843,7 +855,13 @@ const Prospection = () => {
         { q: `${q} ${locationPart} site:verangola.net`, source: "verangola" },
         { q: `${q} ${locationPart} redes sociais empresa contacto ${extraTerms}`, source: "geral" },
         { q: `${q} ${locationPart} instagram facebook seguidores página ${extraTerms}`, source: "geral" },
-      ].filter(e => enabledKeys.size === 0 || enabledKeys.has(e.source));
+      ].filter(e => enabledKeys.has(e.source));
+
+      if (queries.length === 0) {
+        setIsSearchingSocial(false);
+        toast.error("Todas as fontes de pesquisa estão desactivadas. Activa pelo menos uma em Admin → Fontes de Pesquisa.");
+        return;
+      }
 
       const allResults: SearchResult[] = [];
       const seenUrls = new Set<string>();
