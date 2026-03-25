@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  useSearchSources, type SearchSource, type PlanSourceMap,
+  useSearchSources, type SearchSource,
   DEFAULT_SOURCES, PLAN_LABELS, PLAN_COLORS,
 } from "@/hooks/useSearchSources";
 import { Switch } from "@/components/ui/switch";
@@ -45,34 +45,88 @@ const PLAN_BADGE_VARIANT: Record<string, "default" | "secondary" | "outline"> = 
   business: "default",
 };
 
-const SETUP_SQL = `-- Migration 1: search_sources (fontes globais)
+// Idempotent SQL for search_sources table (uses DO block to avoid duplicate policy errors)
+const GLOBAL_SQL = `-- Tabela search_sources (fontes globais) — idempotente
 CREATE TABLE IF NOT EXISTS public.search_sources (
-  key text PRIMARY KEY, label text NOT NULL,
-  description text NOT NULL DEFAULT '', is_enabled boolean NOT NULL DEFAULT true, sort_order integer NOT NULL DEFAULT 0
+  key text PRIMARY KEY,
+  label text NOT NULL,
+  description text NOT NULL DEFAULT '',
+  is_enabled boolean NOT NULL DEFAULT true,
+  sort_order integer NOT NULL DEFAULT 0
 );
 ALTER TABLE public.search_sources ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "All authenticated can read search_sources" ON public.search_sources FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Admins can manage search_sources" ON public.search_sources FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'admin')) WITH CHECK (public.has_role(auth.uid(), 'admin'));
-INSERT INTO public.search_sources (key,label,description,is_enabled,sort_order) VALUES
-('yellow_ao','Yellow Pages Angola','site:yellow.co.ao',true,1),('angolist','Angolist','site:angolist.com',true,2),
-('verangola','VerAngola','site:verangola.net',true,3),('ao_domain','Domínios .ao','site:*.ao e .co.ao',true,4),
-('facebook','Facebook','site:facebook.com',true,5),('instagram','Instagram','site:instagram.com',true,6),
-('linkedin','LinkedIn','site:linkedin.com',true,7),('tiktok','TikTok','site:tiktok.com',true,8),
-('google_maps','Google Maps','Google Maps',true,9),('directorio','Directório Angola','Directórios gerais',true,10),
-('geral','Pesquisa Geral','Google geral',true,11) ON CONFLICT (key) DO NOTHING;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'search_sources'
+    AND policyname = 'All authenticated can read search_sources'
+  ) THEN
+    CREATE POLICY "All authenticated can read search_sources"
+      ON public.search_sources FOR SELECT TO authenticated USING (true);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'search_sources'
+    AND policyname = 'Admins can manage search_sources'
+  ) THEN
+    CREATE POLICY "Admins can manage search_sources"
+      ON public.search_sources FOR ALL TO authenticated
+      USING (public.has_role(auth.uid(), 'admin'))
+      WITH CHECK (public.has_role(auth.uid(), 'admin'));
+  END IF;
+END $$;
+INSERT INTO public.search_sources (key, label, description, is_enabled, sort_order) VALUES
+  ('yellow_ao',   'Yellow Pages Angola', 'site:yellow.co.ao',        true, 1),
+  ('angolist',    'Angolist',            'site:angolist.com',         true, 2),
+  ('verangola',   'VerAngola',           'site:verangola.net',        true, 3),
+  ('ao_domain',   'Domínios .ao',        'site:*.ao e .co.ao',        true, 4),
+  ('facebook',    'Facebook',            'site:facebook.com',         true, 5),
+  ('instagram',   'Instagram',           'site:instagram.com',        true, 6),
+  ('linkedin',    'LinkedIn',            'site:linkedin.com',         true, 7),
+  ('tiktok',      'TikTok',              'site:tiktok.com',           true, 8),
+  ('google_maps', 'Google Maps',         'Google Maps',               true, 9),
+  ('directorio',  'Directório Angola',   'Directórios gerais',        true, 10),
+  ('geral',       'Pesquisa Geral',      'Google geral',              true, 11)
+ON CONFLICT (key) DO NOTHING;`;
 
--- Migration 2: plan_search_sources (fontes por plano)
+// Idempotent SQL for plan_search_sources table only
+const PLAN_SQL = `-- Tabela plan_search_sources (fontes por plano) — idempotente
 CREATE TABLE IF NOT EXISTS public.plan_search_sources (
-  plan_type text NOT NULL, source_key text NOT NULL, is_enabled boolean NOT NULL DEFAULT true,
+  plan_type  text NOT NULL,
+  source_key text NOT NULL,
+  is_enabled boolean NOT NULL DEFAULT true,
   PRIMARY KEY (plan_type, source_key)
 );
 ALTER TABLE public.plan_search_sources ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "All authenticated can read plan_search_sources" ON public.plan_search_sources FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Admins can manage plan_search_sources" ON public.plan_search_sources FOR ALL TO authenticated USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
-INSERT INTO public.plan_search_sources (plan_type,source_key,is_enabled)
-SELECT p,s,true FROM (VALUES ('free'),('starter'),('pro'),('business')) AS plans(p)
-CROSS JOIN (VALUES ('yellow_ao'),('angolist'),('verangola'),('ao_domain'),('facebook'),('instagram'),('linkedin'),('tiktok'),('google_maps'),('directorio'),('geral')) AS srcs(s)
-ON CONFLICT (plan_type,source_key) DO NOTHING;`;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'plan_search_sources'
+    AND policyname = 'All authenticated can read plan_search_sources'
+  ) THEN
+    CREATE POLICY "All authenticated can read plan_search_sources"
+      ON public.plan_search_sources FOR SELECT TO authenticated USING (true);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'plan_search_sources'
+    AND policyname = 'Admins can manage plan_search_sources'
+  ) THEN
+    CREATE POLICY "Admins can manage plan_search_sources"
+      ON public.plan_search_sources FOR ALL TO authenticated
+      USING (public.has_role(auth.uid(), 'admin'))
+      WITH CHECK (public.has_role(auth.uid(), 'admin'));
+  END IF;
+END $$;
+INSERT INTO public.plan_search_sources (plan_type, source_key, is_enabled)
+SELECT plans.p, srcs.s, true
+FROM (VALUES ('free'), ('starter'), ('pro'), ('business')) AS plans(p)
+CROSS JOIN (VALUES
+  ('yellow_ao'), ('angolist'), ('verangola'), ('ao_domain'),
+  ('facebook'), ('instagram'), ('linkedin'), ('tiktok'),
+  ('google_maps'), ('directorio'), ('geral')
+) AS srcs(s)
+ON CONFLICT (plan_type, source_key) DO NOTHING;`;
 
 function SourceRow({
   source, enabled, disabled, onToggle, saving,
@@ -102,7 +156,8 @@ export function AdminSearchSources() {
   const { sources, planSources, loading, usingFallback, usingPlanFallback, refetch } = useSearchSources();
   const [savingGlobal, setSavingGlobal] = useState<string | null>(null);
   const [savingPlan, setSavingPlan] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copiedGlobal, setCopiedGlobal] = useState(false);
+  const [copiedPlan, setCopiedPlan] = useState(false);
 
   const toggleGlobal = async (source: SearchSource) => {
     if (usingFallback) { toast.error("Aplica primeiro o SQL no Supabase."); return; }
@@ -126,17 +181,24 @@ export function AdminSearchSources() {
     setSavingPlan(null);
   };
 
-  const copySql = () => {
-    navigator.clipboard.writeText(SETUP_SQL).then(() => {
-      setCopied(true);
+  const copyGlobalSql = () => {
+    navigator.clipboard.writeText(GLOBAL_SQL).then(() => {
+      setCopiedGlobal(true);
       toast.success("SQL copiado! Cola no Supabase SQL Editor e clica Run.");
-      setTimeout(() => setCopied(false), 3000);
+      setTimeout(() => setCopiedGlobal(false), 3000);
+    });
+  };
+
+  const copyPlanSql = () => {
+    navigator.clipboard.writeText(PLAN_SQL).then(() => {
+      setCopiedPlan(true);
+      toast.success("SQL copiado! Cola no Supabase SQL Editor e clica Run.");
+      setTimeout(() => setCopiedPlan(false), 3000);
     });
   };
 
   const sourceMap = new Map(sources.map(s => [s.key, s]));
   const enabledGlobalCount = sources.filter(s => s.is_enabled).length;
-  const needsSetup = usingFallback || usingPlanFallback;
 
   if (loading) {
     return (
@@ -162,21 +224,39 @@ export function AdminSearchSources() {
         )}
       </div>
 
-      {needsSetup && (
+      {/* Alert: search_sources table missing */}
+      {usingFallback && (
         <Alert className="border-amber-500/50 bg-amber-500/10">
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           <AlertTitle className="text-amber-600 dark:text-amber-400">
-            {usingFallback ? "Tabelas não encontradas no Supabase" : "Tabela de planos não encontrada"}
+            Tabela search_sources não encontrada
           </AlertTitle>
           <AlertDescription className="mt-2 space-y-3">
             <p className="text-sm">
-              {usingFallback
-                ? "As tabelas search_sources e plan_search_sources ainda não existem. Estás em modo de pré-visualização."
-                : "A tabela plan_search_sources ainda não existe. O controlo por plano não está disponível."}
+              A tabela de fontes globais ainda não existe no Supabase. Estás em modo de pré-visualização.
             </p>
-            <Button size="sm" variant="outline" onClick={copySql} className="gap-2 border-amber-500/50">
-              {copied ? <CheckCheck className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-              {copied ? "Copiado!" : "Copiar SQL completo (ambas as tabelas)"}
+            <Button size="sm" variant="outline" onClick={copyGlobalSql} className="gap-2 border-amber-500/50">
+              {copiedGlobal ? <CheckCheck className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              {copiedGlobal ? "Copiado!" : "Copiar SQL — search_sources"}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Alert: plan_search_sources table missing (search_sources already exists) */}
+      {!usingFallback && usingPlanFallback && (
+        <Alert className="border-amber-500/50 bg-amber-500/10">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertTitle className="text-amber-600 dark:text-amber-400">
+            Tabela plan_search_sources não encontrada
+          </AlertTitle>
+          <AlertDescription className="mt-2 space-y-3">
+            <p className="text-sm">
+              A tabela de controlo por plano ainda não foi criada. A tab "Por Plano" está em modo de pré-visualização.
+            </p>
+            <Button size="sm" variant="outline" onClick={copyPlanSql} className="gap-2 border-amber-500/50">
+              {copiedPlan ? <CheckCheck className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              {copiedPlan ? "Copiado!" : "Copiar SQL — plan_search_sources"}
             </Button>
           </AlertDescription>
         </Alert>
@@ -192,7 +272,8 @@ export function AdminSearchSources() {
         <TabsContent value="global" className="mt-6 space-y-5">
           {Object.entries(SOURCE_TABS).map(([tabName, keys]) => {
             const tabSources = keys
-              .map(k => sourceMap.get(k)).filter(Boolean) as SearchSource[];
+              .map(k => sourceMap.get(k) ?? DEFAULT_SOURCES.find(s => s.key === k))
+              .filter(Boolean) as SearchSource[];
             const uniqueSources = tabSources.filter((s, i, arr) => arr.findIndex(x => x.key === s.key) === i);
             return (
               <Card key={tabName}>
