@@ -168,19 +168,42 @@ const detectSource = (url: string): string => {
   return "geral";
 };
 
-// ── NEWS ARTICLE FILTER ──────────────────────────────────────────────────────
-// URLs that belong to news/article sections (not business listings)
+// ══════════════════════════════════════════════════════════════════════════════
+// ULTRA-FINE LEAD FILTER — applied to ALL three search areas
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Domains that are news portals, blogs, encyclopaedias — never a business lead
+const BLOG_NEWS_DOMAINS = [
+  // Angolan news / media
+  "sapo.ao", "jornaldeangola", "portaldeangola", "expansao.ao",
+  "folha8.ao", "voa.ao", "club-k.net", "o-pais.ao", "relvado.ao",
+  "novojornal.co.ao", "mercadoangola.ao", "angop.ao", "ango24.com",
+  "dw.com", "rfi.fr", "voanews.com",
+  // International news / blogs / encyclopaedias
+  "wikipedia.org", "wikimedia.org", "medium.com", "blogspot.com",
+  "wordpress.com", "substack.com", "reuters.com", "bbc.com",
+  "lusa.pt", "rtp.pt", "publico.pt", "dn.pt", "jn.pt",
+  "linkedin.com/pulse", "quora.com",
+];
+
+// URL path segments that identify news / article / blog pages
 const NEWS_URL_PATTERNS = [
   "/va/pt/",          // VerAngola news: /va/pt/YYYYMM/Category/ID/Slug.htm
   "/noticias/", "/noticia/",
-  "/news/", "/artigo/", "/article/",
+  "/news/", "/artigo/", "/article/", "/articles/",
   "/blog/", "/post/", "/posts/",
   "/reportagem/", "/actualidade/", "/opiniao/",
-  "/economia/", "/industria/", "/politica/", "/sociedade/",
+  "/economia/noticias", "/industria/noticias",
+  "/politica/", "/sociedade/", "/categoria/",
+  "/tag/", "/tags/", "/search?", "?s=", "?q=",
+  "/feed/", "/rss",
 ];
 
-// Verbs that strongly signal a news headline (not a company name)
-const NEWS_VERB_RE = /\b(investiu|prevê|terá|ficará|distingui|integra|anuncia|anunciou|revela|revelou|lança|lançou|recebe|recebeu|abre|abriu|fecha|fechou|cresce|cresceu|sobe|subiu|desce|desceu|propõe|propôs|aprova|aprovou|rejeita|rejeitou|conquista|ganha|ganhou|perde|perdeu|atinge|atingiu|ultrapassa|ultrapassou|celebra|assina|assinou|venceu|adjudica|lidera|contrata|contratou|promove|promoveu|implementa|vai gerir|será|previsto|projectado)\b/i;
+// URL patterns that use year/month paths (typical of CMS news)
+const DATE_PATH_RE = /\/(19|20)\d{2}\/(0[1-9]|1[0-2])\//;
+
+// Verbs that make a title a news headline instead of a company name
+const NEWS_VERB_RE = /\b(investiu|prevê|terá|ficará|distingui|integra|anuncia|anunciou|revela|revelou|lança|lançou|recebe|recebeu|abre|abriu|fecha|fechou|cresce|cresceu|sobe|subiu|desce|desceu|propõe|propôs|aprova|aprovou|rejeita|rejeitou|conquista|ganha|ganhou|perde|perdeu|atinge|atingiu|ultrapassa|ultrapassou|celebra|assina|assinou|venceu|adjudica|lidera|contrata|contratou|promove|promoveu|implementa|vai gerir|será destacado|previsto para|projectado|vai inaugurar|vai abrir|vai fechar|inaugura|apresentou)\b/i;
 
 // Generic sector/category words that are never a company name on their own
 const GENERIC_NAMES = new Set([
@@ -189,53 +212,73 @@ const GENERIC_NAMES = new Set([
   "economia", "indústria", "industria", "serviços", "comercio", "comércio",
   "banca", "seguros", "transportes", "imobiliário", "imobiliaria", "turismo",
   "agricultura", "pecuária", "telecomunicações", "media", "comunicação",
+  "política", "governo", "ministério", "sociedade", "cultura", "desporto",
+  "ambiente", "ciência", "investigação", "formação",
 ]);
 
 /**
- * Returns true if a SearchResult looks like a news article / category page
- * rather than a concrete business listing.
+ * Returns true if a raw SearchResult is a news article, blog, category
+ * page or any non-business content. Should be applied to ALL raw results
+ * before any analysis step.
  */
-const isNewsArticle = (r: SearchResult): boolean => {
+const isNewsOrBlog = (r: SearchResult): boolean => {
   const url   = (r.url   || "").toLowerCase();
   const title = (r.title || "").trim();
   const words = title.split(/\s+/);
 
-  // 1. URL path belongs to a news section
+  // 1. Belongs to a known news / blog domain
+  if (BLOG_NEWS_DOMAINS.some(d => url.includes(d))) return true;
+
+  // 2. URL path identifies a news / blog section
   if (NEWS_URL_PATTERNS.some(p => url.includes(p))) return true;
 
-  // 2. Title is a long sentence (> 8 words) → almost certainly a headline
-  if (words.length > 8) return true;
+  // 3. URL has year/month structure (e.g., /2024/03/) — CMS news
+  if (DATE_PATH_RE.test(url)) return true;
 
-  // 3. Title is truncated (ends with "...") AND has > 5 words
-  if (title.endsWith("...") && words.length > 5) return true;
+  // 4. Title is a long sentence → almost certainly a headline
+  if (words.length > 7) return true;
 
-  // 4. Title contains news-specific past/future tense verbs
+  // 5. Title is a truncated headline (ends with "...") and has > 4 words
+  if (title.endsWith("...") && words.length > 4) return true;
+
+  // 6. Title contains news-specific verbs
   if (NEWS_VERB_RE.test(title)) return true;
 
   return false;
 };
 
 /**
- * Returns true if the parsed empresa result is a quality lead
- * (has at least one concrete contact signal).
+ * Returns true if a parsed Empresa result is a usable contact lead.
+ * STRICT: requires at minimum phone, email OR address.
+ * Generic names and name-only entries are rejected.
  */
 const isQualityLead = (r: { businessName: string; phones: string[]; emails: string[]; address: string }): boolean => {
-  const nameLower = r.businessName.trim().toLowerCase();
+  const nameLower = normalizeName(r.businessName);
 
-  // Reject generic sector/category words as "company names"
+  // Reject generic sector / category words
   if (GENERIC_NAMES.has(nameLower)) return false;
 
-  // Reject extremely short (1 char) or clearly truncated names
+  // Reject extremely short or blank names
   if (r.businessName.trim().length < 2) return false;
 
-  // Require at least one contact signal: phone, email, or address
-  const hasContact = r.phones.length > 0 || r.emails.length > 0 || r.address.length > 0;
-  // Allow results without contact IF name is a short proper noun (likely a known company)
-  const isShortProperNoun = r.businessName.trim().split(/\s+/).length <= 4;
-
-  return hasContact || isShortProperNoun;
+  // STRICT: must have at least one concrete contact signal
+  return r.phones.length > 0 || r.emails.length > 0 || r.address.length > 0;
 };
-// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Returns true if an AnalyzedResult (website tab) or SocialAnalyzedResult
+ * has at least one usable contact and a non-generic name.
+ */
+const isQualityAnalyzedLead = (r: {
+  businessName: string;
+  contacts: { emails: string[]; phones: string[] };
+}): boolean => {
+  const nameLower = normalizeName(r.businessName);
+  if (GENERIC_NAMES.has(nameLower)) return false;
+  if (r.businessName.trim().length < 2) return false;
+  return r.contacts.emails.length > 0 || r.contacts.phones.length > 0;
+};
+// ══════════════════════════════════════════════════════════════════════════════
 
 // Enhanced contact extraction with broader patterns
 const extractContactInfoStatic = (text: string | undefined) => {
@@ -700,7 +743,7 @@ const Prospection = () => {
       setSearchProgress("A filtrar resultados...");
 
       // ── STEP 1: Remove news articles / category pages ──────────────────────
-      const cleanedRaw = allRaw.filter(r => !isNewsArticle(r));
+      const cleanedRaw = allRaw.filter(r => !isNewsOrBlog(r));
 
       if (cleanedRaw.length === 0) {
         toast.error("Nenhuma empresa encontrada. Tente outros termos ou active mais fontes.");
@@ -859,7 +902,10 @@ const Prospection = () => {
       setSearchProgress("");
 
       if (allResults.length > 0) {
-        const analyzed = analyzeResults(allResults);
+        // Ultra-fine filter: remove news/blogs first, then require a contact
+        const cleanForAnalysis = allResults.filter(r => !isNewsOrBlog(r));
+        const analyzed = analyzeResults(cleanForAnalysis).filter(isQualityAnalyzedLead);
+        const filteredWebsite = allResults.length - cleanForAnalysis.length;
         setAllAnalyzedResults(analyzed);
         setVisibleCount(RESULTS_PER_PAGE);
 
@@ -868,7 +914,7 @@ const Prospection = () => {
         const alreadySaved = visible.filter(r => r.alreadySaved).length;
         const { data: { user: u2 } } = await supabase.auth.getUser();
         toast.success(
-          `${analyzed.length} empresas encontradas — a mostrar ${Math.min(RESULTS_PER_PAGE, analyzed.length)}${withoutSite > 0 ? ` (${withoutSite} sem website)` : ""}${alreadySaved > 0 ? `, ${alreadySaved} já guardadas` : ""}`
+          `${analyzed.length} empresas encontradas — a mostrar ${Math.min(RESULTS_PER_PAGE, analyzed.length)}${withoutSite > 0 ? ` (${withoutSite} sem website)` : ""}${alreadySaved > 0 ? `, ${alreadySaved} já guardadas` : ""}${filteredWebsite > 0 ? ` · ${filteredWebsite} notícias/blogs removidos` : ""}`
         );
 
         await supabase.from("prospection_logs").insert({
@@ -982,7 +1028,10 @@ const Prospection = () => {
       setSearchProgress("");
 
       if (allResults.length > 0) {
-        let analyzed = analyzeSocialPresence(allResults, isAlreadySaved);
+        // Ultra-fine filter: remove news/blogs first, then require a contact
+        const cleanForSocial = allResults.filter(r => !isNewsOrBlog(r));
+        let analyzed = analyzeSocialPresence(cleanForSocial, isAlreadySaved)
+          .filter(isQualityAnalyzedLead);
 
         if (socialPostRegularity && socialPostRegularity !== "all") {
           analyzed = analyzed.filter(r => r.socialIndicators.irregularPosts);
