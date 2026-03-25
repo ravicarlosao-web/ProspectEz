@@ -92,13 +92,17 @@ const SOCIAL_PLATFORMS = [
 ];
 
 const SOURCE_LABELS: Record<string, string> = {
-  linkedin: "LinkedIn",
+  linkedin:    "LinkedIn",
   google_maps: "Google Maps",
-  facebook: "Facebook",
-  instagram: "Instagram",
-  verangola: "VerAngola",
-  geral: "Google",
-  directorio: "Directório",
+  facebook:    "Facebook",
+  instagram:   "Instagram",
+  verangola:   "VerAngola",
+  geral:       "Google",
+  directorio:  "Directório",
+  yellow_ao:   "Yellow Pages",
+  angolist:    "AngoList",
+  ao_domain:   "Domínios .ao",
+  tiktok:      "TikTok",
 };
 
 // Normalize business name for dedup - remove suffixes like Lda, SA, etc.
@@ -374,6 +378,7 @@ const Prospection = () => {
     rawNames: [],
   });
   const [searchProgress, setSearchProgress] = useState("");
+  const [searchProgressPct, setSearchProgressPct] = useState(0);
   const [showTokenExhausted, setShowTokenExhausted] = useState(false);
   const [exhaustedType, setexhaustedType] = useState<"weekly" | "monthly" | "free_plan">("weekly");
 
@@ -591,9 +596,9 @@ const Prospection = () => {
         { key: "facebook",    q: `${q} ${sector} empresa ${loc} site:facebook.com/pages` },
         { key: "directorio",  q: `${q} ${sector} empresa ${loc} lista directório empresas angolanas` },
       ];
-      const queries = allEmpresaQueries.filter(e => enabledKeys.has(e.key)).map(e => e.q);
+      const activeEmpresaQueries = allEmpresaQueries.filter(e => enabledKeys.has(e.key));
 
-      if (queries.length === 0) {
+      if (activeEmpresaQueries.length === 0) {
         setIsSearchingEmpresa(false);
         toast.error("Todas as fontes de pesquisa estão desactivadas. Activa pelo menos uma em Admin → Fontes de Pesquisa.");
         return;
@@ -602,11 +607,13 @@ const Prospection = () => {
       const allRaw: SearchResult[] = [];
       const seenUrls = new Set<string>();
 
-      for (let i = 0; i < queries.length; i += 3) {
-        const batch = queries.slice(i, i + 3);
-        setSearchProgress(`A pesquisar directórios (${i + 1}/${queries.length})...`);
+      for (let i = 0; i < activeEmpresaQueries.length; i += 3) {
+        const batchItems = activeEmpresaQueries.slice(i, i + 3);
+        const batchLabels = batchItems.map(e => SOURCE_LABELS[e.key] || e.key).join(", ");
+        setSearchProgress(`A pesquisar ${batchLabels}...`);
+        setSearchProgressPct(Math.round((i / activeEmpresaQueries.length) * 100));
         const settled = await Promise.allSettled(
-          batch.map(bq => firecrawlApi.search(bq, { limit: 15, lang: "pt", country: "ao" }))
+          batchItems.map(e => firecrawlApi.search(e.q, { limit: 15, lang: "pt", country: "ao" }))
         );
         for (const res of settled) {
           if (res.status === "fulfilled" && res.value.success && res.value.data) {
@@ -669,6 +676,7 @@ const Prospection = () => {
     } finally {
       setIsSearchingEmpresa(false);
       setSearchProgress("");
+      setSearchProgressPct(0);
     }
   };
 
@@ -752,7 +760,8 @@ const Prospection = () => {
 
       for (let i = 0; i < queries.length; i += 3) {
         const batch = queries.slice(i, i + 3);
-        setSearchProgress(`A pesquisar em ${batch.map(b => SOURCE_LABELS[b.source]).join(", ")}...`);
+        setSearchProgress(`A pesquisar ${batch.map(b => SOURCE_LABELS[b.source] || b.source).join(", ")}...`);
+        setSearchProgressPct(Math.round((i / queries.length) * 100));
 
         const batchPromises = batch.map(({ q: bq }) =>
           firecrawlApi.search(bq, { limit: 15, lang: "pt", country: "ao" })
@@ -803,6 +812,7 @@ const Prospection = () => {
     } finally {
       setIsSearching(false);
       setSearchProgress("");
+      setSearchProgressPct(0);
     }
   };
 
@@ -868,7 +878,8 @@ const Prospection = () => {
 
       for (let i = 0; i < queries.length; i += 3) {
         const batch = queries.slice(i, i + 3);
-        setSearchProgress(`A pesquisar em ${batch.map(b => SOURCE_LABELS[b.source] || b.source).join(", ")}...`);
+        setSearchProgress(`A pesquisar ${batch.map(b => SOURCE_LABELS[b.source] || b.source).join(", ")}...`);
+        setSearchProgressPct(Math.round((i / queries.length) * 100));
 
         const batchPromises = batch.map(({ q: bq }) =>
           firecrawlApi.search(bq, {
@@ -939,6 +950,7 @@ const Prospection = () => {
     } finally {
       setIsSearchingSocial(false);
       setSearchProgress("");
+      setSearchProgressPct(0);
     }
   };
 
@@ -1200,18 +1212,31 @@ const Prospection = () => {
                 </div>
 
                 {/* Search button */}
-                <Button
-                  type="submit"
-                  disabled={isSearchingEmpresa || !empresaQuery.trim()}
-                  className="w-full h-11 text-sm font-semibold mt-1"
-                  data-testid="button-empresa-search"
-                >
-                  {isSearchingEmpresa ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{searchProgress || "A pesquisar..."}</>
-                  ) : (
-                    <><Building2 className="mr-2 h-4 w-4" />Pesquisar Empresas</>
+                <div className="space-y-2">
+                  <Button
+                    type="submit"
+                    disabled={isSearchingEmpresa || !empresaQuery.trim()}
+                    className="w-full h-11 text-sm font-semibold mt-1"
+                    data-testid="button-empresa-search"
+                  >
+                    {isSearchingEmpresa ? (
+                      <span className="flex items-center min-w-0 gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                        <span className="truncate min-w-0">{searchProgress || "A pesquisar..."}</span>
+                      </span>
+                    ) : (
+                      <><Building2 className="mr-2 h-4 w-4" />Pesquisar Empresas</>
+                    )}
+                  </Button>
+                  {isSearchingEmpresa && (
+                    <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all duration-700 ease-out"
+                        style={{ width: `${searchProgressPct}%` }}
+                      />
+                    </div>
                   )}
-                </Button>
+                </div>
               </form>
             </CardContent>
           </Card>
@@ -1415,19 +1440,29 @@ const Prospection = () => {
                     </div>
                   )}
                 </div>
-                <Button type="submit" disabled={isSearching} className="w-full sm:w-auto overflow-hidden">
-                  {isSearching ? (
-                    <span className="flex items-center min-w-0">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
-                      <span className="truncate min-w-0">{searchProgress || "A pesquisar..."}</span>
-                    </span>
-                  ) : (
-                    <>
-                      <Search className="mr-2 h-4 w-4" />
-                      Pesquisar em Todas as Fontes
-                    </>
+                <div className="w-full sm:w-auto space-y-2">
+                  <Button type="submit" disabled={isSearching} className="w-full sm:w-auto overflow-hidden">
+                    {isSearching ? (
+                      <span className="flex items-center min-w-0">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
+                        <span className="truncate min-w-0">{searchProgress || "A pesquisar..."}</span>
+                      </span>
+                    ) : (
+                      <>
+                        <Search className="mr-2 h-4 w-4" />
+                        Pesquisar em Todas as Fontes
+                      </>
+                    )}
+                  </Button>
+                  {isSearching && (
+                    <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all duration-700 ease-out"
+                        style={{ width: `${searchProgressPct}%` }}
+                      />
+                    </div>
                   )}
-                </Button>
+                </div>
               </form>
             </CardContent>
           </Card>
@@ -1660,19 +1695,29 @@ const Prospection = () => {
                   </div>
                 </div>
 
-                <Button type="submit" disabled={isSearchingSocial} className="w-full sm:w-auto overflow-hidden">
-                  {isSearchingSocial ? (
-                    <span className="flex items-center min-w-0">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
-                      <span className="truncate min-w-0">{searchProgress || "A analisar..."}</span>
-                    </span>
-                  ) : (
-                    <>
-                      <TrendingUp className="mr-2 h-4 w-4" />
-                      Analisar em Todas as Fontes
-                    </>
+                <div className="w-full sm:w-auto space-y-2">
+                  <Button type="submit" disabled={isSearchingSocial} className="w-full sm:w-auto overflow-hidden">
+                    {isSearchingSocial ? (
+                      <span className="flex items-center min-w-0">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin shrink-0" />
+                        <span className="truncate min-w-0">{searchProgress || "A analisar..."}</span>
+                      </span>
+                    ) : (
+                      <>
+                        <TrendingUp className="mr-2 h-4 w-4" />
+                        Analisar em Todas as Fontes
+                      </>
+                    )}
+                  </Button>
+                  {isSearchingSocial && (
+                    <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all duration-700 ease-out"
+                        style={{ width: `${searchProgressPct}%` }}
+                      />
+                    </div>
                   )}
-                </Button>
+                </div>
               </form>
             </CardContent>
           </Card>
