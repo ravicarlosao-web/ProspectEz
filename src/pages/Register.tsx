@@ -144,7 +144,23 @@ const Register = () => {
     });
 
     if (error) {
-      toast.error(error.message);
+      // Translate common Supabase auth errors to Portuguese
+      const msg = error.message?.toLowerCase() || "";
+      if (msg.includes("user already registered") || msg.includes("already registered") || msg.includes("email already")) {
+        toast.error("Este email já está registado. Tente entrar na sua conta.");
+      } else if (msg.includes("password")) {
+        toast.error("A senha não cumpre os requisitos mínimos de segurança.");
+      } else if (msg.includes("email") && msg.includes("invalid")) {
+        toast.error("Email inválido. Verifique o endereço de email.");
+      } else if (msg.includes("rate limit") || msg.includes("too many")) {
+        toast.error("Demasiadas tentativas. Aguarde alguns minutos e tente novamente.");
+      } else if (msg.includes("network") || msg.includes("fetch")) {
+        toast.error("Erro de ligação. Verifique a sua internet e tente novamente.");
+      } else if (msg.includes("signup") && msg.includes("disabled")) {
+        toast.error("O registo está temporariamente desactivado. Contacte o suporte.");
+      } else {
+        toast.error("Erro ao criar conta: " + error.message);
+      }
       setLoading(false);
       return;
     }

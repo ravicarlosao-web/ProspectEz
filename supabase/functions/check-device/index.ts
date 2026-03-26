@@ -152,26 +152,9 @@ Deno.serve(async (req) => {
         );
       }
 
-      // 3. Check IP
-      if (ip !== "unknown") {
-        const { data: byIp } = await supabase
-          .from("device_registrations")
-          .select("id, email")
-          .eq("ip_address", ip)
-          .limit(1);
-
-        if (byIp && byIp.length > 0) {
-          const masked = byIp[0].email
-            ? byIp[0].email.replace(/(.{2})(.*)(@.*)/, "$1***$3")
-            : null;
-          return new Response(
-            JSON.stringify({ blocked: true, reason: "ip", registered_email: masked }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-      }
-
-      // 4. Rate limiting: max 3 attempts per IP in last hour
+      // 3. Rate limiting: max 10 attempts per IP in last hour
+      // NOTE: IP-based registration blocking was removed because Angola uses CGNAT
+      // (many users share the same public IP). Only token + fingerprint block on identity.
       if (ip !== "unknown") {
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
         const { count } = await supabase
@@ -180,7 +163,7 @@ Deno.serve(async (req) => {
           .eq("ip_address", ip)
           .gte("created_at", oneHourAgo);
 
-        if (count !== null && count >= 3) {
+        if (count !== null && count >= 10) {
           return new Response(
             JSON.stringify({ blocked: true, reason: "rate_limit", registered_email: null }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
