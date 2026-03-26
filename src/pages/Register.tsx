@@ -146,7 +146,9 @@ const Register = () => {
     if (error) {
       // Translate common Supabase auth errors to Portuguese
       const msg = error.message?.toLowerCase() || "";
-      if (msg.includes("user already registered") || msg.includes("already registered") || msg.includes("email already")) {
+      if (msg.includes("database error saving new user") || msg.includes("database error")) {
+        toast.error("Erro interno ao criar conta. Tente novamente em alguns segundos.");
+      } else if (msg.includes("user already registered") || msg.includes("already registered") || msg.includes("email already")) {
         toast.error("Este email já está registado. Tente entrar na sua conta.");
       } else if (msg.includes("password")) {
         toast.error("A senha não cumpre os requisitos mínimos de segurança.");
