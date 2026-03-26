@@ -7,9 +7,12 @@
 --   2. The trigger had no EXCEPTION handler, so any internal
 --      error propagated as "Database error saving new user"
 --      (Supabase auth rolls back the entire transaction).
+--   3. ON CONFLICT (user_id) on user_roles was wrong — the
+--      unique constraint is (user_id, role), not just (user_id).
+--      PostgreSQL raises an error for invalid ON CONFLICT targets,
+--      which is the TRUE root cause of "Database error saving new user".
 --
--- This migration restores all 3 inserts and wraps everything
--- in an EXCEPTION block so registration is never blocked.
+-- This migration fixes all 3 issues.
 -- ============================================================
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -41,9 +44,10 @@ BEGIN
       END;
 
   -- 2. Assign default role
+  --    UNIQUE constraint on user_roles is (user_id, role) — must match exactly
   INSERT INTO public.user_roles (user_id, role)
   VALUES (NEW.id, 'vendedor')
-  ON CONFLICT (user_id) DO NOTHING;
+  ON CONFLICT (user_id, role) DO NOTHING;
 
   -- 3. Create search quota — Free plan: 1 pesquisa vitalícia
   --    weekly_limit = 1  → 1 token lifetime (never auto-resets)
