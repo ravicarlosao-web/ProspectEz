@@ -213,25 +213,42 @@ export const AdminUsers = () => {
         await logAudit("change_role", editUser.user_id, { from: editUser.role, to: editForm.role });
       }
 
-      // Update quota
-      const quotaUpdate: any = {
-        plan_type: editForm.plan_type,
-        weekly_limit: editForm.weekly_limit,
-        monthly_limit: editForm.monthly_limit,
-      };
+      // Update quota via server-side RPC (SECURITY DEFINER — bypasses RLS)
+      let newTokensManually: number | undefined;
+      let tokensBonus = 0;
+      let tokensRemove = 0;
       if (editForm.tokens_bonus > 0) {
-        quotaUpdate.tokens_added_manually = (editUser.tokens_added_manually || 0) + editForm.tokens_bonus;
-        await logAudit("add_tokens", editUser.user_id, { amount: editForm.tokens_bonus });
+        tokensBonus = editForm.tokens_bonus;
+        newTokensManually = (editUser.tokens_added_manually || 0) + tokensBonus;
+        await logAudit("add_tokens", editUser.user_id, { amount: tokensBonus });
       }
       if (editForm.tokens_remove > 0) {
-        const currentTokens = quotaUpdate.tokens_added_manually ?? (editUser.tokens_added_manually || 0);
-        quotaUpdate.tokens_added_manually = Math.max(0, currentTokens - editForm.tokens_remove);
-        await logAudit("remove_tokens", editUser.user_id, { amount: editForm.tokens_remove });
+        tokensRemove = editForm.tokens_remove;
+        const base = newTokensManually ?? (editUser.tokens_added_manually || 0);
+        newTokensManually = Math.max(0, base - tokensRemove);
+        await logAudit("remove_tokens", editUser.user_id, { amount: tokensRemove });
       }
       if (editForm.plan_type !== editUser.plan_type) {
         await logAudit("change_plan", editUser.user_id, { from: editUser.plan_type, to: editForm.plan_type });
       }
-      await supabase.from("search_quotas").update(quotaUpdate).eq("user_id", editUser.user_id);
+
+      const { data: rpcResult, error: rpcError } = await supabase.rpc(
+        "admin_update_user_quota" as any,
+        {
+          p_target_user_id:  editUser.user_id,
+          p_plan_type:       editForm.plan_type,
+          p_weekly_limit:    editForm.weekly_limit,
+          p_monthly_limit:   editForm.monthly_limit,
+          p_tokens_manually: newTokensManually ?? null,
+        }
+      );
+
+      if (rpcError || (rpcResult as any)?.ok === false) {
+        const reason = (rpcResult as any)?.reason || rpcError?.message || "erro desconhecido";
+        toast.error(`Erro ao actualizar plano: ${reason}`);
+        setSaving(false);
+        return;
+      }
 
       // Update suspension
       if (editForm.is_suspended !== editUser.is_suspended) {
